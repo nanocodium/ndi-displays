@@ -7,7 +7,6 @@ import dev.nano.ndidisplays.client.gui.CameraConfigScreen;
 import dev.nano.ndidisplays.client.gui.PanelConfigScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 
 /** Client-only entry points, kept out of common classes for dedicated-server safety. */
@@ -22,7 +21,7 @@ public final class ClientHooks {
         if (level == null || !(level.getBlockEntity(pos) instanceof LedPanelBlockEntity clicked)) {
             return;
         }
-        Direction facing = clicked.getFacing();
+        dev.nano.ndidisplays.block.PanelFacing facing = clicked.getFacing();
         BlockPos anchorPos = WallScanner.findAnchor(level, pos, facing, clicked.getPanelKind());
         if (!(level.getBlockEntity(anchorPos) instanceof LedPanelBlockEntity anchor)) {
             return;

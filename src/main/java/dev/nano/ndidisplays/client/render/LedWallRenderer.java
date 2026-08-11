@@ -9,6 +9,7 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.nano.ndidisplays.block.LedPanelBlockEntity;
+import dev.nano.ndidisplays.block.PanelFacing;
 import dev.nano.ndidisplays.block.WallScanner;
 import dev.nano.ndidisplays.client.ClientSetup;
 import dev.nano.ndidisplays.client.ndi.NdiManager;
@@ -19,7 +20,6 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
-import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -90,26 +90,29 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
             texId = FallbackTextures.white();
         }
 
-        Direction facing = wall.facing();
-        Direction right = facing.getCounterClockWise();
+        PanelFacing facing = wall.facing();
         int w = wall.width();
         int h = wall.height();
         int pxPerBlock = be.getPixelsPerBlock();
+        // Pixels are counted per cabinet, not per block, so a diagonal wall's LED grid still
+        // lands exactly on its cabinet seams — as on a real wall, where each cabinet holds a
+        // whole number of LEDs. Diagonal cabinets are √2 blocks wide, so their pitch is
+        // correspondingly coarser.
         float gridW = pxPerBlock * w;
         float gridH = pxPerBlock * h;
 
-        Vec3 f = Vec3.atLowerCornerOf(facing.getNormal());
-        Vec3 r = Vec3.atLowerCornerOf(right.getNormal());
-        // Front emissive plane: cabinet hugs the back of the cell, screen sits at
-        // its front face, nudged outward by epsilon.
+        Vec3 f = facing.normal();
+        Vec3 r = facing.rightUnit();
+        double pitch = facing.pitch();
         Vec3 base = new Vec3(0.5, 0.0, 0.5)
-                .subtract(r.scale(0.5))
-                .subtract(f.scale(0.5 - THICKNESS - SURFACE_EPSILON));
+                .subtract(r.scale(pitch * 0.5))
+                .add(f.scale(facing.surfaceOffset(THICKNESS, SURFACE_EPSILON)));
 
-        Vec3 p00 = base;                              // bottom, viewer-left
-        Vec3 p10 = base.add(r.scale(w));              // bottom, viewer-right
-        Vec3 p11 = base.add(r.scale(w)).add(0, h, 0); // top, viewer-right
-        Vec3 p01 = base.add(0, h, 0);                 // top, viewer-left
+        Vec3 span = r.scale(pitch * w);
+        Vec3 p00 = base;                          // bottom, viewer-left
+        Vec3 p10 = base.add(span);                // bottom, viewer-right
+        Vec3 p11 = base.add(span).add(0, h, 0);   // top, viewer-right
+        Vec3 p01 = base.add(0, h, 0);             // top, viewer-left
 
         shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getBrightness());
         shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode, (float) pxPerBlock, CALIBRATION_VARIANCE);
@@ -169,18 +172,18 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
      */
     private void renderShaderPackCompat(LedPanelBlockEntity be, WallScanner.WallInfo wall, int mode,
                                         boolean blowThrough, PoseStack poseStack, MultiBufferSource buffers) {
-        Direction facing = wall.facing();
-        Direction right = facing.getCounterClockWise();
+        PanelFacing facing = wall.facing();
         int w = wall.width();
         int h = wall.height();
-        Vec3 f = Vec3.atLowerCornerOf(facing.getNormal());
-        Vec3 r = Vec3.atLowerCornerOf(right.getNormal());
+        Vec3 f = facing.normal();
+        Vec3 r = facing.rightUnit();
         Vec3 base = new Vec3(0.5, 0.0, 0.5)
-                .subtract(r.scale(0.5))
-                .subtract(f.scale(0.5 - THICKNESS - SURFACE_EPSILON));
+                .subtract(r.scale(facing.pitch() * 0.5))
+                .add(f.scale(facing.surfaceOffset(THICKNESS, SURFACE_EPSILON)));
+        Vec3 span = r.scale(facing.pitch() * w);
         Vec3 p00 = base;
-        Vec3 p10 = base.add(r.scale(w));
-        Vec3 p11 = base.add(r.scale(w)).add(0, h, 0);
+        Vec3 p10 = base.add(span);
+        Vec3 p11 = base.add(span).add(0, h, 0);
         Vec3 p01 = base.add(0, h, 0);
 
         // Preferred: the baker pre-renders the full LED simulation into a texture outside

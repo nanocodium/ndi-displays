@@ -41,8 +41,8 @@ public class LedPanelBlockEntity extends BlockEntity {
         super(NdiDisplays.LED_PANEL_BE.get(), pos, state);
     }
 
-    public Direction getFacing() {
-        return getBlockState().getValue(LedPanelBlock.FACING);
+    public PanelFacing getFacing() {
+        return PanelFacing.of(getBlockState());
     }
 
     public String getSourceName() {
@@ -113,7 +113,7 @@ public class LedPanelBlockEntity extends BlockEntity {
         }
         long now = lvl.getGameTime();
         if (cachedWall == null || now - cacheTime > 40 || now < cacheTime) {
-            Direction facing = getFacing();
+            PanelFacing facing = getFacing();
             Block kind = getPanelKind();
             BlockPos anchor = WallScanner.findAnchor(lvl, worldPosition, facing, kind);
             WallScanner.WallInfo rect = WallScanner.scan(lvl, anchor, facing, kind);
@@ -186,9 +186,10 @@ public class LedPanelBlockEntity extends BlockEntity {
         if (level != null && isRenderAnchor()) {
             WallScanner.WallInfo wall = getWallInfo();
             if (wall != null) {
-                Direction right = wall.facing().getCounterClockWise();
+                net.minecraft.core.Vec3i right = wall.facing().rightStep();
+                int span = wall.width() - 1;
                 BlockPos far = wall.anchor()
-                        .relative(right, wall.width() - 1)
+                        .offset(right.getX() * span, right.getY() * span, right.getZ() * span)
                         .above(wall.height() - 1);
                 AABB box = new AABB(wall.anchor()).minmax(new AABB(far));
                 return box.inflate(1.0);

@@ -3,7 +3,6 @@ package dev.nano.ndidisplays.net;
 import dev.nano.ndidisplays.block.LedPanelBlockEntity;
 import dev.nano.ndidisplays.block.WallScanner;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -55,7 +54,7 @@ public record UpdateWallConfigPacket(BlockPos pos, String source, int pxPerBlock
             // Apply to every connected panel, not just the rectangle: a builder thinks of a
             // half-finished or L-shaped arrangement as one screen, and settings should stick
             // to all of it so the wall is already configured once it becomes rectangular.
-            Direction facing = clicked.getFacing();
+            dev.nano.ndidisplays.block.PanelFacing facing = clicked.getFacing();
             net.minecraft.world.level.block.Block kind = clicked.getPanelKind();
             for (BlockPos panelPos : WallScanner.collectGroup(level, msg.pos, facing, kind)) {
                 if (level.getBlockEntity(panelPos) instanceof LedPanelBlockEntity panel) {

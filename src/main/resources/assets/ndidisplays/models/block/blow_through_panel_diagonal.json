@@ -1,0 +1,87 @@
+{
+    "__comment": "45 degree blow-through cabinet: same frame as the straight one, widened to the block diagonal (22.627) and rotated +45 about Y. Rails are split into halves so their texel density matches the straight cabinet; see led_panel_diagonal.",
+    "parent": "block/block",
+    "render_type": "minecraft:cutout",
+    "textures": {
+        "frame": "ndidisplays:block/led_panel_side",
+        "particle": "ndidisplays:block/led_panel_side"
+    },
+    "elements": [
+        {
+            "__comment": "top rail, outer half",
+            "from": [-3.3137, 15, 7],
+            "to": [8, 16, 9],
+            "rotation": { "origin": [8, 8, 8], "axis": "y", "angle": 45 },
+            "faces": {
+                "north": { "texture": "#frame", "uv": [0, 0, 11.3137, 1] },
+                "south": { "texture": "#frame", "uv": [0, 0, 11.3137, 1] },
+                "west": { "texture": "#frame", "uv": [0, 0, 2, 1] },
+                "up": { "texture": "#frame", "uv": [0, 0, 11.3137, 2] },
+                "down": { "texture": "#frame", "uv": [0, 0, 11.3137, 2] }
+            }
+        },
+        {
+            "__comment": "top rail, inner half",
+            "from": [8, 15, 7],
+            "to": [19.3137, 16, 9],
+            "rotation": { "origin": [8, 8, 8], "axis": "y", "angle": 45 },
+            "faces": {
+                "north": { "texture": "#frame", "uv": [4.6863, 0, 16, 1] },
+                "south": { "texture": "#frame", "uv": [4.6863, 0, 16, 1] },
+                "east": { "texture": "#frame", "uv": [0, 0, 2, 1] },
+                "up": { "texture": "#frame", "uv": [4.6863, 0, 16, 2] },
+                "down": { "texture": "#frame", "uv": [4.6863, 0, 16, 2] }
+            }
+        },
+        {
+            "__comment": "bottom rail, outer half",
+            "from": [-3.3137, 0, 7],
+            "to": [8, 1, 9],
+            "rotation": { "origin": [8, 8, 8], "axis": "y", "angle": 45 },
+            "faces": {
+                "north": { "texture": "#frame", "uv": [0, 0, 11.3137, 1] },
+                "south": { "texture": "#frame", "uv": [0, 0, 11.3137, 1] },
+                "west": { "texture": "#frame", "uv": [0, 0, 2, 1] },
+                "up": { "texture": "#frame", "uv": [0, 0, 11.3137, 2] },
+                "down": { "texture": "#frame", "uv": [0, 0, 11.3137, 2] }
+            }
+        },
+        {
+            "__comment": "bottom rail, inner half",
+            "from": [8, 0, 7],
+            "to": [19.3137, 1, 9],
+            "rotation": { "origin": [8, 8, 8], "axis": "y", "angle": 45 },
+            "faces": {
+                "north": { "texture": "#frame", "uv": [4.6863, 0, 16, 1] },
+                "south": { "texture": "#frame", "uv": [4.6863, 0, 16, 1] },
+                "east": { "texture": "#frame", "uv": [0, 0, 2, 1] },
+                "up": { "texture": "#frame", "uv": [4.6863, 0, 16, 2] },
+                "down": { "texture": "#frame", "uv": [4.6863, 0, 16, 2] }
+            }
+        },
+        {
+            "__comment": "left post",
+            "from": [-3.3137, 1, 7.5],
+            "to": [-2.3137, 15, 8.5],
+            "rotation": { "origin": [8, 8, 8], "axis": "y", "angle": 45 },
+            "faces": {
+                "north": { "texture": "#frame", "uv": [0, 0, 1, 14] },
+                "south": { "texture": "#frame", "uv": [0, 0, 1, 14] },
+                "east": { "texture": "#frame", "uv": [0, 0, 1, 14] },
+                "west": { "texture": "#frame", "uv": [0, 0, 1, 14] }
+            }
+        },
+        {
+            "__comment": "right post",
+            "from": [18.3137, 1, 7.5],
+            "to": [19.3137, 15, 8.5],
+            "rotation": { "origin": [8, 8, 8], "axis": "y", "angle": 45 },
+            "faces": {
+                "north": { "texture": "#frame", "uv": [0, 0, 1, 14] },
+                "south": { "texture": "#frame", "uv": [0, 0, 1, 14] },
+                "east": { "texture": "#frame", "uv": [0, 0, 1, 14] },
+                "west": { "texture": "#frame", "uv": [0, 0, 1, 14] }
+            }
+        }
+    ]
+}

@@ -1,0 +1,20 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "ndidisplays:block/ptz_camera",
+   "y": 0
+  },
+  "facing=east": {
+   "model": "ndidisplays:block/ptz_camera",
+   "y": 90
+  },
+  "facing=south": {
+   "model": "ndidisplays:block/ptz_camera",
+   "y": 180
+  },
+  "facing=west": {
+   "model": "ndidisplays:block/ptz_camera",
+   "y": 270
+  }
+ }
+}

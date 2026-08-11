@@ -1,0 +1,8 @@
+{
+    "variants": {
+        "facing=north": { "model": "ndidisplays:block/led_panel" },
+        "facing=east": { "model": "ndidisplays:block/led_panel", "y": 90 },
+        "facing=south": { "model": "ndidisplays:block/led_panel", "y": 180 },
+        "facing=west": { "model": "ndidisplays:block/led_panel", "y": 270 }
+    }
+}

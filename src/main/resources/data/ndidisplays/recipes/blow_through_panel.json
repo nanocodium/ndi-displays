@@ -1,0 +1,16 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "IGI",
+        "G G",
+        "IGI"
+    ],
+    "key": {
+        "I": { "item": "minecraft:iron_ingot" },
+        "G": { "item": "minecraft:glowstone_dust" }
+    },
+    "result": {
+        "item": "ndidisplays:blow_through_panel",
+        "count": 8
+    }
+}

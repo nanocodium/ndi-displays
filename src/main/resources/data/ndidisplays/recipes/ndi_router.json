@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "III",
+        "RCR",
+        "III"
+    ],
+    "key": {
+        "I": { "item": "minecraft:iron_ingot" },
+        "R": { "item": "minecraft:redstone" },
+        "C": { "item": "minecraft:comparator" }
+    },
+    "result": {
+        "item": "ndidisplays:ndi_router",
+        "count": 1
+    }
+}

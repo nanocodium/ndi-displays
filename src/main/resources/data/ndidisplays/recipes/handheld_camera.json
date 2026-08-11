@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "III",
+        "IGR",
+        "III"
+    ],
+    "key": {
+        "I": { "item": "minecraft:iron_ingot" },
+        "G": { "item": "minecraft:glass_pane" },
+        "R": { "item": "minecraft:redstone" }
+    },
+    "result": {
+        "item": "ndidisplays:handheld_camera",
+        "count": 1
+    }
+}

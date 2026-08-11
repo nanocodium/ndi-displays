@@ -1,0 +1,18 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "pattern": [
+  "C",
+  "I"
+ ],
+ "key": {
+  "I": {
+   "item": "minecraft:iron_ingot"
+  },
+  "C": {
+   "item": "ndidisplays:broadcast_camera"
+  }
+ },
+ "result": {
+  "item": "ndidisplays:track_camera"
+ }
+}

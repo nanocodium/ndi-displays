@@ -1,0 +1,10 @@
+{
+    "variants": {
+        "shape=east_west": { "model": "ndidisplays:block/camera_track" },
+        "shape=north_south": { "model": "ndidisplays:block/camera_track", "y": 90 },
+        "shape=north_east": { "model": "ndidisplays:block/camera_track_curve" },
+        "shape=south_east": { "model": "ndidisplays:block/camera_track_curve", "y": 90 },
+        "shape=south_west": { "model": "ndidisplays:block/camera_track_curve", "y": 180 },
+        "shape=north_west": { "model": "ndidisplays:block/camera_track_curve", "y": 270 }
+    }
+}

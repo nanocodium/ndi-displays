@@ -1,0 +1,23 @@
+{
+    "parent": "block/block",
+    "textures": {
+        "front": "ndidisplays:block/led_panel_front",
+        "back": "ndidisplays:block/led_panel_back",
+        "side": "ndidisplays:block/led_panel_side",
+        "particle": "ndidisplays:block/led_panel_side"
+    },
+    "elements": [
+        {
+            "from": [0, 0, 14],
+            "to": [16, 16, 16],
+            "faces": {
+                "north": { "texture": "#front" },
+                "south": { "texture": "#back" },
+                "east": { "texture": "#side" },
+                "west": { "texture": "#side" },
+                "up": { "texture": "#side" },
+                "down": { "texture": "#side" }
+            }
+        }
+    ]
+}

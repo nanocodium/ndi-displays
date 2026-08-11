@@ -1,0 +1,19 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "pattern": [
+  "III",
+  "SSS"
+ ],
+ "key": {
+  "I": {
+   "item": "minecraft:iron_ingot"
+  },
+  "S": {
+   "item": "minecraft:smooth_stone"
+  }
+ },
+ "result": {
+  "item": "ndidisplays:camera_track",
+  "count": 8
+ }
+}

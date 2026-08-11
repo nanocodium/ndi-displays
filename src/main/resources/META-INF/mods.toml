@@ -1,0 +1,36 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="ndidisplays"
+version="${file.jarVersion}"
+displayName="NDI Stage Displays"
+authors="nano"
+description='''
+Realistic LED video walls driven by real NDI network video.
+Build walls from LED panels, feed them from OBS or any NDI source,
+and configure pixel pitch, brightness, gamma and test patterns like
+a real LED processor.
+'''
+
+[[dependencies.ndidisplays]]
+modId="forge"
+mandatory=true
+versionRange="[47,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.ndidisplays]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.21)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.ndidisplays]]
+modId="shimmer"
+mandatory=false
+versionRange="[1.20.1-0.2.0,)"
+ordering="AFTER"
+side="CLIENT"

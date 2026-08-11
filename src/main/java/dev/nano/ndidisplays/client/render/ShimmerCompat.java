@@ -1,0 +1,142 @@
+package dev.nano.ndidisplays.client.render;
+
+import com.lowdragmc.shimmer.client.postprocessing.PostProcessing;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
+import dev.nano.ndidisplays.client.ClientSetup;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
+
+/**
+ * Optional Shimmer integration. Shimmer's post-entity pass draws submitted
+ * geometry with two draw buffers bound: attachment 0 is the main framebuffer
+ * (the quad becomes the visible surface) and attachment 1 is the bloom source
+ * that gets blurred and composited. A shader must therefore explicitly write
+ * both outputs — single-output shaders leave the bloom buffer empty, which is
+ * why we draw with our own MRT wall shader (led_wall_bloom) instead of a
+ * vanilla RenderType. The on-screen pixels are identical to the normal wall
+ * pass, and the glow is generated from the wall's actual simulated LED output.
+ *
+ * This class must only be loaded when the "shimmer" mod is present — gate
+ * every call behind {@code LedWallRenderer.SHIMMER_LOADED}.
+ */
+public final class ShimmerCompat {
+
+    private static java.lang.reflect.Field loadFailedField;
+
+    private ShimmerCompat() {
+    }
+
+    /**
+     * Suppresses all Shimmer post passes (block/entity/particle bloom) by
+     * temporarily marking their post chains as failed. Used during NDI camera
+     * captures: Shimmer's compositors sample the *real* screen framebuffer
+     * (bound at post-chain creation), so letting them run inside an off-screen
+     * capture pastes the player's last frame — HUD and all — into the feed.
+     * Returns the saved flags to pass to {@link #restorePostChains}.
+     */
+    public static boolean[] suppressPostChains() {
+        try {
+            if (loadFailedField == null) {
+                loadFailedField = PostProcessing.class.getDeclaredField("loadFailed");
+                loadFailedField.setAccessible(true);
+            }
+            java.util.Collection<PostProcessing> all = PostProcessing.values();
+            boolean[] saved = new boolean[all.size()];
+            int i = 0;
+            for (PostProcessing post : all) {
+                saved[i] = loadFailedField.getBoolean(post);
+                loadFailedField.setBoolean(post, true);
+                i++;
+            }
+            return saved;
+        } catch (ReflectiveOperationException e) {
+            return null;
+        }
+    }
+
+    public static void restorePostChains(boolean[] saved) {
+        if (saved == null || loadFailedField == null) {
+            return;
+        }
+        try {
+            int i = 0;
+            for (PostProcessing post : PostProcessing.values()) {
+                if (i >= saved.length) {
+                    break;
+                }
+                loadFailedField.setBoolean(post, saved[i]);
+                i++;
+            }
+        } catch (ReflectiveOperationException ignored) {
+        }
+    }
+
+    /**
+     * @param ledParams 8 floats: gridW, gridH, gap, brightness, gamma, mode,
+     *                  pxPerBlock, variance — the same values as the direct pass.
+     */
+    public static void submitBloom(Matrix4f pose, Vec3 p00, Vec3 p10, Vec3 p11, Vec3 p01,
+                                   ResourceLocation texture, float[] ledParams) {
+        if (ClientSetup.ledWallBloomShader == null) {
+            return;
+        }
+        // The consumer is drained later in the same frame's post pass; copy the
+        // matrix since the PoseStack entry is reused after the BER returns.
+        Matrix4f mat = new Matrix4f(pose);
+        RenderType type = BloomRenderType.of(texture, ledParams);
+        PostProcessing.BLOOM_UNREAL.postEntity(buffer -> {
+            VertexConsumer vc = buffer.getBuffer(type);
+            vertex(vc, mat, p00, 0.0F, 1.0F);
+            vertex(vc, mat, p10, 1.0F, 1.0F);
+            vertex(vc, mat, p11, 1.0F, 0.0F);
+            vertex(vc, mat, p01, 0.0F, 0.0F);
+        });
+    }
+
+    private static void vertex(VertexConsumer vc, Matrix4f mat, Vec3 pos, float u, float v) {
+        vc.vertex(mat, (float) pos.x, (float) pos.y, (float) pos.z)
+                .uv(u, v)
+                .color(255, 255, 255, 255)
+                .endVertex();
+    }
+
+    /** RenderType subclass purely for access to the protected state shards. */
+    private static final class BloomRenderType extends RenderType {
+
+        private BloomRenderType(String name, VertexFormat format, VertexFormat.Mode mode, int bufferSize,
+                                boolean affectsCrumbling, boolean sortOnUpload, Runnable setup, Runnable clear) {
+            super(name, format, mode, bufferSize, affectsCrumbling, sortOnUpload, setup, clear);
+            throw new IllegalStateException("not constructible");
+        }
+
+        /**
+         * A fresh instance per wall per frame: uniform values are applied at draw
+         * time (Shimmer's drain), so each wall needs its own type carrying its
+         * captured parameter snapshot. Distinct instances also keep the buffer
+         * source from merging walls into one batch under a single uniform set.
+         */
+        static RenderType of(ResourceLocation texture, float[] p) {
+            CompositeState state = CompositeState.builder()
+                    .setShaderState(new ShaderStateShard(() -> ClientSetup.ledWallBloomShader))
+                    .setTextureState(new TextureStateShard(texture, true, true))
+                    .setTransparencyState(NO_TRANSPARENCY)
+                    .setCullState(NO_CULL)
+                    .setTexturingState(new TexturingStateShard("ndidisplays_led_params", () -> {
+                        ShaderInstance shader = ClientSetup.ledWallBloomShader;
+                        if (shader != null) {
+                            shader.safeGetUniform("LedParams").set(p[0], p[1], p[2], p[3]);
+                            shader.safeGetUniform("LedParams2").set(p[4], p[5], p[6], p[7]);
+                        }
+                    }, () -> {
+                    }))
+                    .createCompositeState(false);
+            return create("ndidisplays_led_bloom", DefaultVertexFormat.POSITION_TEX_COLOR,
+                    VertexFormat.Mode.QUADS, 256, false, false, state);
+        }
+    }
+}

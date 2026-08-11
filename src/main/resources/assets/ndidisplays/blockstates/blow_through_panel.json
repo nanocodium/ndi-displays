@@ -1,0 +1,8 @@
+{
+    "variants": {
+        "facing=north": { "model": "ndidisplays:block/blow_through_panel" },
+        "facing=east": { "model": "ndidisplays:block/blow_through_panel", "y": 90 },
+        "facing=south": { "model": "ndidisplays:block/blow_through_panel", "y": 180 },
+        "facing=west": { "model": "ndidisplays:block/blow_through_panel", "y": 270 }
+    }
+}

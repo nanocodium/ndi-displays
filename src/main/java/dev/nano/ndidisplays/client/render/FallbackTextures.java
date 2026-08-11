@@ -7,6 +7,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.opengl.GL11C;
 import org.lwjgl.opengl.GL12C;
+import org.lwjgl.opengl.GL15C;
+import org.lwjgl.opengl.GL21C;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
@@ -53,6 +55,21 @@ public final class FallbackTextures {
         GlStateManager._bindTexture(id);
         ByteBuffer buf = MemoryUtil.memAlloc(4);
         buf.put((byte) r).put((byte) g).put((byte) b).put((byte) 255).flip();
+
+        // Pixel-store state is global and other code leaves it dirty — vanilla's
+        // NativeImage.upload() sets SKIP_PIXELS/SKIP_ROWS for atlas sub-regions and never
+        // restores them. Inheriting a non-zero value here is fatal rather than merely
+        // wrong: the driver reads at base + (SKIP_ROWS * ROW_LENGTH + SKIP_PIXELS) * 4,
+        // which for a four-byte allocation lands far outside it and kills the process.
+        // These values are the GL defaults, so setting and leaving them is safe.
+        GL11C.glPixelStorei(GL11C.GL_UNPACK_ROW_LENGTH, 0);
+        GL11C.glPixelStorei(GL11C.GL_UNPACK_SKIP_ROWS, 0);
+        GL11C.glPixelStorei(GL11C.GL_UNPACK_SKIP_PIXELS, 0);
+        GL11C.glPixelStorei(GL11C.GL_UNPACK_ALIGNMENT, 4);
+        // A bound unpack PBO would make GL treat the pointer below as an offset into that
+        // buffer instead of as client memory — the same crash by a different route.
+        GL15C.glBindBuffer(GL21C.GL_PIXEL_UNPACK_BUFFER, 0);
+
         GL11C.glTexImage2D(GL11C.GL_TEXTURE_2D, 0, GL11C.GL_RGBA8, 1, 1, 0,
                 GL11C.GL_RGBA, GL11C.GL_UNSIGNED_BYTE, buf);
         MemoryUtil.memFree(buf);

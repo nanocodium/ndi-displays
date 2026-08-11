@@ -404,6 +404,9 @@ public final class CameraFeedManager {
         if (!dev.nano.ndidisplays.client.ndi.NdiHost.shouldBroadcast()) {
             if (!FEEDS.isEmpty()) {
                 FEEDS.values().forEach(Feed::release);
+                // Drop them too, or the released feeds are re-released every frame and
+                // their names keep appearing as pickable sources that no longer exist.
+                FEEDS.clear();
             }
             return;
         }
@@ -633,7 +636,14 @@ public final class CameraFeedManager {
                 int h = 32;
                 ByteBuffer probe = MemoryUtil.memAlloc(w * h * 4);
                 GlStateManager._glBindFramebuffer(GL30C.GL_READ_FRAMEBUFFER, main.frameBufferId);
+                // All four pack parameters, not just alignment: a non-zero ROW_LENGTH or
+                // SKIP_* inherited from other code would make glReadPixels write beyond
+                // this allocation, corrupting the heap rather than just misreading.
+                GL11C.glPixelStorei(GL11C.GL_PACK_ROW_LENGTH, 0);
+                GL11C.glPixelStorei(GL11C.GL_PACK_SKIP_ROWS, 0);
+                GL11C.glPixelStorei(GL11C.GL_PACK_SKIP_PIXELS, 0);
                 GL11C.glPixelStorei(GL11C.GL_PACK_ALIGNMENT, 4);
+                GL15C.glBindBuffer(GL21C.GL_PIXEL_PACK_BUFFER, 0);
                 GL11C.glReadPixels(Math.max(0, main.viewWidth / 2 - w / 2),
                         Math.max(0, main.viewHeight / 2 - h / 2), w, h,
                         GL12C.GL_BGRA, GL11C.GL_UNSIGNED_BYTE, probe);

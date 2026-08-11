@@ -28,8 +28,19 @@ out vec4 fragColor;
  * cell the emitter spans horizontally, STRIP_H vertically — the product is roughly the
  * opacity, so ~12% here and ~88% transparent, typical of a mesh product.
  */
-const float STRIP_W = 0.45;
-const float STRIP_H = 0.26;
+const float STRIP_W = 0.55;
+const float STRIP_H = 0.40;
+
+/**
+ * Emitter drive, relative to a solid cabinet, in linear light and constant at every
+ * distance. Real transparent LED is driven far harder than a solid wall so it still reads
+ * against daylight through 78% open area, and this stands in for that.
+ *
+ * It must not vary with distance. Screen brightness here is the product of the emitter
+ * area actually covered and this gain; making either one distance-dependent makes the wall
+ * change brightness as the camera moves, which is what an earlier version did.
+ */
+const float EMITTER_GAIN = 2.6;
 
 float hash12(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -105,25 +116,26 @@ void main() {
     col = pow(max(col, vec3(0.0)), vec3(LedParams2.x));
     col *= 1.0 + (hash12(cell) - 0.5) * LedParams2.w;
 
-    // Emitter drive gain, applied only in the regime where it is physically meaningful.
-    //
-    // Up close each strip is resolved and opaque, so it should show the video at its true
-    // level — gain 1. Once the strips blur below a screen pixel the cell blends at its
-    // average coverage (~12%), and without compensation the wall would contribute only
-    // 0.12x of the image over a nearly full-strength background: a washed-out ghost.
-    // Real transparent LED reads clearly at distance precisely because its emitters are
-    // several times brighter than the surrounding scene, so recover most of the lost
-    // emitter area. Deliberately short of a full 1/coverage, since a mesh screen is
-    // genuinely meant to look translucent.
-    float lostArea = 1.0 / max(STRIP_W * STRIP_H, 0.02);
-    float gain = mix(1.0, min(lostArea * 0.75, 8.0), structFade);
-    col *= gain;
+    col *= EMITTER_GAIN;
 
     col = pow(max(col, vec3(0.0)), vec3(1.0 / 2.2));
     col *= LedParams.w;
 
-    // Alpha carries the coverage: up close each strip is solid and the gaps were
-    // discarded; at distance the whole cell blends at its average coverage.
-    float alpha = mix(1.0, coverage, structFade);
-    fragColor = vec4(col, alpha) * vertexColor * ColorModulator;
+    // Alpha *is* the coverage, at every distance. This is what keeps the wall's brightness
+    // constant as the camera moves, and it is worth being precise about why.
+    //
+    // What reaches the screen is alpha * colour, so the light a patch of wall contributes is
+    // its mean alpha times the emitter drive. Up close, coverage is the anti-aliased strip
+    // mask: ~1 inside a strip, 0 in the open air between them, averaging STRIP_W * STRIP_H
+    // over any area bigger than a cell. Far away, a cell is smaller than a pixel and
+    // coverage is exactly that same average. So the mean is identical in both regimes and
+    // only the *structure* changes — visible strips resolve into an even haze, which is all
+    // structFade was ever meant to do.
+    //
+    // Interpolating alpha toward 1 near the camera (as an earlier version did) broke that:
+    // it made near strips fully opaque *and* separately boosted the far gain to compensate
+    // for the coverage it had just cancelled, so the wall read punchy up close and washed
+    // out at a distance. Coverage is a physical property of the cabinet, not of how far away
+    // the viewer is standing.
+    fragColor = vec4(col, coverage) * vertexColor * ColorModulator;
 }

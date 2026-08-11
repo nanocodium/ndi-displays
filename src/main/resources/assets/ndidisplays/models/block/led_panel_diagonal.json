@@ -1,0 +1,38 @@
+{
+    "__comment": "45 degree cabinet, spanning the block's full diagonal (16*sqrt(2)=22.627) so it meets its diagonally-adjacent neighbour exactly at the shared corner and the angled surface is continuous. Built as two 11.314-wide halves purely so texel density stays 1:1 with the straight cabinet: one 22.627 face with uv 0..16 would magnify the texture by sqrt(2). Each half's uv width equals its world width. Depth is centred on the block, which is where LedWallRenderer puts the emissive plane for diagonal panels. Rotated +45 about Y, turning the front to north-west; the blockstate's y rotation supplies the other three diagonals.",
+    "parent": "block/block",
+    "textures": {
+        "front": "ndidisplays:block/led_panel_front",
+        "back": "ndidisplays:block/led_panel_back",
+        "side": "ndidisplays:block/led_panel_side",
+        "particle": "ndidisplays:block/led_panel_side"
+    },
+    "elements": [
+        {
+            "__comment": "outer half; inner (east) face omitted, it is buried against the other half",
+            "from": [-3.3137, 0, 7],
+            "to": [8, 16, 9],
+            "rotation": { "origin": [8, 8, 8], "axis": "y", "angle": 45 },
+            "faces": {
+                "north": { "texture": "#front", "uv": [0, 0, 11.3137, 16] },
+                "south": { "texture": "#back", "uv": [0, 0, 11.3137, 16] },
+                "west": { "texture": "#side", "uv": [0, 0, 2, 16] },
+                "up": { "texture": "#side", "uv": [0, 0, 11.3137, 2] },
+                "down": { "texture": "#side", "uv": [0, 0, 11.3137, 2] }
+            }
+        },
+        {
+            "__comment": "inner half; west face omitted for the same reason",
+            "from": [8, 0, 7],
+            "to": [19.3137, 16, 9],
+            "rotation": { "origin": [8, 8, 8], "axis": "y", "angle": 45 },
+            "faces": {
+                "north": { "texture": "#front", "uv": [4.6863, 0, 16, 16] },
+                "south": { "texture": "#back", "uv": [4.6863, 0, 16, 16] },
+                "east": { "texture": "#side", "uv": [0, 0, 2, 16] },
+                "up": { "texture": "#side", "uv": [4.6863, 0, 16, 2] },
+                "down": { "texture": "#side", "uv": [4.6863, 0, 16, 2] }
+            }
+        }
+    ]
+}

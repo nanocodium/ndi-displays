@@ -1,8 +1,13 @@
 {
     "variants": {
-        "facing=north": { "model": "ndidisplays:block/blow_through_panel" },
-        "facing=east": { "model": "ndidisplays:block/blow_through_panel", "y": 90 },
-        "facing=south": { "model": "ndidisplays:block/blow_through_panel", "y": 180 },
-        "facing=west": { "model": "ndidisplays:block/blow_through_panel", "y": 270 }
+        "facing=north,diagonal=false": { "model": "ndidisplays:block/blow_through_panel" },
+        "facing=east,diagonal=false": { "model": "ndidisplays:block/blow_through_panel", "y": 90 },
+        "facing=south,diagonal=false": { "model": "ndidisplays:block/blow_through_panel", "y": 180 },
+        "facing=west,diagonal=false": { "model": "ndidisplays:block/blow_through_panel", "y": 270 },
+
+        "facing=north,diagonal=true": { "model": "ndidisplays:block/blow_through_panel_diagonal" },
+        "facing=east,diagonal=true": { "model": "ndidisplays:block/blow_through_panel_diagonal", "y": 90 },
+        "facing=south,diagonal=true": { "model": "ndidisplays:block/blow_through_panel_diagonal", "y": 180 },
+        "facing=west,diagonal=true": { "model": "ndidisplays:block/blow_through_panel_diagonal", "y": 270 }
     }
 }

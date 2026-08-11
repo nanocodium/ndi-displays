@@ -1,0 +1,11 @@
+.gradle/
+build/
+run/
+out/
+.idea/
+.vscode/
+*.iml
+eclipse/
+*.log
+# Keep the wrapper itself — only the downloaded distributions are transient.
+!gradle/wrapper/gradle-wrapper.jar

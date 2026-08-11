@@ -1,0 +1,30 @@
+{
+    "parent": "block/block",
+    "textures": {
+        "body": "ndidisplays:block/camera_base",
+        "face": "ndidisplays:block/camera_dark",
+        "particle": "ndidisplays:block/camera_base"
+    },
+    "elements": [
+        {
+            "__comment": "1U rack chassis",
+            "from": [0, 0, 0],
+            "to": [16, 5, 16],
+            "faces": {
+                "north": { "texture": "#face" }, "south": { "texture": "#body" },
+                "east": { "texture": "#body" }, "west": { "texture": "#body" },
+                "up": { "texture": "#body" }, "down": { "texture": "#body" }
+            }
+        },
+        {
+            "__comment": "front patch strip",
+            "from": [1, 1, -0.2],
+            "to": [15, 4, 0.2],
+            "faces": {
+                "north": { "texture": "#face" }, "south": { "texture": "#face" },
+                "east": { "texture": "#face" }, "west": { "texture": "#face" },
+                "up": { "texture": "#face" }, "down": { "texture": "#face" }
+            }
+        }
+    ]
+}

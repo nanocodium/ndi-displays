@@ -1,0 +1,129 @@
+#version 150
+
+// Blow-through (transparent / mesh) LED wall simulation.
+//
+// Same optics as led_wall.fsh, but the inter-emitter area is genuinely open: those
+// fragments are discarded rather than shaded, so the world, and any lighting rig
+// behind the screen, reads straight through — which is the entire point of a
+// blow-through cabinet. Discarding (instead of blending alpha 0) also keeps the
+// depth buffer honest, so the gaps do not occlude what is behind them.
+//
+// LedParams  = (grid width in LEDs, grid height in LEDs, pixel gap fraction, brightness)
+// LedParams2 = (panel gamma, mode, LEDs per panel, calibration variance)
+// mode: 0 video, 1 colour bars, 2 alignment grid, 3 white, 4 red, 5 green, 6 blue, 7 checker
+
+uniform sampler2D Sampler0;
+uniform vec4 ColorModulator;
+uniform vec4 LedParams;
+uniform vec4 LedParams2;
+
+in vec2 texCoord0;
+in vec4 vertexColor;
+
+out vec4 fragColor;
+
+/**
+ * Emitter coverage of a blow-through cabinet. Real transparent LED is a grid of thin
+ * strips: narrow in one axis, very open in the other. STRIP_W is the fraction of the
+ * cell the emitter spans horizontally, STRIP_H vertically — the product is roughly the
+ * opacity, so ~12% here and ~88% transparent, typical of a mesh product.
+ */
+const float STRIP_W = 0.45;
+const float STRIP_H = 0.26;
+
+float hash12(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+vec3 patternColor(vec2 cell, vec2 grid) {
+    float mode = LedParams2.y;
+    vec2 uv = (cell + 0.5) / grid;
+    if (mode < 1.5) {
+        if (uv.y > 0.8) {
+            return vec3(floor(uv.x * 16.0) / 15.0);
+        }
+        int i = int(clamp(floor(uv.x * 8.0), 0.0, 7.0));
+        vec3 bars[8] = vec3[8](
+            vec3(1.0, 1.0, 1.0), vec3(1.0, 1.0, 0.0), vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 0.0),
+            vec3(1.0, 0.0, 1.0), vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0), vec3(0.05, 0.05, 0.05));
+        return bars[i] * 0.75;
+    } else if (mode < 2.5) {
+        float p = max(LedParams2.z, 2.0);
+        vec2 m = mod(cell, p);
+        float line = (m.x < 1.0 || m.y < 1.0) ? 1.0 : 0.0;
+        vec2 lc = m / p;
+        float diag = abs(lc.x - lc.y) < (1.5 / p) ? 0.35 : 0.0;
+        float border = (cell.x < 1.0 || cell.y < 1.0 || cell.x > grid.x - 2.0 || cell.y > grid.y - 2.0) ? 1.0 : 0.0;
+        return vec3(max(max(line, diag), border));
+    } else if (mode < 3.5) {
+        return vec3(1.0);
+    } else if (mode < 4.5) {
+        return vec3(1.0, 0.0, 0.0);
+    } else if (mode < 5.5) {
+        return vec3(0.0, 1.0, 0.0);
+    } else if (mode < 6.5) {
+        return vec3(0.0, 0.0, 1.0);
+    }
+    return vec3(mod(cell.x + cell.y, 2.0));
+}
+
+void main() {
+    vec2 grid = LedParams.xy;
+    vec2 g = texCoord0 * grid;
+    vec2 cell = floor(clamp(g, vec2(0.0), grid - 1.0));
+    vec2 f = g - cell;
+
+    // --- Emitter mask. Centred strip within the cell; everything else is open air.
+    vec2 aa = fwidth(g) + vec2(1e-4);
+    vec2 halfSize = vec2(STRIP_W, STRIP_H) * 0.5;
+    vec2 d = abs(f - 0.5);
+    vec2 cover = (1.0 - smoothstep(halfSize - aa, halfSize + aa, d));
+    float mask = cover.x * cover.y;
+
+    // Beyond the distance where a whole cell is smaller than a screen pixel the strips
+    // can no longer be resolved; fall back to the cell's average coverage so the wall
+    // fades to an even haze instead of aliasing into noise.
+    float ledsPerPixel = max(aa.x, aa.y);
+    float structFade = clamp((ledsPerPixel - 0.5) / 1.5, 0.0, 1.0);
+    float coverage = mix(mask, STRIP_W * STRIP_H, structFade);
+    if (coverage < 0.004) {
+        discard;
+    }
+
+    vec3 col;
+    if (LedParams2.y < 0.5) {
+        vec2 uvLed = (cell + 0.5) / grid;
+        vec2 texSize = vec2(textureSize(Sampler0, 0));
+        float lod = max(0.0, log2(max(texSize.x / grid.x, texSize.y / grid.y)));
+        col = textureLod(Sampler0, uvLed, lod).rgb;
+    } else {
+        col = patternColor(cell, grid);
+    }
+
+    col = pow(max(col, vec3(0.0)), vec3(LedParams2.x));
+    col *= 1.0 + (hash12(cell) - 0.5) * LedParams2.w;
+
+    // Emitter drive gain, applied only in the regime where it is physically meaningful.
+    //
+    // Up close each strip is resolved and opaque, so it should show the video at its true
+    // level — gain 1. Once the strips blur below a screen pixel the cell blends at its
+    // average coverage (~12%), and without compensation the wall would contribute only
+    // 0.12x of the image over a nearly full-strength background: a washed-out ghost.
+    // Real transparent LED reads clearly at distance precisely because its emitters are
+    // several times brighter than the surrounding scene, so recover most of the lost
+    // emitter area. Deliberately short of a full 1/coverage, since a mesh screen is
+    // genuinely meant to look translucent.
+    float lostArea = 1.0 / max(STRIP_W * STRIP_H, 0.02);
+    float gain = mix(1.0, min(lostArea * 0.75, 8.0), structFade);
+    col *= gain;
+
+    col = pow(max(col, vec3(0.0)), vec3(1.0 / 2.2));
+    col *= LedParams.w;
+
+    // Alpha carries the coverage: up close each strip is solid and the gaps were
+    // discarded; at distance the whole cell blends at its average coverage.
+    float alpha = mix(1.0, coverage, structFade);
+    fragColor = vec4(col, alpha) * vertexColor * ColorModulator;
+}

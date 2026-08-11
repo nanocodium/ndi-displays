@@ -1,0 +1,81 @@
+{
+    "__comment": "Curved dolly rail joining the north and south... i.e. the NORTH and EAST edges. Two rail stubs meeting at the block centre; the blockstate rotates this model for the other three corners.",
+    "parent": "block/block",
+    "textures": {
+        "r": "ndidisplays:block/camera_track",
+        "d": "ndidisplays:block/camera_dark",
+        "particle": "ndidisplays:block/camera_track"
+    },
+    "elements": [
+        {
+            "__comment": "north half - sleeper bed, running along Z",
+            "from": [2, 0, 0],
+            "to": [14, 1, 9],
+            "faces": {
+                "north": { "texture": "#d" }, "south": { "texture": "#d" },
+                "east": { "texture": "#d" }, "west": { "texture": "#d" },
+                "up": { "texture": "#d" }, "down": { "texture": "#d" }
+            }
+        },
+        {
+            "__comment": "east half - sleeper bed, running along X",
+            "from": [7, 0, 2],
+            "to": [16, 1, 14],
+            "faces": {
+                "north": { "texture": "#d" }, "south": { "texture": "#d" },
+                "east": { "texture": "#d" }, "west": { "texture": "#d" },
+                "up": { "texture": "#d" }, "down": { "texture": "#d" }
+            }
+        },
+        {
+            "__comment": "north half - outer rail",
+            "from": [2.5, 1, 0],
+            "to": [4, 2, 8],
+            "faces": {
+                "north": { "texture": "#r" }, "south": { "texture": "#r" },
+                "east": { "texture": "#r" }, "west": { "texture": "#r" },
+                "up": { "texture": "#r" }, "down": { "texture": "#r" }
+            }
+        },
+        {
+            "__comment": "north half - inner rail",
+            "from": [12, 1, 0],
+            "to": [13.5, 2, 12],
+            "faces": {
+                "north": { "texture": "#r" }, "south": { "texture": "#r" },
+                "east": { "texture": "#r" }, "west": { "texture": "#r" },
+                "up": { "texture": "#r" }, "down": { "texture": "#r" }
+            }
+        },
+        {
+            "__comment": "east half - outer rail (continues the wide arc)",
+            "from": [8, 1, 12],
+            "to": [16, 2, 13.5],
+            "faces": {
+                "north": { "texture": "#r" }, "south": { "texture": "#r" },
+                "east": { "texture": "#r" }, "west": { "texture": "#r" },
+                "up": { "texture": "#r" }, "down": { "texture": "#r" }
+            }
+        },
+        {
+            "__comment": "east half - inner rail (tight arc, meets the north outer rail)",
+            "from": [4, 1, 2.5],
+            "to": [16, 2, 4],
+            "faces": {
+                "north": { "texture": "#r" }, "south": { "texture": "#r" },
+                "east": { "texture": "#r" }, "west": { "texture": "#r" },
+                "up": { "texture": "#r" }, "down": { "texture": "#r" }
+            }
+        },
+        {
+            "__comment": "corner brace across the mitre",
+            "from": [3, 1, 3],
+            "to": [13.5, 1.6, 13.5],
+            "faces": {
+                "up": { "texture": "#d" }, "down": { "texture": "#d" },
+                "north": { "texture": "#d" }, "south": { "texture": "#d" },
+                "east": { "texture": "#d" }, "west": { "texture": "#d" }
+            }
+        }
+    ]
+}

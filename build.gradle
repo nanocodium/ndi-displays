@@ -1,0 +1,146 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+
+version = '1.0.0'
+group = 'dev.nano.ndidisplays'
+
+base {
+    archivesName = 'ndidisplays-1.20.1'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+def osName = System.getProperty('os.name').toLowerCase(Locale.ROOT)
+def isWindows = osName.contains('win')
+def isMac = osName.contains('mac') || osName.contains('darwin')
+
+// --- NDI runtime discovery for the dev run configs ------------------------
+// Devolay resolves the NDI runtime through NDI_RUNTIME_DIR_V5/V6 plus the
+// platform's native library search path. Point both at a real install so
+// `runClient` gets live video instead of "runtime not found".
+// Override with -PndiRuntimeDir=<path>, or by exporting NDI_RUNTIME_DIR_V5.
+def ndiRuntimeDir = {
+    if (project.hasProperty('ndiRuntimeDir')) {
+        return project.property('ndiRuntimeDir').toString()
+    }
+    def fromEnv = System.getenv('NDI_RUNTIME_DIR_V6') ?: System.getenv('NDI_RUNTIME_DIR_V5')
+    if (fromEnv) {
+        return fromEnv
+    }
+    def home = System.getProperty('user.home')
+    def candidates
+    if (isWindows) {
+        candidates = ['C:/Program Files/NDI/NDI 6 Runtime/v6',
+                      'C:/Program Files/NDI/NDI 5 Runtime/v5',
+                      'C:/Program Files/NewTek/NDI 5 Runtime/v5']
+    } else if (isMac) {
+        candidates = ['/usr/local/lib', "$home/.local/lib/ndi"]
+    } else {
+        candidates = ["$home/.local/lib/ndi", '/usr/local/lib', '/usr/lib']
+    }
+    return candidates.find { new File(it as String).isDirectory() } ?: candidates[0]
+}()
+
+/** Native library search path variable for the current platform. */
+def ndiLibPathVar = isWindows ? 'PATH' : (isMac ? 'DYLD_LIBRARY_PATH' : 'LD_LIBRARY_PATH')
+
+logger.lifecycle("[ndidisplays] NDI runtime dir: ${ndiRuntimeDir}" +
+        (new File(ndiRuntimeDir as String).isDirectory() ? '' : ' (not present — walls will show test patterns)'))
+
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+    copyIdeResources = true
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            environment 'NDI_RUNTIME_DIR_V5', ndiRuntimeDir
+            environment 'NDI_RUNTIME_DIR_V6', ndiRuntimeDir
+            environment ndiLibPathVar, (System.getenv(ndiLibPathVar)
+                    ? "${ndiRuntimeDir}${File.pathSeparator}${System.getenv(ndiLibPathVar)}"
+                    : ndiRuntimeDir.toString())
+            mods {
+                ndidisplays {
+                    source sourceSets.main
+                }
+            }
+        }
+        client {
+            // Jump straight into a singleplayer world instead of stopping at the main
+            // menu — handy when iterating on the wall/camera rendering:
+            //   gradlew.bat runClient -PquickPlay="NDI TEST"
+            // The value is the level folder name under run/saves/.
+            if (project.hasProperty('quickPlay')) {
+                args '--quickPlaySingleplayer', project.property('quickPlay').toString()
+            }
+            // gradlew.bat runClient -PdebugCapture — logs each camera rig's real capture
+            // geometry (eye position, aim, fov) alongside the player's position, so a
+            // mis-framed feed can be checked against the world rather than eyeballed.
+            if (project.hasProperty('debugCapture')) {
+                property 'ndidisplays.debugCapture', 'true'
+            }
+            // gradlew.bat runClient -PperfLog — reports game fps, per-capture cost, the
+            // adaptive capture budget and each watched rig's delivered frame rate.
+            if (project.hasProperty('perfLog')) {
+                property 'ndidisplays.perfLog', 'true'
+            }
+            // Pass through the capture tunables so they can be swept without editing code:
+            //   -PcapturesPerFrame=3 -PmaxCapturesPerFrame=6 -PtargetGameFps=60
+            ['capturesPerFrame', 'maxCapturesPerFrame', 'targetGameFps'].each { key ->
+                if (project.hasProperty(key)) {
+                    property "ndidisplays.${key}", project.property(key).toString()
+                }
+            }
+        }
+        server {
+            args '--nogui'
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.firstdarkdev.xyz/snapshots' }
+}
+
+jarJar.enable()
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.3.0'
+
+    minecraftLibrary 'me.walkerknapp:devolay:2.1.0'
+    jarJar('me.walkerknapp:devolay:[2.1.0,3.0)') {
+        jarJar.pin(it, '2.1.0')
+    }
+
+    // Optional bloom integration (compile-only: Shimmer's production mixins can't
+    // apply in the mojmap dev runtime; the integration activates in a real launcher
+    // when Shimmer is installed). Transitives off — its pom references unresolvable deps.
+    compileOnly fg.deobf(project.dependencies.create('com.lowdragmc.shimmer:Shimmer-forge:1.20.1-0.2.4') { transitive = false })
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title'     : 'ndidisplays',
+                'Specification-Vendor'    : 'nano',
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : 'nano'
+        ])
+    }
+}
+
+jar.finalizedBy('reobfJar')
+tasks.named('jarJar') { finalizedBy 'reobfJarJar' }
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

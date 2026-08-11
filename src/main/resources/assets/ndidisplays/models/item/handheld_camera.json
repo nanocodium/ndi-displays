@@ -1,0 +1,50 @@
+{
+    "parent": "block/block",
+    "textures": {
+        "d": "ndidisplays:block/camera_dark",
+        "b": "ndidisplays:block/camera_base",
+        "particle": "ndidisplays:block/camera_dark"
+    },
+    "elements": [
+        {
+            "__comment": "camera body",
+            "from": [4, 5, 5],
+            "to": [12, 11, 13],
+            "faces": {
+                "north": { "texture": "#d" }, "south": { "texture": "#d" },
+                "east": { "texture": "#d" }, "west": { "texture": "#d" },
+                "up": { "texture": "#d" }, "down": { "texture": "#d" }
+            }
+        },
+        {
+            "__comment": "lens barrel",
+            "from": [6, 6, 2],
+            "to": [10, 10, 5],
+            "faces": {
+                "north": { "texture": "#b" }, "south": { "texture": "#b" },
+                "east": { "texture": "#b" }, "west": { "texture": "#b" },
+                "up": { "texture": "#b" }, "down": { "texture": "#b" }
+            }
+        },
+        {
+            "__comment": "top handle",
+            "from": [6, 11, 6],
+            "to": [10, 13, 12],
+            "faces": {
+                "north": { "texture": "#b" }, "south": { "texture": "#b" },
+                "east": { "texture": "#b" }, "west": { "texture": "#b" },
+                "up": { "texture": "#b" }, "down": { "texture": "#b" }
+            }
+        },
+        {
+            "__comment": "side viewfinder",
+            "from": [12, 8, 7],
+            "to": [14, 11, 11],
+            "faces": {
+                "north": { "texture": "#d" }, "south": { "texture": "#d" },
+                "east": { "texture": "#d" }, "west": { "texture": "#d" },
+                "up": { "texture": "#d" }, "down": { "texture": "#d" }
+            }
+        }
+    ]
+}

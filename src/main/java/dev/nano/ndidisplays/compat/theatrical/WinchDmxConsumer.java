@@ -8,7 +8,9 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.UUID;
 
 /**
- * Theatrical DMX consumer delegate for a kinetic winch. 4-channel footprint:
+ * Theatrical DMX consumer delegate for a kinetic winch.
+ *
+ * LINKED mode (default), 4-channel footprint:
  *
  * <pre>
  *   1  Height coarse ┐ 16-bit position, exactly like a moving head's pan/tilt:
@@ -17,9 +19,22 @@ import java.util.UUID;
  *   4  Dimmer          video brightness, 0 = blackout
  * </pre>
  *
+ * TWIN mode, 6-channel footprint — the two cables become independent motors and the
+ * tile tilts to follow their height difference:
+ *
+ * <pre>
+ *   1  Winch A coarse ┐ 16-bit
+ *   2  Winch A fine   ┘
+ *   3  Winch B coarse ┐ 16-bit, clamped within the configured tilt limit around A
+ *   4  Winch B fine   ┘
+ *   5  Speed
+ *   6  Dimmer
+ * </pre>
+ *
  * With height patched 16-bit, a desk can run {@code Fixture 201 Thru 210 At 100}
- * to drop a whole row, or phase a sine over the height attribute for the Freedom
- * Stage ceiling-wave look. The winch's own motion profile smooths every move.
+ * to drop a whole row, phase a sine over height for the Freedom Stage ceiling wave,
+ * or in twin mode phase A against B for tilt waves. The winch's own motion profile
+ * smooths every move.
  */
 final class WinchDmxConsumer implements DMXConsumer {
 
@@ -31,7 +46,7 @@ final class WinchDmxConsumer implements DMXConsumer {
 
     @Override
     public int getChannelCount() {
-        return KineticWinchBlockEntity.DMX_CHANNEL_COUNT;
+        return be.getDmxChannelCount();
     }
 
     @Override
@@ -48,6 +63,16 @@ final class WinchDmxConsumer implements DMXConsumer {
     public void consume(byte[] dmxValues) {
         int start = getChannelStart() > 0 ? getChannelStart() - 1 : 0;
         if (dmxValues.length < start + getChannelCount()) {
+            return;
+        }
+        if (be.isTwinMode()) {
+            int heightA = (Byte.toUnsignedInt(dmxValues[start]) << 8)
+                    | Byte.toUnsignedInt(dmxValues[start + 1]);
+            int heightB = (Byte.toUnsignedInt(dmxValues[start + 2]) << 8)
+                    | Byte.toUnsignedInt(dmxValues[start + 3]);
+            int speed = Byte.toUnsignedInt(dmxValues[start + 4]);
+            int dimmer = Byte.toUnsignedInt(dmxValues[start + 5]);
+            be.applyDmxTwin(heightA, heightB, speed, dimmer);
             return;
         }
         int coarse = Byte.toUnsignedInt(dmxValues[start]);

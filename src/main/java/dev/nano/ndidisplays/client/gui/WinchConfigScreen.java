@@ -62,6 +62,10 @@ public class WinchConfigScreen extends Screen {
     private float speed;
     /** Manual target, normalised 0..1 over the min→max envelope. */
     private double targetNorm;
+    /** Twin mode: winch B's manual target, same normalisation. */
+    private double targetBNorm;
+    private boolean twinMode;
+    private float maxTilt;
     private UUID networkId;
 
     private EditBox sourceBox;
@@ -89,6 +93,9 @@ public class WinchConfigScreen extends Screen {
         this.speed = winch.getSpeed();
         float span = Math.max(0.01F, winch.getMaxDrop() - winch.getMinDrop());
         this.targetNorm = (winch.getTargetDrop() - winch.getMinDrop()) / span;
+        this.targetBNorm = (winch.getTargetDropB() - winch.getMinDrop()) / span;
+        this.twinMode = winch.isTwinMode();
+        this.maxTilt = winch.getMaxTilt();
         this.networkId = winch.getNetworkId();
     }
 
@@ -159,12 +166,32 @@ public class WinchConfigScreen extends Screen {
                 v -> String.format("Speed: %.2f m/s", v)));
         y += 30;
 
-        // Flight envelope + manual target.
+        // Flight envelope + manual target (winch A — the only motor in LINKED mode).
         addNumBox(left, y, 60, minDropText, v -> minDropText = v);
         addNumBox(left + 66, y, 60, maxDropText, v -> maxDropText = v);
         addRenderableWidget(new FloatSlider(left + 138, y, 126, targetNorm, 0.0, 1.0,
                 v -> targetNorm = v,
-                v -> String.format("Target: %.2f m", parseF(minDropText, winch.getMinDrop())
+                v -> String.format("Target A: %.2f m", parseF(minDropText, winch.getMinDrop())
+                        + v * Math.max(0, parseF(maxDropText, winch.getMaxDrop())
+                        - parseF(minDropText, winch.getMinDrop())))));
+        y += 30;
+
+        // Twin winch mode: the two cables become independent motors and the tile tilts.
+        addRenderableWidget(CycleButton.<Boolean>builder(twin ->
+                        Component.translatable(twin ? "gui.ndidisplays.winch.mode.twin"
+                                : "gui.ndidisplays.winch.mode.linked"))
+                .withValues(List.of(Boolean.FALSE, Boolean.TRUE))
+                .withInitialValue(twinMode)
+                .displayOnlyValue()
+                .create(left, y, 60, 18, Component.translatable("gui.ndidisplays.winch.mode"),
+                        (btn, val) -> twinMode = val));
+        addRenderableWidget(new FloatSlider(left + 66, y, 66, maxTilt,
+                0.0, KineticWinchBlockEntity.MAX_TILT_LIMIT,
+                v -> maxTilt = (float) v,
+                v -> String.format("%.0f\u00B0", v)));
+        addRenderableWidget(new FloatSlider(left + 138, y, 126, targetBNorm, 0.0, 1.0,
+                v -> targetBNorm = v,
+                v -> String.format("Target B: %.2f m", parseF(minDropText, winch.getMinDrop())
                         + v * Math.max(0, parseF(maxDropText, winch.getMaxDrop())
                         - parseF(minDropText, winch.getMinDrop())))));
         y += 30;
@@ -212,6 +239,7 @@ public class WinchConfigScreen extends Screen {
         float minDrop = parseF(minDropText, winch.getMinDrop());
         float maxDrop = Math.max(minDrop, parseF(maxDropText, winch.getMaxDrop()));
         float target = minDrop + (float) targetNorm * (maxDrop - minDrop);
+        float targetB = minDrop + (float) targetBNorm * (maxDrop - minDrop);
         NetworkHandler.CHANNEL.sendToServer(new UpdateWinchConfigPacket(
                 winch.getBlockPos(),
                 sourceBox.getValue().trim(),
@@ -230,6 +258,9 @@ public class WinchConfigScreen extends Screen {
                 maxDrop,
                 speed,
                 target,
+                twinMode,
+                maxTilt,
+                targetB,
                 parseI(universeText, winch.getDmxUniverse()),
                 parseI(addressText, winch.getDmxAddress()),
                 networkId));
@@ -262,14 +293,15 @@ public class WinchConfigScreen extends Screen {
         labels(graphics, left, 80, "Canvas W", "Canvas H", "My Col", "My Row");
         labels(graphics, left, 110, "Panel W", "Panel H", "Orient", "Mesh");
         labels(graphics, left, 184, "Min m", "Max m", "", "");
-        labels(graphics, left, 214, "Universe", "Address",
+        labels(graphics, left, 214, "Mode", "Max tilt", "", "");
+        labels(graphics, left, 244, "Universe", "Address",
                 TheatricalCompat.LOADED ? "DMX Network" : "", "");
         graphics.drawString(font, NdiManager.getStatus(), left, height - 16,
                 NdiManager.isAvailable() ? 0x60D060 : 0xE06060);
         if (!TheatricalCompat.LOADED) {
             graphics.drawString(font,
                     Component.translatable("gui.ndidisplays.winch.no_theatrical"),
-                    left + 138, 218, 0x808080);
+                    left + 138, 248, 0x808080);
         }
         if (picker != null) {
             picker.renderScrollbar(graphics);

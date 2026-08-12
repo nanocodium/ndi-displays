@@ -79,6 +79,41 @@ terrain the viewer's client has built (fine for stage/venue shots).
 Settings are per-wall and saved with the world. Video reception is client-side;
 each viewer needs the NDI runtime and network access to the source.
 
+Tip: set the source to a short distinctive fragment (`Arena - Composition`)
+rather than the full machine-prefixed name. Matching is exact first, then
+case-insensitive substring, so the short form keeps working on machines where
+the source carries a different prefix.
+
+### Angled walls
+
+Panels have eight orientations. Facing roughly north/east/south/west gives a
+square panel; facing between them gives a 45° one, so stand square to the
+angle you want and place on the ground. Clicking a block's side still snaps
+flush to that face. Build a 45° wall as a staircase — one block diagonally
+each time — and the cabinets meet corner to corner into one continuous
+angled surface.
+
+A wall is one flat rectangle, so a straight section and a 45° wing are two
+separate walls with their own sources, meeting at a corner.
+
+### Multiplayer
+
+Install the mod on the server too — it registers the blocks, and Forge
+requires it on both sides. The server never touches NDI: no runtime, no
+config, no ports.
+
+Receiving works for everyone. Broadcasting must come from **one** machine, or
+every client publishes a duplicate copy of every camera and renders it again.
+In `config/ndidisplays-client.toml`:
+
+    [broadcast]
+        mode = "ALWAYS"   # on the operator's machine only
+
+`AUTO` (the default) broadcasts only in singleplayer or when hosting a LAN
+world, so on a server nothing is published until one machine opts in. The
+handheld camera is named per player and has its own switch, so several
+players can each carry one.
+
 ## Building from source
 
 Linux / macOS:

@@ -23,6 +23,7 @@ public record UpdateWinchConfigPacket(BlockPos pos, String source, int pxPerBloc
                                       int canvasCols, int canvasRows, int canvasCol, int canvasRow,
                                       int panelW, int panelH, int orientation, boolean mesh,
                                       float minDrop, float maxDrop, float speed, float targetDrop,
+                                      boolean twinMode, float maxTilt, float targetDropB,
                                       int dmxUniverse, int dmxAddress, UUID networkId) {
 
     public static void encode(UpdateWinchConfigPacket msg, FriendlyByteBuf buf) {
@@ -43,6 +44,9 @@ public record UpdateWinchConfigPacket(BlockPos pos, String source, int pxPerBloc
         buf.writeFloat(msg.maxDrop);
         buf.writeFloat(msg.speed);
         buf.writeFloat(msg.targetDrop);
+        buf.writeBoolean(msg.twinMode);
+        buf.writeFloat(msg.maxTilt);
+        buf.writeFloat(msg.targetDropB);
         buf.writeVarInt(msg.dmxUniverse);
         buf.writeVarInt(msg.dmxAddress);
         buf.writeUUID(msg.networkId);
@@ -65,6 +69,9 @@ public record UpdateWinchConfigPacket(BlockPos pos, String source, int pxPerBloc
                 buf.readBoolean(),
                 buf.readFloat(),
                 buf.readFloat(),
+                buf.readFloat(),
+                buf.readFloat(),
+                buf.readBoolean(),
                 buf.readFloat(),
                 buf.readFloat(),
                 buf.readVarInt(),
@@ -92,6 +99,7 @@ public record UpdateWinchConfigPacket(BlockPos pos, String source, int pxPerBloc
                     msg.canvasCols, msg.canvasRows, msg.canvasCol, msg.canvasRow,
                     msg.panelW, msg.panelH, msg.orientation, msg.mesh,
                     msg.minDrop, msg.maxDrop, msg.speed, msg.targetDrop,
+                    msg.twinMode, msg.maxTilt, msg.targetDropB,
                     msg.dmxUniverse, msg.dmxAddress, msg.networkId);
             TheatricalCompat.register(winch);
             BlockState state = level.getBlockState(msg.pos);

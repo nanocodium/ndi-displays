@@ -34,6 +34,13 @@ import java.util.UUID;
  *
  * DMX (optional, via Theatrical): 4 channels — height coarse, height fine (16-bit,
  * 0 = all the way up, 65535 = all the way down), speed, dimmer.
+ *
+ * Twin mode: the two suspension cables become two independent motors (Winch A on the
+ * tile's right-hand attachment, Winch B on the left), each flying its own trapezoidal
+ * profile. The tile tilts to follow the height difference — same UV slice of the
+ * canvas, only the 3D transform changes — which is what lets a desk run tilt waves
+ * across an array, not just vertical ones. The DMX footprint grows to 6 channels
+ * (A coarse/fine, B coarse/fine, speed, dimmer); LINKED keeps the default 4.
  */
 public class KineticWinchBlockEntity extends BlockEntity {
 
@@ -48,8 +55,13 @@ public class KineticWinchBlockEntity extends BlockEntity {
     public static final int MAX_PANEL_SIZE = 8;
     /** Largest video canvas dimension, tiles. */
     public static final int MAX_CANVAS = 64;
-    /** DMX footprint: height coarse, height fine, speed, dimmer. */
+    /** DMX footprint in LINKED mode: height coarse, height fine, speed, dimmer. */
     public static final int DMX_CHANNEL_COUNT = 4;
+    /** DMX footprint in TWIN mode: A coarse/fine, B coarse/fine, speed, dimmer. */
+    public static final int DMX_CHANNEL_COUNT_TWIN = 6;
+    /** Steepest tilt limit configurable, degrees from horizontal. */
+    public static final float MAX_TILT_LIMIT = 45.0F;
+    private static final float DEFAULT_MAX_TILT = 15.0F;
 
     /** Seconds to reach full speed — sets the accel/decel ramp of the motion profile. */
     private static final float ACCEL_TIME = 0.5F;
@@ -90,11 +102,24 @@ public class KineticWinchBlockEntity extends BlockEntity {
     private float maxDrop = 7.0F;
     /** Configured working speed, m/s; the DMX speed channel can override it. */
     private float speed = 1.0F;
-    private float targetDrop = 0.5F;
+    /**
+     * TWIN: the two cables are independent motors and the tile tilts to follow their
+     * height difference. LINKED (default): motor A drives both attachments.
+     */
+    private boolean twinMode;
+    /** Steepest tilt allowed in twin mode, degrees; B's target is clamped around A's. */
+    private float maxTilt = DEFAULT_MAX_TILT;
 
+    // Motor A — also the only motor in LINKED mode. Field names kept for NBT compat.
+    private float targetDrop = 0.5F;
     private float currentDrop = 0.5F;
     private float prevDrop = 0.5F;
     private float velocity;
+    // Motor B — mirrors A while LINKED so switching modes never jumps the tile.
+    private float targetDropB = 0.5F;
+    private float currentDropB = 0.5F;
+    private float prevDropB = 0.5F;
+    private float velocityB;
     /** Set after the first NBT load so later sync packets never teleport the tile. */
     private boolean motionInitialized;
 
@@ -200,6 +225,42 @@ public class KineticWinchBlockEntity extends BlockEntity {
         return prevDrop + (currentDrop - prevDrop) * partialTick;
     }
 
+    public boolean isTwinMode() {
+        return twinMode;
+    }
+
+    public float getMaxTilt() {
+        return maxTilt;
+    }
+
+    public float getTargetDropB() {
+        return twinMode ? targetDropB : targetDrop;
+    }
+
+    /** Winch B's interpolated drop; in LINKED mode it is simply motor A's. */
+    public float getRenderDropB(float partialTick) {
+        if (!twinMode) {
+            return getRenderDrop(partialTick);
+        }
+        return prevDropB + (currentDropB - prevDropB) * partialTick;
+    }
+
+    /**
+     * Horizontal distance between the two cable attachment points, metres — the lever
+     * arm the A/B height difference tilts the tile over. Must match the renderer's
+     * cable inset so the drawn tilt equals the physical geometry.
+     */
+    public float cableSpan() {
+        float inset = Math.min(0.2F, panelWidth * 0.25F);
+        return Math.max(0.1F, panelWidth - 2.0F * inset);
+    }
+
+    /** Largest A/B drop difference the configured tilt limit allows. */
+    private float maxDropDifference() {
+        return (float) Math.tan(Math.toRadians(Clamps.f(maxTilt, 0.0F, MAX_TILT_LIMIT, DEFAULT_MAX_TILT)))
+                * cableSpan();
+    }
+
     public int getDmxUniverse() {
         return dmxUniverse;
     }
@@ -245,6 +306,7 @@ public class KineticWinchBlockEntity extends BlockEntity {
                             int cols, int rows, int col, int row,
                             int panelW, int panelH, int orientation, boolean mesh,
                             float minDrop, float maxDrop, float speed, float targetDrop,
+                            boolean twinMode, float maxTilt, float targetDropB,
                             int universe, int address, UUID network) {
         this.sourceName = Clamps.name(source, MAX_SOURCE_NAME);
         this.pixelsPerBlock = Clamps.i(pxPerBlock, 8, 1024);
@@ -262,10 +324,24 @@ public class KineticWinchBlockEntity extends BlockEntity {
         this.maxDrop = Clamps.f(maxDrop, this.minDrop, MAX_DROP_LIMIT, Math.max(this.minDrop, 7.0F));
         this.speed = Clamps.f(speed, 0.05F, MAX_SPEED, 1.0F);
         this.targetDrop = Clamps.f(targetDrop, this.minDrop, this.maxDrop, this.minDrop);
+        this.twinMode = twinMode;
+        this.maxTilt = Clamps.f(maxTilt, 0.0F, MAX_TILT_LIMIT, DEFAULT_MAX_TILT);
+        this.targetDropB = clampTargetB(Clamps.f(targetDropB, this.minDrop, this.maxDrop, this.targetDrop));
         this.dmxUniverse = Clamps.i(universe, 0, 32767);
         this.dmxAddress = Clamps.i(address, 1, 512);
         this.networkId = network == null ? NULL_UUID : network;
         setChanged();
+    }
+
+    /** B's target held within the tilt limit around A's — A is the master motor. */
+    private float clampTargetB(float wanted) {
+        return clampTargetB(wanted, targetDrop);
+    }
+
+    private float clampTargetB(float wanted, float aTarget) {
+        float maxDiff = maxDropDifference();
+        return Clamps.f(wanted, Math.max(minDrop, aTarget - maxDiff),
+                Math.min(maxDrop, aTarget + maxDiff), aTarget);
     }
 
     /** NDI configuration card: switch to live video with the card's source. */
@@ -319,6 +395,39 @@ public class KineticWinchBlockEntity extends BlockEntity {
         }
     }
 
+    /**
+     * TWIN-mode DMX frame: two independent 16-bit heights over the same min→max
+     * envelope. B is clamped within the tilt limit around A, so a desk cannot fold
+     * the tile past what the rig allows — exactly like a motion controller's safety
+     * envelope.
+     */
+    public void applyDmxTwin(int heightA16, int heightB16, int speedByte, int dimmer) {
+        float span = maxDrop - minDrop;
+        float newTargetA = minDrop + (heightA16 / 65535.0F) * span;
+        float newTargetB = clampTargetB(minDrop + (heightB16 / 65535.0F) * span, newTargetA);
+        boolean changed = Math.abs(newTargetA - targetDrop) > 0.001F
+                || Math.abs(newTargetB - targetDropB) > 0.001F
+                || speedByte != dmxSpeed
+                || dimmer != dmxDimmer;
+        if (!changed) {
+            return;
+        }
+        targetDrop = newTargetA;
+        targetDropB = newTargetB;
+        dmxSpeed = speedByte;
+        dmxDimmer = dimmer;
+        setChanged();
+        if (level != null) {
+            BlockState state = getBlockState();
+            level.sendBlockUpdated(worldPosition, state, state, 3);
+        }
+    }
+
+    /** This winch's DMX footprint: 4 channels LINKED (the default), 6 in TWIN. */
+    public int getDmxChannelCount() {
+        return twinMode ? DMX_CHANNEL_COUNT_TWIN : DMX_CHANNEL_COUNT;
+    }
+
     /** Working speed for this move: DMX speed channel overrides the configured speed. */
     private float effectiveSpeed() {
         if (dmxSpeed <= 0) {
@@ -336,36 +445,53 @@ public class KineticWinchBlockEntity extends BlockEntity {
      */
     public static void tick(Level level, BlockPos pos, BlockState state, KineticWinchBlockEntity be) {
         be.prevDrop = be.currentDrop;
-
-        float target = Clamps.f(be.targetDrop, be.minDrop, be.maxDrop, be.minDrop);
-        float dist = target - be.currentDrop;
-        if (Math.abs(dist) < 1e-4F && Math.abs(be.velocity) < 1e-3F) {
-            be.currentDrop = target;
-            be.velocity = 0;
-            return;
-        }
+        be.prevDropB = be.currentDropB;
 
         float maxV = be.effectiveSpeed();
+        float[] a = step(be.currentDrop, be.velocity,
+                Clamps.f(be.targetDrop, be.minDrop, be.maxDrop, be.minDrop), maxV);
+        be.currentDrop = a[0];
+        be.velocity = a[1];
+
+        if (be.twinMode) {
+            float[] b = step(be.currentDropB, be.velocityB,
+                    Clamps.f(be.targetDropB, be.minDrop, be.maxDrop, be.minDrop), maxV);
+            be.currentDropB = b[0];
+            be.velocityB = b[1];
+        } else {
+            // Mirror A so a later switch to TWIN starts level instead of jumping.
+            be.currentDropB = be.currentDrop;
+            be.prevDropB = be.prevDrop;
+            be.targetDropB = be.targetDrop;
+            be.velocityB = 0;
+        }
+    }
+
+    /** One 50 ms integration of the trapezoidal profile; returns {position, velocity}. */
+    private static float[] step(float current, float velocity, float target, float maxV) {
+        float dist = target - current;
+        if (Math.abs(dist) < 1e-4F && Math.abs(velocity) < 1e-3F) {
+            return new float[]{target, 0};
+        }
+
         float accel = maxV / ACCEL_TIME;
         float dir = Math.signum(dist);
         // Decelerate once the remaining distance is what the current speed needs to stop in.
-        float stopDist = (be.velocity * be.velocity) / (2 * accel);
-        float desired = (Math.signum(be.velocity) == dir && stopDist >= Math.abs(dist))
+        float stopDist = (velocity * velocity) / (2 * accel);
+        float desired = (Math.signum(velocity) == dir && stopDist >= Math.abs(dist))
                 ? 0 : dir * maxV;
 
-        if (be.velocity < desired) {
-            be.velocity = Math.min(be.velocity + accel * DT, desired);
-        } else if (be.velocity > desired) {
-            be.velocity = Math.max(be.velocity - accel * DT, desired);
+        if (velocity < desired) {
+            velocity = Math.min(velocity + accel * DT, desired);
+        } else if (velocity > desired) {
+            velocity = Math.max(velocity - accel * DT, desired);
         }
 
-        float step = be.velocity * DT;
+        float step = velocity * DT;
         if (Math.signum(step) == dir && Math.abs(step) >= Math.abs(dist)) {
-            be.currentDrop = target;
-            be.velocity = 0;
-        } else {
-            be.currentDrop += step;
+            return new float[]{target, 0};
         }
+        return new float[]{current + step, velocity};
     }
 
     // ------------------------------------------------------------------ lifecycle
@@ -407,8 +533,12 @@ public class KineticWinchBlockEntity extends BlockEntity {
         tag.putFloat("MinDrop", minDrop);
         tag.putFloat("MaxDrop", maxDrop);
         tag.putFloat("Speed", speed);
+        tag.putBoolean("TwinMode", twinMode);
+        tag.putFloat("MaxTilt", maxTilt);
         tag.putFloat("TargetDrop", targetDrop);
         tag.putFloat("CurrentDrop", currentDrop);
+        tag.putFloat("TargetDropB", targetDropB);
+        tag.putFloat("CurrentDropB", currentDropB);
         tag.putInt("DmxUniverse", dmxUniverse);
         tag.putInt("DmxAddress", dmxAddress);
         tag.putUUID("DmxNetwork", networkId);
@@ -439,7 +569,12 @@ public class KineticWinchBlockEntity extends BlockEntity {
         minDrop = Clamps.f(tag.contains("MinDrop") ? tag.getFloat("MinDrop") : 0.5F, 0.0F, MAX_DROP_LIMIT, 0.5F);
         maxDrop = Clamps.f(tag.contains("MaxDrop") ? tag.getFloat("MaxDrop") : 7.0F, minDrop, MAX_DROP_LIMIT, 7.0F);
         speed = Clamps.f(tag.contains("Speed") ? tag.getFloat("Speed") : 1.0F, 0.05F, MAX_SPEED, 1.0F);
+        twinMode = tag.getBoolean("TwinMode");
+        maxTilt = Clamps.f(tag.contains("MaxTilt") ? tag.getFloat("MaxTilt") : DEFAULT_MAX_TILT,
+                0.0F, MAX_TILT_LIMIT, DEFAULT_MAX_TILT);
         targetDrop = Clamps.f(tag.getFloat("TargetDrop"), minDrop, maxDrop, minDrop);
+        targetDropB = Clamps.f(tag.contains("TargetDropB") ? tag.getFloat("TargetDropB") : targetDrop,
+                minDrop, maxDrop, targetDrop);
         dmxUniverse = Clamps.i(tag.getInt("DmxUniverse"), 0, 32767);
         dmxAddress = Clamps.i(tag.contains("DmxAddress") ? tag.getInt("DmxAddress") : 1, 1, 512);
         networkId = tag.hasUUID("DmxNetwork") ? tag.getUUID("DmxNetwork") : NULL_UUID;
@@ -457,6 +592,10 @@ public class KineticWinchBlockEntity extends BlockEntity {
             currentDrop = Clamps.f(saved, 0.0F, MAX_DROP_LIMIT, targetDrop);
             prevDrop = currentDrop;
             velocity = 0;
+            float savedB = tag.contains("CurrentDropB") ? tag.getFloat("CurrentDropB") : targetDropB;
+            currentDropB = Clamps.f(savedB, 0.0F, MAX_DROP_LIMIT, targetDropB);
+            prevDropB = currentDropB;
+            velocityB = 0;
             motionInitialized = true;
         }
     }

@@ -72,11 +72,22 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
             return;
         }
 
-        float drop = Math.max(0.05F, be.getRenderDrop(partialTick));
+        // Twin mode: each cable is its own motor. The tile hangs level at the mean of
+        // the two drops and rolls around the facing axis to meet both attachment
+        // heights — same UV window on the shared canvas, only the transform changes.
+        float dropA = Math.max(0.05F, be.getRenderDrop(partialTick));
+        float dropB = Math.max(0.05F, be.getRenderDropB(partialTick));
+        float drop = (dropA + dropB) * 0.5F;
         Direction facing = be.getFacing();
         Vec3 fwd = Vec3.atLowerCornerOf(facing.getNormal());
         Vec3 right = Vec3.atLowerCornerOf(facing.getClockWise().getNormal());
         Vec3 center = new Vec3(0.5, 0, 0.5);
+
+        // Rotation by +tilt around fwd moves the +right side down by sin(tilt), so the
+        // A cable (at +right) sitting deeper than B needs a positive angle.
+        float tiltSin = net.minecraft.util.Mth.clamp((dropA - dropB) / be.cableSpan(), -0.95F, 0.95F);
+        float tilt = (float) Math.asin(tiltSin);
+        boolean tilted = Math.abs(tilt) > 1e-4F;
 
         boolean flat = be.getOrientation() == KineticWinchBlockEntity.ORIENTATION_FLAT;
         float w = be.getPanelWidth();
@@ -123,6 +134,17 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
             cableB = center.subtract(right.scale(w * 0.5 - inset)).add(0, topY, 0);
         }
 
+        // The cables hang vertically in world space, so they draw through the untilted
+        // matrix; everything bolted to the tile (bar, links, cabinet, LED face) draws
+        // through a pose rolled around the facing axis at the tile's top-centre pivot.
+        Matrix4f matWorld = poseStack.last().pose();
+        poseStack.pushPose();
+        if (tilted) {
+            poseStack.translate(0.5, topY, 0.5);
+            poseStack.mulPose(new org.joml.Quaternionf()
+                    .setAngleAxis(tilt, (float) fwd.x, (float) fwd.y, (float) fwd.z));
+            poseStack.translate(-0.5, -topY, -0.5);
+        }
         Matrix4f mat = poseStack.last().pose();
 
         // --- Suspension hardware + cabinet through the normal buffered pipeline.
@@ -150,11 +172,15 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
                     0.12F, packedLight);
         }
 
-        // Wire ropes: from the top of the bar up to the winch drum.
-        drawCable(solid, mat, new Vec3(cableA.x, barTopY - 0.01, cableA.z),
-                new Vec3(cableA.x, DRUM_Y, cableA.z), right, fwd, packedLight);
-        drawCable(solid, mat, new Vec3(cableB.x, barTopY - 0.01, cableB.z),
-                new Vec3(cableB.x, DRUM_Y, cableB.z), right, fwd, packedLight);
+        // Wire ropes: from the top of the (possibly tilted) bar straight up to the
+        // drum. The bar-end positions are rotated into world space by hand, then each
+        // rope rises vertically from wherever its end landed — winch A pays out more
+        // cable than winch B, which is exactly what the twin mode simulates.
+        Vec3 pivot = new Vec3(0.5, topY, 0.5);
+        Vec3 ropeA = rotateAroundPivot(new Vec3(cableA.x, barTopY - 0.01, cableA.z), pivot, fwd, tilt);
+        Vec3 ropeB = rotateAroundPivot(new Vec3(cableB.x, barTopY - 0.01, cableB.z), pivot, fwd, tilt);
+        drawCable(solid, matWorld, ropeA, new Vec3(ropeA.x, DRUM_Y, ropeA.z), right, fwd, packedLight);
+        drawCable(solid, matWorld, ropeB, new Vec3(ropeB.x, DRUM_Y, ropeB.z), right, fwd, packedLight);
         if (!be.isMesh()) {
             Vec3 boxMin;
             Vec3 boxMax;
@@ -191,11 +217,13 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
         if (ShaderPackCompat.shaderPackActive()) {
             renderShaderPackCompat(be, mode, p00, p10, p11, p01, flat ? new Vec3(0, -1, 0) : fwd,
                     uOff, vOff, uScale, vScale, poseStack, buffers);
+            poseStack.popPose();
             return;
         }
 
         ShaderInstance shader = be.isMesh() ? ClientSetup.ledWallTransparentShader : ClientSetup.ledWallShader;
         if (shader == null) {
+            poseStack.popPose();
             return;
         }
 
@@ -244,6 +272,20 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
         if (be.isMesh()) {
             RenderSystem.disableBlend();
         }
+        poseStack.popPose();
+    }
+
+    /** Rodrigues rotation of {@code p} by {@code angle} around {@code axis} through {@code pivot}. */
+    private static Vec3 rotateAroundPivot(Vec3 p, Vec3 pivot, Vec3 axis, float angle) {
+        if (Math.abs(angle) < 1e-4F) {
+            return p;
+        }
+        double cos = Math.cos(angle);
+        double sin = Math.sin(angle);
+        Vec3 d = p.subtract(pivot);
+        return pivot.add(d.scale(cos))
+                .add(axis.cross(d).scale(sin))
+                .add(axis.scale(axis.dot(d) * (1.0 - cos)));
     }
 
     /**

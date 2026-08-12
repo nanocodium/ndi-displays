@@ -32,9 +32,17 @@ public final class ClientEvents {
                 net.minecraft.client.Minecraft.getInstance().level;
         if (level != lastLevel) {
             lastLevel = level;
+            // Receivers are re-acquired lazily by the wall renderers, so a full reset is safe.
             NdiManager.shutdownAll();
-            CameraFeedManager.shutdownAll();
-            dev.nano.ndidisplays.client.ndi.RouterManager.shutdownAll();
+            // Senders and router registrations must NOT be blanket-wiped here: on a fresh
+            // join, the first chunks — and the onLoad() registrations of the cameras and
+            // routers in them — can arrive in the very same tick that swaps the level, so
+            // a full shutdown threw those registrations away and every rig near the player
+            // stayed dark until its block was broken and re-placed. Purging only entries
+            // whose block entity belongs to another level keeps same-tick registrations
+            // and still drops everything from the dimension that was just left.
+            CameraFeedManager.purgeStale(level);
+            dev.nano.ndidisplays.client.ndi.RouterManager.purgeStale(level);
         }
         NdiManager.tick();
         dev.nano.ndidisplays.client.ndi.RouterManager.tick();

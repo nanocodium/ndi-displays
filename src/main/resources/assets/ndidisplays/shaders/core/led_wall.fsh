@@ -4,12 +4,17 @@
 //
 // LedParams  = (grid width in LEDs, grid height in LEDs, pixel gap fraction, brightness)
 // LedParams2 = (panel gamma, mode, LEDs per panel, calibration variance)
+// UvRegion   = (u offset, v offset, u scale, v scale) — the slice of the video this
+//              surface shows. Whole walls use (0,0,1,1); kinetic tiles each sample
+//              their own rectangle of the shared canvas, so a bank of flying tiles
+//              behaves as one big screen that physically decomposes.
 // mode: 0 video, 1 colour bars, 2 alignment grid, 3 white, 4 red, 5 green, 6 blue, 7 checker
 
 uniform sampler2D Sampler0;
 uniform vec4 ColorModulator;
 uniform vec4 LedParams;
 uniform vec4 LedParams2;
+uniform vec4 UvRegion;
 
 in vec2 texCoord0;
 in vec4 vertexColor;
@@ -66,8 +71,9 @@ void main() {
     // like a real LED processor. LOD picks the mip matching feed px per LED.
     vec3 col;
     if (LedParams2.y < 0.5) {
-        vec2 uvLed = (cell + 0.5) / grid;
-        vec2 texSize = vec2(textureSize(Sampler0, 0));
+        vec2 uvLed = UvRegion.xy + ((cell + 0.5) / grid) * UvRegion.zw;
+        // Source pixels actually covered by this surface, for the mip choice.
+        vec2 texSize = vec2(textureSize(Sampler0, 0)) * UvRegion.zw;
         float lod = max(0.0, log2(max(texSize.x / grid.x, texSize.y / grid.y)));
         col = textureLod(Sampler0, uvLed, lod).rgb;
     } else {

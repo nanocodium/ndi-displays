@@ -99,6 +99,23 @@ public final class RouterManager {
     }
 
     /**
+     * Drops only routers registered against a different level (or removed): the
+     * level-change cleanup. See CameraFeedManager.purgeStale — a blanket shutdown here
+     * raced the same-tick onLoad registrations on world join and killed the routers
+     * that had just come online.
+     */
+    public static void purgeStale(net.minecraft.client.multiplayer.ClientLevel level) {
+        ROUTERS.entrySet().removeIf(entry -> {
+            NdiRouterBlockEntity be = entry.getValue().be;
+            if (be.isRemoved() || be.getLevel() != level) {
+                entry.getValue().close();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    /**
      * Client tick: create routers that do not exist yet, rename them when the operator
      * changes the output name, and repatch their source. Resolving the source only when
      * something changed (or every couple of seconds, so a source appearing late is picked

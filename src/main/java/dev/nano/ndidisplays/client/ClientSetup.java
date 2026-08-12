@@ -36,6 +36,8 @@ public final class ClientSetup {
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(NdiDisplays.LED_PANEL_BE.get(), ctx -> new LedWallRenderer());
         event.registerBlockEntityRenderer(NdiDisplays.CAMERA_BE.get(), ctx -> new CameraRenderer());
+        event.registerBlockEntityRenderer(NdiDisplays.KINETIC_WINCH_BE.get(),
+                ctx -> new dev.nano.ndidisplays.client.render.KineticPanelRenderer());
     }
 
     @SubscribeEvent

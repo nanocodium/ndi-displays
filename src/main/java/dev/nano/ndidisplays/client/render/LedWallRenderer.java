@@ -116,6 +116,9 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
 
         shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getBrightness());
         shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode, (float) pxPerBlock, CALIBRATION_VARIANCE);
+        // Walls always show the whole video; kinetic tiles set a sub-rectangle here, so
+        // this must be reset every draw or a wall drawn after a tile inherits its slice.
+        shader.safeGetUniform("UvRegion").set(0.0F, 0.0F, 1.0F, 1.0F);
 
         RenderSystem.setShader(() -> shader);
         RenderSystem.setShaderTexture(0, texId);

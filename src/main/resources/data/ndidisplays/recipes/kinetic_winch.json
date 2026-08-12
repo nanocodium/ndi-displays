@@ -1,0 +1,18 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "III",
+        "SPS",
+        " L "
+    ],
+    "key": {
+        "I": { "item": "minecraft:iron_ingot" },
+        "S": { "item": "minecraft:string" },
+        "P": { "item": "minecraft:piston" },
+        "L": { "item": "ndidisplays:led_panel" }
+    },
+    "result": {
+        "item": "ndidisplays:kinetic_winch",
+        "count": 1
+    }
+}

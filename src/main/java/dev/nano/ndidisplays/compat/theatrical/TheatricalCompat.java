@@ -1,0 +1,82 @@
+package dev.nano.ndidisplays.compat.theatrical;
+
+import com.mojang.logging.LogUtils;
+import dev.nano.ndidisplays.block.KineticWinchBlockEntity;
+import net.minecraftforge.fml.ModList;
+import org.slf4j.Logger;
+
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Safe gate for the optional Theatrical integration. This class never references a
+ * Theatrical type, so it can load anywhere; everything that does lives in
+ * {@link TheatricalHooks} / {@link TheatricalClientHooks}, which are only classloaded
+ * behind the {@link #LOADED} check.
+ *
+ * Theatrical's DMX API has moved between alpha builds (dmx.DMXNetworkData →
+ * networks.TheatricalNetworkData), so every call is also guarded against linkage
+ * errors: an installed Theatrical whose API doesn't match what this mod was compiled
+ * against turns the integration off with one log line instead of crashing the server.
+ */
+public final class TheatricalCompat {
+
+    public static final boolean LOADED = ModList.get().isLoaded("theatrical");
+
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static volatile boolean broken;
+
+    private TheatricalCompat() {
+    }
+
+    private static boolean active() {
+        return LOADED && !broken;
+    }
+
+    private static void markBroken(LinkageError e) {
+        broken = true;
+        LOGGER.error("[ndidisplays] Installed Theatrical version has an incompatible DMX API; "
+                + "kinetic winch DMX control is disabled (GUI control still works). "
+                + "Rebuild ndi-displays against this Theatrical version to re-enable it.", e);
+    }
+
+    /** Registers the winch as a DMX consumer on its Theatrical network (server side). */
+    public static void register(KineticWinchBlockEntity be) {
+        if (!active()) {
+            return;
+        }
+        try {
+            TheatricalHooks.register(be);
+        } catch (LinkageError e) {
+            markBroken(e);
+        }
+    }
+
+    /** Removes the winch from its Theatrical network (server side). */
+    public static void unregister(KineticWinchBlockEntity be) {
+        if (!active()) {
+            return;
+        }
+        try {
+            TheatricalHooks.unregister(be);
+        } catch (LinkageError e) {
+            markBroken(e);
+        }
+    }
+
+    /**
+     * Known Theatrical networks (id → display name), for the config screen's network
+     * picker. Client side; empty when Theatrical is absent.
+     */
+    public static Map<UUID, String> knownNetworks() {
+        if (!active()) {
+            return Map.of();
+        }
+        try {
+            return TheatricalClientHooks.knownNetworks();
+        } catch (LinkageError e) {
+            markBroken(e);
+            return Map.of();
+        }
+    }
+}

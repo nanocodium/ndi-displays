@@ -29,6 +29,27 @@ public final class ClientHooks {
         mc.setScreen(new PanelConfigScreen(anchor));
     }
 
+    public static void openWinchConfig(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level != null && level.getBlockEntity(pos)
+                instanceof dev.nano.ndidisplays.block.KineticWinchBlockEntity winch) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.WinchConfigScreen(winch));
+        }
+    }
+
+    public static void openNdiCardConfig(net.minecraft.world.InteractionHand hand) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) {
+            return;
+        }
+        net.minecraft.world.item.ItemStack stack = mc.player.getItemInHand(hand);
+        if (stack.getItem() instanceof dev.nano.ndidisplays.item.NdiConfigCardItem) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.NdiCardScreen(hand,
+                    dev.nano.ndidisplays.item.NdiConfigCardItem.storedSource(stack)));
+        }
+    }
+
     public static void openCameraConfig(BlockPos pos) {
         Minecraft mc = Minecraft.getInstance();
         Level level = mc.level;

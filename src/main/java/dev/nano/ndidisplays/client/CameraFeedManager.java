@@ -333,6 +333,24 @@ public final class CameraFeedManager {
     }
 
     /**
+     * Drops only the feeds registered against a different level (or already removed):
+     * the level-change cleanup. A blanket shutdown on level change raced the join —
+     * block entities loading in the same tick registered first and were then wiped,
+     * leaving their rigs off air until re-placed. Feeds of the level being entered
+     * (registered by onLoad this very tick) are kept.
+     */
+    public static void purgeStale(net.minecraft.client.multiplayer.ClientLevel level) {
+        FEEDS.entrySet().removeIf(entry -> {
+            NdiCameraBlockEntity be = entry.getValue().be;
+            if (be.isRemoved() || be.getLevel() != level) {
+                entry.getValue().release();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    /**
      * Releases everything the capture path owns. Called when leaving a world, so the
      * framebuffers and native staging buffers are not kept for the rest of the process
      * (and are rebuilt on demand if another world is joined).

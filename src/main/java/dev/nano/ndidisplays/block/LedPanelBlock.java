@@ -125,6 +125,25 @@ public class LedPanelBlock extends HorizontalDirectionalBlock implements EntityB
 
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        // NDI configuration card: swipe the whole wall to NDI video with the card's source.
+        if (player.getItemInHand(hand).getItem() instanceof dev.nano.ndidisplays.item.NdiConfigCardItem) {
+            if (!level.isClientSide && level.getBlockEntity(pos) instanceof LedPanelBlockEntity clicked) {
+                String source = dev.nano.ndidisplays.item.NdiConfigCardItem
+                        .storedSource(player.getItemInHand(hand));
+                for (BlockPos panelPos : WallScanner.collectGroup(level, pos, clicked.getFacing(),
+                        clicked.getPanelKind())) {
+                    if (level.getBlockEntity(panelPos) instanceof LedPanelBlockEntity panel) {
+                        panel.applyConfig(source, panel.getPixelsPerBlock(), panel.getBrightness(),
+                                panel.getGamma(), 0);
+                        BlockState panelState = level.getBlockState(panelPos);
+                        level.sendBlockUpdated(panelPos, panelState, panelState, 3);
+                    }
+                }
+                player.displayClientMessage(net.minecraft.network.chat.Component.translatable(
+                        "item.ndidisplays.ndi_config_card.applied", source), true);
+            }
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
         if (level.isClientSide) {
             DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
                     dev.nano.ndidisplays.client.ClientHooks.openPanelConfig(pos));

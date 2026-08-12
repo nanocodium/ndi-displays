@@ -16,6 +16,9 @@ uniform sampler2D Sampler0;
 uniform vec4 ColorModulator;
 uniform vec4 LedParams;
 uniform vec4 LedParams2;
+// (u offset, v offset, u scale, v scale) — slice of the video this surface shows;
+// walls use (0,0,1,1), kinetic tiles their rectangle of the shared canvas.
+uniform vec4 UvRegion;
 
 in vec2 texCoord0;
 in vec4 vertexColor;
@@ -105,8 +108,8 @@ void main() {
 
     vec3 col;
     if (LedParams2.y < 0.5) {
-        vec2 uvLed = (cell + 0.5) / grid;
-        vec2 texSize = vec2(textureSize(Sampler0, 0));
+        vec2 uvLed = UvRegion.xy + ((cell + 0.5) / grid) * UvRegion.zw;
+        vec2 texSize = vec2(textureSize(Sampler0, 0)) * UvRegion.zw;
         float lod = max(0.0, log2(max(texSize.x / grid.x, texSize.y / grid.y)));
         col = textureLod(Sampler0, uvLed, lod).rgb;
     } else {

@@ -378,10 +378,21 @@ public final class CameraFeedManager {
                 GL11C.glGetInteger(GL30C.GL_DRAW_FRAMEBUFFER_BINDING));
     }
 
+    /**
+     * Partial tick of the frame being rendered, for aiming captures.
+     *
+     * Rig motion is a function of time, so sampling it with a fixed partial tick pins the
+     * camera to whole game ticks: the pose would only change 20 times a second however fast
+     * the feed runs, and a travelling dolly or sweeping jib visibly steps. The player's own
+     * view never showed this because the block renderer is handed the real partial tick.
+     */
+    private static float framePartialTick = 1.0F;
+
     @SubscribeEvent
     public static void onRenderTick(TickEvent.RenderTickEvent event) {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
+        framePartialTick = event.renderTickTime;
         if (player == null || mc.level == null || !NdiManager.isAvailable()) {
             return;
         }
@@ -948,7 +959,7 @@ public final class CameraFeedManager {
     private static void captureAndSendShaderMode(Minecraft mc, Feed feed) {
         NdiCameraBlockEntity be = feed.be;
         completePendingReadback(feed);
-        NdiCameraBlockEntity.ViewState view = be.getViewState(1.0F);
+        NdiCameraBlockEntity.ViewState view = be.getViewState(framePartialTick);
         renderViewShaderMode(mc, view, be.getFov());
         RenderTarget main = mc.getMainRenderTarget();
         captureTarget = main;
@@ -1044,7 +1055,7 @@ public final class CameraFeedManager {
         captureTarget = CAPTURE_TARGETS.computeIfAbsent(((long) width << 32) | height,
                 key -> new MainTarget(width, height));
 
-        NdiCameraBlockEntity.ViewState view = be.getViewState(1.0F);
+        NdiCameraBlockEntity.ViewState view = be.getViewState(framePartialTick);
         // Probe the viewport through the render stages of the frames we also dump.
         probeViewport = DEBUG_GEOMETRY
                 && (feed.framesCaptured + 1 == 30 || (feed.framesCaptured + 1) % 300 == 0);

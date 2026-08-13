@@ -149,7 +149,8 @@ public class KineticWinchBlock extends HorizontalDirectionalBlock implements Ent
                 tag.getBoolean("addressEnabled") ? tag.getInt("dmxAddress") : null);
         TheatricalCompat.register(winch);
         if (tag.getBoolean("autoIncrement")) {
-            // Step by this winch's actual footprint: 4 channels LINKED, 6 in TWIN.
+            // Step by this winch's actual footprint, whatever its payload implies: 4
+            // channels LINKED, 6 TWIN, 7 sphere, and 4/7/10 for a fixture by its mode.
             tag.putInt("dmxAddress", tag.getInt("dmxAddress") + winch.getDmxChannelCount());
         }
         level.sendBlockUpdated(pos, state, state, 3);

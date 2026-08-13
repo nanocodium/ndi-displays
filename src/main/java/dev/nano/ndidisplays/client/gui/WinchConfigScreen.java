@@ -67,6 +67,8 @@ public class WinchConfigScreen extends Screen {
     private boolean twinMode;
     private float maxTilt;
     private int payload;
+    private int fixtureMode;
+    private java.util.List<dev.nano.ndidisplays.compat.theatrical.FixturePersonality> personalities = java.util.List.of();
     private UUID networkId;
 
     private EditBox sourceBox;
@@ -98,6 +100,7 @@ public class WinchConfigScreen extends Screen {
         this.twinMode = winch.isTwinMode();
         this.maxTilt = winch.getMaxTilt();
         this.payload = winch.getPayload();
+        this.fixtureMode = winch.getFixtureMode();
         this.networkId = winch.getNetworkId();
     }
 
@@ -237,12 +240,49 @@ public class WinchConfigScreen extends Screen {
                 .displayOnlyValue()
                 .create(left, y, 130, 18, Component.translatable("gui.ndidisplays.winch.payload"),
                         (btn, val) -> payload = val));
+
+        // Fixture Config: the DMX mode the flown fixture is patched in. When the fixture
+        // declares its own personalities these are *its* modes, named as it names them
+        // ("7ch - Standard"), and the label shows the winch's total footprint since the winch
+        // prepends its own height/speed channels. Only when the fixture declares nothing do
+        // we fall back to generic nested footprints.
+        personalities = winch.fixturePersonalities();
+        int modeCount = personalities.isEmpty()
+                ? KineticWinchBlockEntity.FIXTURE_MODE_COUNT : personalities.size();
+        if (fixtureMode >= modeCount) {
+            fixtureMode = 0;
+        }
+        addRenderableWidget(CycleButton.<Integer>builder(m -> fixtureModeLabel(m))
+                .withValues(range(modeCount))
+                .withInitialValue(fixtureMode)
+                .displayOnlyValue()
+                .create(cx + 2, y, 130, 18,
+                        Component.translatable("gui.ndidisplays.winch.fixture_mode"),
+                        (btn, val) -> fixtureMode = val));
         y += 24;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.winch.apply"), b -> apply())
                 .bounds(cx - 132, y, 130, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> onClose())
                 .bounds(cx + 2, y, 130, 20).build());
+    }
+
+    /**
+     * The fixture's own name for a mode plus the winch's total footprint, since the winch
+     * prepends height/speed to whatever the fixture occupies. Falls back to the generic
+     * footprints when the flown fixture declares no modes.
+     */
+    private Component fixtureModeLabel(int mode) {
+        if (!personalities.isEmpty()) {
+            var p = personalities.get(Math.floorMod(mode, personalities.size()));
+            int total = KineticWinchBlockEntity.WINCH_LEAD_CHANNELS + p.channelCount();
+            return Component.literal(p.description() + " (" + total + ")");
+        }
+        return Component.translatable(switch (mode) {
+            case KineticWinchBlockEntity.FIXTURE_MODE_BASIC -> "gui.ndidisplays.winch.fixture_mode.basic";
+            case KineticWinchBlockEntity.FIXTURE_MODE_COLOUR -> "gui.ndidisplays.winch.fixture_mode.colour";
+            default -> "gui.ndidisplays.winch.fixture_mode.full";
+        });
     }
 
     private void addNumBox(int x, int y, int w, String initial, java.util.function.Consumer<String> out) {
@@ -279,6 +319,7 @@ public class WinchConfigScreen extends Screen {
                 maxTilt,
                 targetB,
                 payload,
+                fixtureMode,
                 parseI(universeText, winch.getDmxUniverse()),
                 parseI(addressText, winch.getDmxAddress()),
                 networkId));
@@ -317,10 +358,10 @@ public class WinchConfigScreen extends Screen {
         labels(graphics, left, 268, "Payload", "", "", "");
         if (payload == KineticWinchBlockEntity.PAYLOAD_FIXTURE) {
             String id = winch.getFixtureBlockId();
-            graphics.drawString(font, id.isEmpty()
-                            ? Component.translatable("gui.ndidisplays.winch.payload.no_fixture").getString()
-                            : id,
-                    left + 138, 282, id.isEmpty() ? 0xE06060 : 0xA0A0A0);
+            String shown = id.isEmpty()
+                    ? Component.translatable("gui.ndidisplays.winch.payload.no_fixture").getString()
+                    : id.substring(id.indexOf(':') + 1);
+            graphics.drawString(font, shown, left, 296, id.isEmpty() ? 0xE06060 : 0xA0A0A0);
         }
         graphics.drawString(font, NdiManager.getStatus(), left, height - 16,
                 NdiManager.isAvailable() ? 0x60D060 : 0xE06060);

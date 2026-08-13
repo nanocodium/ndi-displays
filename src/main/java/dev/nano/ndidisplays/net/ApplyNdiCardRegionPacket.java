@@ -105,6 +105,8 @@ public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean 
                         } else if (be instanceof LedPanelBlockEntity panel) {
                             panel.applyConfig(source, panel.getPixelsPerBlock(),
                                     panel.getBrightness(), panel.getGamma(), 0);
+                        } else if (be instanceof dev.nano.ndidisplays.block.RoundScreenBlockEntity round) {
+                            round.applyNdiCard(source);
                         } else {
                             continue;
                         }

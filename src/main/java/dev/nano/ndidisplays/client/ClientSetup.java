@@ -38,6 +38,8 @@ public final class ClientSetup {
         event.registerBlockEntityRenderer(NdiDisplays.CAMERA_BE.get(), ctx -> new CameraRenderer());
         event.registerBlockEntityRenderer(NdiDisplays.KINETIC_WINCH_BE.get(),
                 ctx -> new dev.nano.ndidisplays.client.render.KineticPanelRenderer());
+        event.registerBlockEntityRenderer(NdiDisplays.ROUND_SCREEN_BE.get(),
+                ctx -> new dev.nano.ndidisplays.client.render.RoundScreenRenderer());
     }
 
     @SubscribeEvent

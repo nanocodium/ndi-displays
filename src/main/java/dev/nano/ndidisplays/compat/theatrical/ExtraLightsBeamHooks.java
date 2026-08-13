@@ -36,6 +36,17 @@ final class ExtraLightsBeamHooks {
 
     private static final String PKG = "com.github.dumann089.theatricalextralights";
 
+    /**
+     * Texture the beam is drawn with. This is <em>not</em> optional: Extra Lights feeds
+     * {@code goboTexture} straight into the render type's TextureStateShard, so a null there
+     * throws while the render type is being built and the beam never draws. Its own fixtures
+     * pass this same "open" gobo plate when no gobo is inserted, which is the no-gobo case a
+     * flown fixture is always in.
+     */
+    private static final net.minecraft.resources.ResourceLocation OPEN_GOBO =
+            new net.minecraft.resources.ResourceLocation(
+                    "theatricalextralights", "textures/gobos/generic_1/open.png");
+
     private enum State { UNKNOWN, READY, ABSENT }
 
     private static State state = State.UNKNOWN;
@@ -58,6 +69,13 @@ final class ExtraLightsBeamHooks {
     private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
     private static boolean loggedDisabled;
     private static boolean loggedSubmit;
+    /**
+     * Consecutive submit failures. Latching off after the first one meant a single transient
+     * failure — a resource reload, a frame where a shader was mid-swap — silently disabled the
+     * volumetric beam for the whole session and looked exactly like the feature not existing.
+     */
+    private static int failures;
+    private static final int MAX_FAILURES = 3;
 
     private static synchronized boolean resolve() {
         if (state != State.UNKNOWN) {
@@ -174,7 +192,7 @@ final class ExtraLightsBeamHooks {
                     tanHalf,                                  // tanHalfAngle
                     colour,
                     Math.max(0.0F, Math.min(1.0F, intensity01)),
-                    null,                                     // goboTexture — none flown
+                    OPEN_GOBO,                                // goboTexture — see below
                     0.0F,                                     // goboRotation
                     level,
                     1.0F,                                     // widthScale
@@ -197,6 +215,7 @@ final class ExtraLightsBeamHooks {
             // A fresh identity stack: the data is already world-space, and Extra Lights
             // re-anchors camera-relatively inside its own lazy render.
             renderMethod.invoke(renderer, data, new PoseStack());
+            failures = 0;
             if (!loggedSubmit) {
                 loggedSubmit = true;
                 LOGGER.info("[ndidisplays] flown fixture beam submitted to Extra Lights'"
@@ -208,9 +227,11 @@ final class ExtraLightsBeamHooks {
             // from Extra Lights simply not being installed, which makes it undebuggable.
             Throwable cause = e instanceof java.lang.reflect.InvocationTargetException ite
                     && ite.getCause() != null ? ite.getCause() : e;
-            state = State.ABSENT;
-            LOGGER.warn("[ndidisplays] Extra Lights volumetric beam failed, falling back to the"
-                    + " classic beam: {}", cause.toString(), cause);
+            if (++failures >= MAX_FAILURES) {
+                state = State.ABSENT;
+            }
+            LOGGER.warn("[ndidisplays] Extra Lights volumetric beam failed ({}/{}), falling back"
+                    + " to the classic beam: {}", failures, MAX_FAILURES, cause.toString(), cause);
             return false;
         }
     }

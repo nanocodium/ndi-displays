@@ -121,6 +121,18 @@ public final class TheatricalCompat {
         if (!active()) {
             return false;
         }
+        // Extra Lights' volumetric beam first when it is installed and enabled: a real
+        // raymarched shaft rather than four flaring quads. It rides the same LazyRenderers
+        // queue, so ordering against other beams is unchanged. Falls through to the classic
+        // cone when Extra Lights is absent, switched off, or its API has moved.
+        try {
+            if (ExtraLightsBeamHooks.submit(fixturePos, headMatrix, beamWidth,
+                    focus01, r, g, b, intensity01, length)) {
+                return true;
+            }
+        } catch (LinkageError ignored) {
+            // Never fatal: the classic cone below is always available.
+        }
         try {
             return TheatricalBeamHooks.submitBeam(fixturePos, headMatrix, beamWidth,
                     focus01, r, g, b, intensity01, length);

@@ -144,6 +144,26 @@ public final class TheatricalCompat {
         }
     }
 
+    private static final Map<String, java.util.List<FixturePersonality>> PERSONALITY_CACHE =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * The DMX modes the flown fixture really declares, so the winch offers the fixture's own
+     * modes instead of invented ones. Empty when Theatrical is absent or the block is not a
+     * fixture, in which case the winch falls back to its generic footprints.
+     */
+    public static java.util.List<FixturePersonality> fixturePersonalities(String blockId) {
+        if (!active() || blockId == null || blockId.isEmpty()) {
+            return java.util.List.of();
+        }
+        try {
+            return PERSONALITY_CACHE.computeIfAbsent(blockId, TheatricalFixtureHooks::personalities);
+        } catch (LinkageError e) {
+            markBroken(e);
+            return java.util.List.of();
+        }
+    }
+
     /**
      * Known Theatrical networks (id → display name), for the config screen's network
      * picker. Client side; empty when Theatrical is absent.

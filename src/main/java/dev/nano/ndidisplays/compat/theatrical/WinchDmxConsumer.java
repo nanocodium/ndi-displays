@@ -105,6 +105,24 @@ final class WinchDmxConsumer implements DMXConsumer {
             int height = (Byte.toUnsignedInt(dmxValues[start]) << 8)
                     | Byte.toUnsignedInt(dmxValues[start + 1]);
             int speedByte = Byte.toUnsignedInt(dmxValues[start + 2]);
+
+            // Preferred path: the fixture declared its own modes, so read each channel by
+            // what its slot says it controls rather than by a fixed position. A mode that
+            // omits a control yields -1 and the block entity holds the previous value.
+            FixturePersonality p = be.activePersonality();
+            if (p != null) {
+                int base = start + KineticWinchBlockEntity.WINCH_LEAD_CHANNELS;
+                be.applyDmxFixtureMapped(height, speedByte,
+                        slot(dmxValues, base, p, FixturePersonality.SLOT_INTENSITY),
+                        slot(dmxValues, base, p, FixturePersonality.SLOT_RED),
+                        slot(dmxValues, base, p, FixturePersonality.SLOT_GREEN),
+                        slot(dmxValues, base, p, FixturePersonality.SLOT_BLUE),
+                        slot(dmxValues, base, p, FixturePersonality.SLOT_FOCUS),
+                        slot(dmxValues, base, p, FixturePersonality.SLOT_PAN),
+                        slot(dmxValues, base, p, FixturePersonality.SLOT_TILT));
+                return;
+            }
+
             int intensity = Byte.toUnsignedInt(dmxValues[start + 3]);
             int mode = be.getFixtureMode();
             if (mode == KineticWinchBlockEntity.FIXTURE_MODE_BASIC) {
@@ -139,6 +157,18 @@ final class WinchDmxConsumer implements DMXConsumer {
         int speed = Byte.toUnsignedInt(dmxValues[start + 2]);
         int dimmer = Byte.toUnsignedInt(dmxValues[start + 3]);
         be.applyDmx((coarse << 8) | fine, speed, dimmer);
+    }
+
+    /**
+     * The byte carrying {@code slotKind} in this personality, or -1 when the mode has no
+     * channel for it (or the frame is too short to contain it).
+     */
+    private static int slot(byte[] dmxValues, int base, FixturePersonality p, int slotKind) {
+        int idx = p.indexOf(slotKind);
+        if (idx < 0 || base + idx >= dmxValues.length) {
+            return -1;
+        }
+        return Byte.toUnsignedInt(dmxValues[base + idx]);
     }
 
     @Override

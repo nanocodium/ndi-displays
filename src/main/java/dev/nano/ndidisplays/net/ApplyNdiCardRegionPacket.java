@@ -26,7 +26,8 @@ import java.util.function.Supplier;
  * from the packet: the client only says "apply what my card holds", so a modified
  * client cannot target arbitrary coordinates it never selected.
  */
-public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean clearOnly) {
+public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean clearOnly,
+                                       int winchMode) {
 
     /** Selections larger than this per horizontal axis are rejected outright. */
     private static final int MAX_SPAN = 512;
@@ -35,11 +36,13 @@ public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean 
         buf.writeBoolean(msg.mainHand);
         buf.writeUtf(msg.source, LedPanelBlockEntity.MAX_SOURCE_NAME);
         buf.writeBoolean(msg.clearOnly);
+        buf.writeVarInt(msg.winchMode);
     }
 
     public static ApplyNdiCardRegionPacket decode(FriendlyByteBuf buf) {
         return new ApplyNdiCardRegionPacket(buf.readBoolean(),
-                buf.readUtf(LedPanelBlockEntity.MAX_SOURCE_NAME), buf.readBoolean());
+                buf.readUtf(LedPanelBlockEntity.MAX_SOURCE_NAME), buf.readBoolean(),
+                buf.readVarInt());
     }
 
     public static void handle(ApplyNdiCardRegionPacket msg, Supplier<NetworkEvent.Context> ctx) {
@@ -62,7 +65,10 @@ public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean 
             }
 
             String source = msg.source.trim();
+            int winchMode = Math.max(NdiConfigCardItem.WINCH_MODE_KEEP,
+                    Math.min(NdiConfigCardItem.WINCH_MODE_TWIN, msg.winchMode));
             stack.getOrCreateTag().putString(NdiConfigCardItem.TAG_SOURCE, source);
+            stack.getOrCreateTag().putInt(NdiConfigCardItem.TAG_WINCH_MODE, winchMode);
 
             BlockPos pos1 = NdiConfigCardItem.selectionPos(stack, NdiConfigCardItem.TAG_POS1);
             BlockPos pos2 = NdiConfigCardItem.selectionPos(stack, NdiConfigCardItem.TAG_POS2);
@@ -102,6 +108,12 @@ public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean 
                         }
                         if (be instanceof KineticWinchBlockEntity winch) {
                             winch.applyNdiCard(source);
+                            if (winchMode != NdiConfigCardItem.WINCH_MODE_KEEP) {
+                                // Re-register: the 4↔6 channel footprint must reach Theatrical.
+                                dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.unregister(winch);
+                                winch.applyCardWinchMode(winchMode == NdiConfigCardItem.WINCH_MODE_TWIN);
+                                dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.register(winch);
+                            }
                         } else if (be instanceof LedPanelBlockEntity panel) {
                             panel.applyConfig(source, panel.getPixelsPerBlock(),
                                     panel.getBrightness(), panel.getGamma(), 0);

@@ -31,11 +31,16 @@ public class NdiCardScreen extends Screen {
     private EditBox sourceBox;
     private NdiSourcePicker picker;
     private boolean hasSelection;
+    /** Winch motor mode the card imposes: keep / linked / twin. */
+    private int winchMode;
 
     public NdiCardScreen(InteractionHand hand, String storedSource) {
         super(Component.translatable("gui.ndidisplays.card.title"));
         this.hand = hand;
         this.source = storedSource;
+        ItemStack card = heldCard();
+        this.winchMode = card != null ? NdiConfigCardItem.storedWinchMode(card)
+                : NdiConfigCardItem.WINCH_MODE_KEEP;
     }
 
     @Override
@@ -57,6 +62,20 @@ public class NdiCardScreen extends Screen {
         });
         picker.init(left, y);
         y += picker.height() + 10;
+
+        // Winch motor mode the card imposes when applied to winches (click or region).
+        addRenderableWidget(net.minecraft.client.gui.components.CycleButton.<Integer>builder(mode ->
+                        Component.translatable(switch (mode) {
+                            case NdiConfigCardItem.WINCH_MODE_LINKED -> "gui.ndidisplays.card.mode.linked";
+                            case NdiConfigCardItem.WINCH_MODE_TWIN -> "gui.ndidisplays.card.mode.twin";
+                            default -> "gui.ndidisplays.card.mode.keep";
+                        }))
+                .withValues(java.util.List.of(NdiConfigCardItem.WINCH_MODE_KEEP,
+                        NdiConfigCardItem.WINCH_MODE_LINKED, NdiConfigCardItem.WINCH_MODE_TWIN))
+                .withInitialValue(winchMode)
+                .create(left, y, 264, 20, Component.translatable("gui.ndidisplays.card.mode"),
+                        (btn, val) -> winchMode = val));
+        y += 24;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.card.save"), b -> apply())
                 .bounds(cx - 132, y, 130, 20).build());
@@ -93,20 +112,20 @@ public class NdiCardScreen extends Screen {
 
     private void apply() {
         NetworkHandler.CHANNEL.sendToServer(new UpdateNdiCardPacket(
-                hand == InteractionHand.MAIN_HAND, sourceBox.getValue().trim()));
+                hand == InteractionHand.MAIN_HAND, sourceBox.getValue().trim(), winchMode));
         onClose();
     }
 
     /** Stores the source on the card AND applies it to every screen in the selection. */
     private void applyRegion() {
         NetworkHandler.CHANNEL.sendToServer(new ApplyNdiCardRegionPacket(
-                hand == InteractionHand.MAIN_HAND, sourceBox.getValue().trim(), false));
+                hand == InteractionHand.MAIN_HAND, sourceBox.getValue().trim(), false, winchMode));
         onClose();
     }
 
     private void clearSelection() {
         NetworkHandler.CHANNEL.sendToServer(new ApplyNdiCardRegionPacket(
-                hand == InteractionHand.MAIN_HAND, "", true));
+                hand == InteractionHand.MAIN_HAND, "", true, winchMode));
         // Reflect it locally right away; the server does the authoritative clear.
         ItemStack card = heldCard();
         if (card != null) {

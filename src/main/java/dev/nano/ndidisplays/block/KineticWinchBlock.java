@@ -77,11 +77,20 @@ public class KineticWinchBlock extends HorizontalDirectionalBlock implements Ent
                                  InteractionHand hand, BlockHitResult hit) {
         ItemStack held = player.getItemInHand(hand);
 
-        // NDI configuration card: switch the flying tile to the card's video source.
+        // NDI configuration card: switch the flying tile to the card's video source,
+        // and impose the card's motor mode (Linked/Twin) when it carries one.
         if (held.getItem() instanceof dev.nano.ndidisplays.item.NdiConfigCardItem) {
             if (!level.isClientSide && level.getBlockEntity(pos) instanceof KineticWinchBlockEntity winch) {
                 String source = dev.nano.ndidisplays.item.NdiConfigCardItem.storedSource(held);
                 winch.applyNdiCard(source);
+                int mode = dev.nano.ndidisplays.item.NdiConfigCardItem.storedWinchMode(held);
+                if (mode != dev.nano.ndidisplays.item.NdiConfigCardItem.WINCH_MODE_KEEP) {
+                    // Re-register: the 4↔6 channel footprint change must reach Theatrical.
+                    TheatricalCompat.unregister(winch);
+                    winch.applyCardWinchMode(
+                            mode == dev.nano.ndidisplays.item.NdiConfigCardItem.WINCH_MODE_TWIN);
+                    TheatricalCompat.register(winch);
+                }
                 level.sendBlockUpdated(pos, state, state, 3);
                 player.displayClientMessage(Component.translatable(
                         "item.ndidisplays.ndi_config_card.applied", source), true);

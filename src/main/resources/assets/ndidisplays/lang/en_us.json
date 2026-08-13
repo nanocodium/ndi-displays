@@ -65,5 +65,10 @@
  "gui.ndidisplays.card.apply_region": "Apply to selection (%sx%sx%s)",
  "gui.ndidisplays.card.clear_selection": "Clear",
  "block.ndidisplays.round_screen": "Round LED Screen",
- "gui.ndidisplays.round.title": "Round LED Screen"
+ "gui.ndidisplays.round.title": "Round LED Screen",
+ "block.ndidisplays.curved_screen": "Curved LED Screen",
+ "gui.ndidisplays.curved.title": "Curved LED Screen",
+ "gui.ndidisplays.curved.side": "Video Side",
+ "gui.ndidisplays.curved.concave": "Concave (inside)",
+ "gui.ndidisplays.curved.convex": "Convex (outside)"
 }

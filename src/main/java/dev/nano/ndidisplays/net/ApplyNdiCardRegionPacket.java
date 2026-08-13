@@ -107,6 +107,8 @@ public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean 
                                     panel.getBrightness(), panel.getGamma(), 0);
                         } else if (be instanceof dev.nano.ndidisplays.block.RoundScreenBlockEntity round) {
                             round.applyNdiCard(source);
+                        } else if (be instanceof dev.nano.ndidisplays.block.CurvedScreenBlockEntity curved) {
+                            curved.applyNdiCard(source);
                         } else {
                             continue;
                         }

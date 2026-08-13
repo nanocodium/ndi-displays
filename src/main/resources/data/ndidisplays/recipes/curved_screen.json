@@ -1,0 +1,16 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "L L",
+        " R ",
+        "L L"
+    ],
+    "key": {
+        "L": { "item": "ndidisplays:led_panel" },
+        "R": { "item": "minecraft:redstone" }
+    },
+    "result": {
+        "item": "ndidisplays:curved_screen",
+        "count": 1
+    }
+}

@@ -60,5 +60,33 @@ public final class NetworkHandler {
                 UpdateRouterConfigPacket::encode,
                 UpdateRouterConfigPacket::decode,
                 UpdateRouterConfigPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateWinchConfigPacket.class,
+                UpdateWinchConfigPacket::encode,
+                UpdateWinchConfigPacket::decode,
+                UpdateWinchConfigPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateNdiCardPacket.class,
+                UpdateNdiCardPacket::encode,
+                UpdateNdiCardPacket::decode,
+                UpdateNdiCardPacket::handle);
+        CHANNEL.registerMessage(id++, ApplyNdiCardRegionPacket.class,
+                ApplyNdiCardRegionPacket::encode,
+                ApplyNdiCardRegionPacket::decode,
+                ApplyNdiCardRegionPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateRoundScreenConfigPacket.class,
+                UpdateRoundScreenConfigPacket::encode,
+                UpdateRoundScreenConfigPacket::decode,
+                UpdateRoundScreenConfigPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateCurvedScreenConfigPacket.class,
+                UpdateCurvedScreenConfigPacket::encode,
+                UpdateCurvedScreenConfigPacket::decode,
+                UpdateCurvedScreenConfigPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateScreenDmxSlotsPacket.class,
+                UpdateScreenDmxSlotsPacket::encode,
+                UpdateScreenDmxSlotsPacket::decode,
+                UpdateScreenDmxSlotsPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateMultiviewConfigPacket.class,
+                UpdateMultiviewConfigPacket::encode,
+                UpdateMultiviewConfigPacket::decode,
+                UpdateMultiviewConfigPacket::handle);
     }
 }

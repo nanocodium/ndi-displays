@@ -1,0 +1,8 @@
+{
+    "variants": {
+        "facing=north": { "model": "ndidisplays:block/kinetic_winch" },
+        "facing=east": { "model": "ndidisplays:block/kinetic_winch", "y": 90 },
+        "facing=south": { "model": "ndidisplays:block/kinetic_winch", "y": 180 },
+        "facing=west": { "model": "ndidisplays:block/kinetic_winch", "y": 270 }
+    }
+}

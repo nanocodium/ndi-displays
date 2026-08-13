@@ -1,0 +1,8 @@
+{
+    "variants": {
+        "facing=north": { "model": "ndidisplays:block/multiview" },
+        "facing=east": { "model": "ndidisplays:block/multiview", "y": 90 },
+        "facing=south": { "model": "ndidisplays:block/multiview", "y": 180 },
+        "facing=west": { "model": "ndidisplays:block/multiview", "y": 270 }
+    }
+}

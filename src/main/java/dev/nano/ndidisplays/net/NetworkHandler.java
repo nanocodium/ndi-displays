@@ -72,5 +72,9 @@ public final class NetworkHandler {
                 ApplyNdiCardRegionPacket::encode,
                 ApplyNdiCardRegionPacket::decode,
                 ApplyNdiCardRegionPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateRoundScreenConfigPacket.class,
+                UpdateRoundScreenConfigPacket::encode,
+                UpdateRoundScreenConfigPacket::decode,
+                UpdateRoundScreenConfigPacket::handle);
     }
 }

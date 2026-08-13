@@ -63,5 +63,7 @@
  "gui.ndidisplays.card.hint": "Pick a source, then right-click screens to apply it",
  "gui.ndidisplays.card.save": "Save to Card",
  "gui.ndidisplays.card.apply_region": "Apply to selection (%sx%sx%s)",
- "gui.ndidisplays.card.clear_selection": "Clear"
+ "gui.ndidisplays.card.clear_selection": "Clear",
+ "block.ndidisplays.round_screen": "Round LED Screen",
+ "gui.ndidisplays.round.title": "Round LED Screen"
 }

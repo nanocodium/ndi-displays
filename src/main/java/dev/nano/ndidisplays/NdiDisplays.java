@@ -90,6 +90,26 @@ public class NdiDisplays {
             BLOCK_ENTITIES.register("kinetic_winch",
                     () -> BlockEntityType.Builder.of(KineticWinchBlockEntity::new, KINETIC_WINCH.get()).build(null));
 
+    /**
+     * Circular LED screen: one mount block rendering a video disc of configurable
+     * radius — the round-screen counterpart of the rectangular walls.
+     */
+    public static final RegistryObject<Block> ROUND_SCREEN = BLOCKS.register("round_screen",
+            () -> new dev.nano.ndidisplays.block.RoundScreenBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 10)));
+
+    public static final RegistryObject<Item> ROUND_SCREEN_ITEM = ITEMS.register("round_screen",
+            () -> new BlockItem(ROUND_SCREEN.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.RoundScreenBlockEntity>> ROUND_SCREEN_BE =
+            BLOCK_ENTITIES.register("round_screen",
+                    () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.RoundScreenBlockEntity::new,
+                            ROUND_SCREEN.get()).build(null));
+
     private static BlockBehaviour.Properties cameraProps() {
         return BlockBehaviour.Properties.of()
                 .mapColor(MapColor.COLOR_BLACK)
@@ -170,6 +190,7 @@ public class NdiDisplays {
                         output.accept(LED_PANEL_ITEM.get());
                         output.accept(BLOW_THROUGH_PANEL_ITEM.get());
                         output.accept(KINETIC_WINCH_ITEM.get());
+                        output.accept(ROUND_SCREEN_ITEM.get());
                         output.accept(BROADCAST_CAMERA_ITEM.get());
                         output.accept(PTZ_CAMERA_ITEM.get());
                         output.accept(JIB_CAMERA_ITEM.get());

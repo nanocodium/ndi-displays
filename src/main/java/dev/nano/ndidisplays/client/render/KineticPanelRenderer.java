@@ -13,6 +13,7 @@ import dev.nano.ndidisplays.block.KineticWinchBlockEntity;
 import dev.nano.ndidisplays.client.ClientSetup;
 import dev.nano.ndidisplays.client.ndi.NdiManager;
 import dev.nano.ndidisplays.client.ndi.NdiStream;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -365,7 +366,12 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
 
     /**
      * The kinetic-lights RGB sphere: an emissive globe in the winch's DMX colour with
-     * a soft translucent halo — hundreds of these on a grid make 3D colour waves.
+     * a soft camera-facing glow — hundreds of these on a grid make 3D colour waves.
+     *
+     * The body goes through the beacon-beam type: unlike the entity types it applies
+     * no directional diffuse (the colour stays exactly the desk's RGB instead of a
+     * muddied shaded version) and it writes depth, so screens behind the ball cannot
+     * paint over it.
      */
     private static void renderKineticSphere(KineticWinchBlockEntity be, Vec3 center,
                                             Matrix4f mat, MultiBufferSource buffers) {
@@ -375,18 +381,41 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
             Vec3 world = Vec3.atLowerCornerOf(be.getBlockPos()).add(center);
             ShimmerSphereLights.update(be.getBlockPos(), world, rgb[0], rgb[1], rgb[2]);
         }
-        // Body through the cutout type so it writes depth — otherwise a screen drawn
-        // later in the frame paints straight over a sphere hanging in front of it.
+        float lum = Math.max(rgb[0], Math.max(rgb[1], rgb[2]));
         VertexConsumer body = buffers.getBuffer(
-                RenderType.entityCutoutNoCull(FallbackTextures.whiteLocation()));
-        drawEmissiveSphere(body, mat, center, BALL_RADIUS * 0.9F, rgb[0], rgb[1], rgb[2], 1.0F);
-        // Halo: a slightly larger translucent shell that reads as glow at distance.
-        VertexConsumer halo = buffers.getBuffer(
-                RenderType.entityTranslucentEmissive(FallbackTextures.whiteLocation()));
-        drawEmissiveSphere(halo, mat, center, BALL_RADIUS * 1.12F,
-                rgb[0], rgb[1], rgb[2], 0.18F);
+                RenderType.beaconBeam(FallbackTextures.whiteLocation(), false));
+        // Blacked-out ball stays visible as a dark globe (the hardware is still there).
+        float br = Math.max(rgb[0], 0.05F);
+        float bg = Math.max(rgb[1], 0.05F);
+        float bb2 = Math.max(rgb[2], 0.05F);
+        drawEmissiveSphere(body, mat, center, BALL_RADIUS * 0.9F, br, bg, bb2, 1.0F);
+
+        // Glow: two camera-facing radial-gradient discs floating just in front of the
+        // ball — reads as bloom instead of the old hard translucent shell.
+        if (lum > 0.03F) {
+            Vec3 camLocal = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition()
+                    .subtract(Vec3.atLowerCornerOf(be.getBlockPos()));
+            Vec3 toCam = camLocal.subtract(center);
+            if (toCam.lengthSqr() > 1.0E-4) {
+                Vec3 dir = toCam.normalize();
+                Vec3 rightV = new Vec3(0, 1, 0).cross(dir);
+                if (rightV.lengthSqr() < 1.0E-6) {
+                    rightV = new Vec3(1, 0, 0);
+                }
+                rightV = rightV.normalize();
+                Vec3 upV = dir.cross(rightV).normalize();
+                Vec3 glowCenter = center.add(dir.scale(BALL_RADIUS + 0.02));
+                VertexConsumer halo = buffers.getBuffer(
+                        RenderType.entityTranslucentEmissive(FallbackTextures.whiteLocation()));
+                drawGlowDisc(halo, mat, glowCenter, rightV, upV, dir,
+                        BALL_RADIUS * 1.5F, rgb[0], rgb[1], rgb[2], 0.42F * lum);
+                drawGlowDisc(halo, mat, glowCenter, rightV, upV, dir,
+                        BALL_RADIUS * 2.4F, rgb[0], rgb[1], rgb[2], 0.16F * lum);
+            }
+        }
     }
 
+    /** Sphere shell through the beacon-beam type (BLOCK vertex format, no overlay). */
     private static void drawEmissiveSphere(VertexConsumer vc, Matrix4f mat, Vec3 center,
                                            float radius, float r, float g, float b, float alpha) {
         for (int i = 0; i < SPHERE_LAT; i++) {
@@ -400,11 +429,34 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
                 Vec3 c = spherePoint(center, radius, t1, p1);
                 Vec3 d = spherePoint(center, radius, t1, p0);
                 Vec3 n = a.subtract(center).normalize();
-                emissiveVertex(vc, mat, a, 0, 0, n, r, g, b, alpha);
-                emissiveVertex(vc, mat, bb, 1, 0, n, r, g, b, alpha);
-                emissiveVertex(vc, mat, c, 1, 1, n, r, g, b, alpha);
-                emissiveVertex(vc, mat, d, 0, 1, n, r, g, b, alpha);
+                blockVertex(vc, mat, a, 0, 0, n, r, g, b, alpha);
+                blockVertex(vc, mat, bb, 1, 0, n, r, g, b, alpha);
+                blockVertex(vc, mat, c, 1, 1, n, r, g, b, alpha);
+                blockVertex(vc, mat, d, 0, 1, n, r, g, b, alpha);
             }
+        }
+    }
+
+    /**
+     * A camera-facing disc fading from {@code centerAlpha} in the middle to fully
+     * transparent at the rim — a cheap radial-gradient bloom sprite built from a
+     * triangle fan of quads (the two leading vertices collapse onto the centre).
+     */
+    private static void drawGlowDisc(VertexConsumer vc, Matrix4f mat, Vec3 center,
+                                     Vec3 right, Vec3 up, Vec3 normal, float radius,
+                                     float r, float g, float b, float centerAlpha) {
+        final int segments = 16;
+        for (int i = 0; i < segments; i++) {
+            double a0 = 2 * Math.PI * i / segments;
+            double a1 = 2 * Math.PI * (i + 1) / segments;
+            Vec3 p0 = center.add(right.scale(Math.cos(a0) * radius))
+                    .add(up.scale(Math.sin(a0) * radius));
+            Vec3 p1 = center.add(right.scale(Math.cos(a1) * radius))
+                    .add(up.scale(Math.sin(a1) * radius));
+            emissiveVertex(vc, mat, center, 0.5F, 0.5F, normal, r, g, b, centerAlpha);
+            emissiveVertex(vc, mat, center, 0.5F, 0.5F, normal, r, g, b, centerAlpha);
+            emissiveVertex(vc, mat, p0, 0, 0, normal, r, g, b, 0);
+            emissiveVertex(vc, mat, p1, 1, 1, normal, r, g, b, 0);
         }
     }
 
@@ -615,6 +667,17 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
                 .overlayCoords(OverlayTexture.NO_OVERLAY)
                 .uv2(light)
                 .normal(0, 1, 0)
+                .endVertex();
+    }
+
+    /** BLOCK-format vertex (no overlay element) for the beacon-beam render type. */
+    private static void blockVertex(VertexConsumer vc, Matrix4f mat, Vec3 pos, float u, float v,
+                                    Vec3 normal, float r, float g, float b, float a) {
+        vc.vertex(mat, (float) pos.x, (float) pos.y, (float) pos.z)
+                .color(r, g, b, a)
+                .uv(u, v)
+                .uv2(LightTexture.FULL_BRIGHT)
+                .normal((float) normal.x, (float) normal.y, (float) normal.z)
                 .endVertex();
     }
 

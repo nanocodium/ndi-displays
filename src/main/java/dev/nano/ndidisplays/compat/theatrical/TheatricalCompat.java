@@ -121,6 +121,18 @@ public final class TheatricalCompat {
         if (!active()) {
             return false;
         }
+        // Extra Lights' volumetric beam first when it is installed and enabled: a real
+        // raymarched shaft rather than four flaring quads. It rides the same LazyRenderers
+        // queue, so ordering against other beams is unchanged. Falls through to the classic
+        // cone when Extra Lights is absent, switched off, or its API has moved.
+        try {
+            if (ExtraLightsBeamHooks.submit(fixturePos, headMatrix, beamWidth,
+                    focus01, r, g, b, intensity01, length)) {
+                return true;
+            }
+        } catch (LinkageError ignored) {
+            // Never fatal: the classic cone below is always available.
+        }
         try {
             return TheatricalBeamHooks.submitBeam(fixturePos, headMatrix, beamWidth,
                     focus01, r, g, b, intensity01, length);
@@ -141,6 +153,26 @@ public final class TheatricalCompat {
         } catch (LinkageError e) {
             markBroken(e);
             return null;
+        }
+    }
+
+    private static final Map<String, java.util.List<FixturePersonality>> PERSONALITY_CACHE =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * The DMX modes the flown fixture really declares, so the winch offers the fixture's own
+     * modes instead of invented ones. Empty when Theatrical is absent or the block is not a
+     * fixture, in which case the winch falls back to its generic footprints.
+     */
+    public static java.util.List<FixturePersonality> fixturePersonalities(String blockId) {
+        if (!active() || blockId == null || blockId.isEmpty()) {
+            return java.util.List.of();
+        }
+        try {
+            return PERSONALITY_CACHE.computeIfAbsent(blockId, TheatricalFixtureHooks::personalities);
+        } catch (LinkageError e) {
+            markBroken(e);
+            return java.util.List.of();
         }
     }
 

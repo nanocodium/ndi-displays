@@ -79,6 +79,28 @@ public class KineticWinchBlockEntity extends BlockEntity {
     /** Flown fixture footprint: height 16-bit, speed, intensity, R, G, B, focus, pan, tilt. */
     public static final int DMX_CHANNEL_COUNT_FIXTURE = 10;
 
+    // --- Flown-fixture DMX modes ---
+    //
+    // Deliberately nested: every mode is a prefix of the next, so channel N means the same
+    // thing whichever mode is patched. That is how real fixture mode tables are built, and it
+    // means switching mode never re-shuffles the channels a desk has already been programmed
+    // against — it only adds or removes control from the tail.
+    //
+    // Channels a mode omits are not zeroed; they hold their last value, exactly as a real
+    // head does when patched in a smaller mode. Fresh winches default to white, centred
+    // pan/tilt, so a fixture flown in BASIC still lights.
+
+    /** Position only, 4ch: height coarse/fine, speed, intensity. */
+    public static final int FIXTURE_MODE_BASIC = 0;
+    /** Colour, 7ch: BASIC + R, G, B. */
+    public static final int FIXTURE_MODE_COLOUR = 1;
+    /** Full, 10ch: COLOUR + focus, pan, tilt. */
+    public static final int FIXTURE_MODE_FULL = 2;
+    public static final int FIXTURE_MODE_COUNT = 3;
+
+    /** Channel count for each flown-fixture mode, indexed by mode id. */
+    private static final int[] FIXTURE_MODE_CHANNELS = {4, 7, DMX_CHANNEL_COUNT_FIXTURE};
+
     /** Moving-head sweep speeds for the flown fixture's pan/tilt interpolation. */
     private static final float PAN_RANGE = 540.0F;
     private static final float TILT_RANGE = 270.0F;
@@ -165,6 +187,8 @@ public class KineticWinchBlockEntity extends BlockEntity {
     private int fixFocus;
     private int fixPan = 128;
     private int fixTilt = 128;
+    /** Which flown-fixture DMX mode is patched. Defaults to the full 10-channel profile. */
+    private int fixtureMode = FIXTURE_MODE_FULL;
     private float curPan;
     private float curTilt;
     private float prevPan;
@@ -407,7 +431,7 @@ public class KineticWinchBlockEntity extends BlockEntity {
                             int panelW, int panelH, int orientation, boolean mesh,
                             float minDrop, float maxDrop, float speed, float targetDrop,
                             boolean twinMode, float maxTilt, float targetDropB,
-                            int payload,
+                            int payload, int fixtureMode,
                             int universe, int address, UUID network) {
         this.sourceName = Clamps.name(source, MAX_SOURCE_NAME);
         this.pixelsPerBlock = Clamps.i(pxPerBlock, 8, 1024);
@@ -429,6 +453,7 @@ public class KineticWinchBlockEntity extends BlockEntity {
         this.maxTilt = Clamps.f(maxTilt, 0.0F, MAX_TILT_LIMIT, DEFAULT_MAX_TILT);
         this.targetDropB = clampTargetB(Clamps.f(targetDropB, this.minDrop, this.maxDrop, this.targetDrop));
         this.payload = Clamps.i(payload, 0, PAYLOAD_COUNT - 1);
+        this.fixtureMode = Clamps.i(fixtureMode, 0, 63);
         this.dmxUniverse = Clamps.i(universe, 0, 32767);
         this.dmxAddress = Clamps.i(address, 1, 512);
         this.networkId = network == null ? NULL_UUID : network;
@@ -572,6 +597,38 @@ public class KineticWinchBlockEntity extends BlockEntity {
      * focus, pan, tilt. Pan/tilt land as targets; both sides sweep the head towards
      * them at moving-head speeds, so desk moves read as physical motion.
      */
+    /**
+     * BASIC mode (4ch): position and intensity only. Colour, focus and pan/tilt hold
+     * whatever they were, so a fixture patched small stays where it was pointed.
+     */
+    public void applyDmxFixture(int height16, int speedByte, int intensity) {
+        applyDmxFixture(height16, speedByte, intensity,
+                fixRed, fixGreen, fixBlue, fixFocus, fixPan, fixTilt);
+    }
+
+    /** COLOUR mode (7ch): position, intensity and colour; focus and pan/tilt hold. */
+    public void applyDmxFixture(int height16, int speedByte, int intensity, int r, int g, int b) {
+        applyDmxFixture(height16, speedByte, intensity, r, g, b, fixFocus, fixPan, fixTilt);
+    }
+
+    /**
+     * Applies a frame whose channel meanings came from the fixture's own personality. Any
+     * value of -1 means the selected mode has no channel for it, so it holds — the same
+     * behaviour as a real head patched in a mode that omits a control.
+     */
+    public void applyDmxFixtureMapped(int height16, int speedByte, int intensity,
+                                      int r, int g, int b, int focus, int pan, int tilt) {
+        applyDmxFixture(height16, speedByte,
+                intensity < 0 ? fixIntensity : intensity,
+                r < 0 ? fixRed : r,
+                g < 0 ? fixGreen : g,
+                b < 0 ? fixBlue : b,
+                focus < 0 ? fixFocus : focus,
+                pan < 0 ? fixPan : pan,
+                tilt < 0 ? fixTilt : tilt);
+    }
+
+    /** FULL mode (10ch). The canonical path — the shorter modes delegate here. */
     public void applyDmxFixture(int height16, int speedByte, int intensity,
                                 int r, int g, int b, int focus, int pan, int tilt) {
         float span = maxDrop - minDrop;
@@ -601,15 +658,65 @@ public class KineticWinchBlockEntity extends BlockEntity {
 
     /**
      * This winch's DMX footprint, by payload: LED tile 4 (LINKED) or 6 (TWIN),
-     * kinetic sphere 7, flown fixture 10, mirror ball 4 (height/speed only).
+     * kinetic sphere 7, flown fixture 4/7/10 by its mode, mirror ball 4 (height/speed only).
      */
     public int getDmxChannelCount() {
         return switch (payload) {
             case PAYLOAD_KINETIC_SPHERE -> DMX_CHANNEL_COUNT_SPHERE;
-            case PAYLOAD_FIXTURE -> DMX_CHANNEL_COUNT_FIXTURE;
+            case PAYLOAD_FIXTURE -> fixtureFootprint();
             case PAYLOAD_MIRROR_BALL -> DMX_CHANNEL_COUNT;
             default -> twinMode ? DMX_CHANNEL_COUNT_TWIN : DMX_CHANNEL_COUNT;
         };
+    }
+
+    /**
+     * The patched flown-fixture mode. An index into {@link #fixturePersonalities()} when the
+     * flown fixture declares its own modes, otherwise one of the generic
+     * {@link #FIXTURE_MODE_BASIC}/COLOUR/FULL footprints.
+     */
+    public int getFixtureMode() {
+        return fixtureMode;
+    }
+
+    /** Channels the winch itself always occupies ahead of the fixture: height 16-bit + speed. */
+    public static final int WINCH_LEAD_CHANNELS = 3;
+
+    /**
+     * Footprint of a flown fixture: the winch's own height/speed channels plus whatever the
+     * fixture's selected mode occupies. Falls back to the generic nested footprints when the
+     * fixture declares no modes of its own.
+     */
+    private int fixtureFootprint() {
+        dev.nano.ndidisplays.compat.theatrical.FixturePersonality p = activePersonality();
+        if (p != null) {
+            return WINCH_LEAD_CHANNELS + p.channelCount();
+        }
+        return FIXTURE_MODE_CHANNELS[Math.floorMod(fixtureMode, FIXTURE_MODE_CHANNELS.length)];
+    }
+
+    /**
+     * The DMX modes the flown fixture declares, or empty when it declares none (no
+     * Theatrical, not a fixture, nothing hung yet). Reading the fixture's own personalities
+     * means the winch offers exactly the modes the real head has, named as it names them,
+     * instead of a generic profile that happens to be close.
+     */
+    public java.util.List<dev.nano.ndidisplays.compat.theatrical.FixturePersonality> fixturePersonalities() {
+        if (payload != PAYLOAD_FIXTURE) {
+            return java.util.List.of();
+        }
+        return dev.nano.ndidisplays.compat.theatrical.TheatricalCompat
+                .fixturePersonalities(fixtureBlockId);
+    }
+
+    /** The selected personality, or null when falling back to the generic footprints. */
+    @Nullable
+    public dev.nano.ndidisplays.compat.theatrical.FixturePersonality activePersonality() {
+        java.util.List<dev.nano.ndidisplays.compat.theatrical.FixturePersonality> list =
+                fixturePersonalities();
+        if (list.isEmpty()) {
+            return null;
+        }
+        return list.get(Math.floorMod(fixtureMode, list.size()));
     }
 
     /** Working speed for this move: DMX speed channel overrides the configured speed. */
@@ -744,6 +851,7 @@ public class KineticWinchBlockEntity extends BlockEntity {
         tag.putFloat("TargetDropB", targetDropB);
         tag.putFloat("CurrentDropB", currentDropB);
         tag.putInt("Payload", payload);
+        tag.putInt("FixtureMode", fixtureMode);
         tag.putString("FixtureBlock", fixtureBlockId);
         tag.putInt("DmxRed", dmxRed);
         tag.putInt("DmxGreen", dmxGreen);
@@ -795,6 +903,9 @@ public class KineticWinchBlockEntity extends BlockEntity {
         targetDropB = Clamps.f(tag.contains("TargetDropB") ? tag.getFloat("TargetDropB") : targetDrop,
                 minDrop, maxDrop, targetDrop);
         payload = Clamps.i(tag.getInt("Payload"), 0, PAYLOAD_COUNT - 1);
+        if (tag.contains("FixtureMode")) {
+            fixtureMode = Clamps.i(tag.getInt("FixtureMode"), 0, 63);
+        }
         fixtureBlockId = Clamps.name(tag.getString("FixtureBlock"), 256);
         dmxRed = Clamps.i(tag.contains("DmxRed") ? tag.getInt("DmxRed") : 255, 0, 255);
         dmxGreen = Clamps.i(tag.contains("DmxGreen") ? tag.getInt("DmxGreen") : 255, 0, 255);

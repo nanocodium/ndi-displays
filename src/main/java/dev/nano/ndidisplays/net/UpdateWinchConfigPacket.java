@@ -24,7 +24,7 @@ public record UpdateWinchConfigPacket(BlockPos pos, String source, int pxPerBloc
                                       int panelW, int panelH, int orientation, boolean mesh,
                                       float minDrop, float maxDrop, float speed, float targetDrop,
                                       boolean twinMode, float maxTilt, float targetDropB,
-                                      int payload,
+                                      int payload, int fixtureMode,
                                       int dmxUniverse, int dmxAddress, UUID networkId) {
 
     public static void encode(UpdateWinchConfigPacket msg, FriendlyByteBuf buf) {
@@ -49,6 +49,7 @@ public record UpdateWinchConfigPacket(BlockPos pos, String source, int pxPerBloc
         buf.writeFloat(msg.maxTilt);
         buf.writeFloat(msg.targetDropB);
         buf.writeVarInt(msg.payload);
+        buf.writeVarInt(msg.fixtureMode);
         buf.writeVarInt(msg.dmxUniverse);
         buf.writeVarInt(msg.dmxAddress);
         buf.writeUUID(msg.networkId);
@@ -79,6 +80,7 @@ public record UpdateWinchConfigPacket(BlockPos pos, String source, int pxPerBloc
                 buf.readVarInt(),
                 buf.readVarInt(),
                 buf.readVarInt(),
+                buf.readVarInt(),
                 buf.readUUID());
     }
 
@@ -103,7 +105,7 @@ public record UpdateWinchConfigPacket(BlockPos pos, String source, int pxPerBloc
                     msg.panelW, msg.panelH, msg.orientation, msg.mesh,
                     msg.minDrop, msg.maxDrop, msg.speed, msg.targetDrop,
                     msg.twinMode, msg.maxTilt, msg.targetDropB,
-                    msg.payload,
+                    msg.payload, msg.fixtureMode,
                     msg.dmxUniverse, msg.dmxAddress, msg.networkId);
             TheatricalCompat.register(winch);
             BlockState state = level.getBlockState(msg.pos);

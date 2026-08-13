@@ -64,6 +64,19 @@ public final class TheatricalCompat {
         }
     }
 
+    /** True when the block is a Theatrical/Extra Lights fixture a winch can fly. */
+    public static boolean isFixtureBlock(net.minecraft.world.level.block.Block block) {
+        if (!active()) {
+            return false;
+        }
+        try {
+            return TheatricalHooks.isFixtureBlock(block);
+        } catch (LinkageError e) {
+            markBroken(e);
+            return false;
+        }
+    }
+
     /** Registers a fixed screen (wall panel / round / curved) as a 2ch DMX consumer. */
     public static void registerScreen(dev.nano.ndidisplays.block.DmxScreen screen) {
         if (!active()) {
@@ -85,6 +98,28 @@ public final class TheatricalCompat {
             TheatricalHooks.unregisterScreen(screen);
         } catch (LinkageError e) {
             markBroken(e);
+        }
+    }
+
+    private static final Map<String, java.util.Optional<FixtureModelData>> FIXTURE_CACHE =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Model locations and pivots of a Theatrical fixture block, for the flown-fixture
+     * renderer. Client side; null when Theatrical is absent or the id isn't a fixture.
+     * Cached per block id — the data is static per fixture type.
+     */
+    @javax.annotation.Nullable
+    public static FixtureModelData fixtureModelData(String blockId) {
+        if (!active() || blockId.isEmpty()) {
+            return null;
+        }
+        try {
+            return FIXTURE_CACHE.computeIfAbsent(blockId, id ->
+                    java.util.Optional.ofNullable(TheatricalFixtureHooks.resolve(id))).orElse(null);
+        } catch (LinkageError e) {
+            markBroken(e);
+            return null;
         }
     }
 

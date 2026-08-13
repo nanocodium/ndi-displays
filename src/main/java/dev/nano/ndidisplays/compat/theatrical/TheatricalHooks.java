@@ -43,6 +43,11 @@ final class TheatricalHooks {
         network.dmx().removeConsumer(consumerOf(be), be.getBlockPos());
     }
 
+    /** True when the block is a Theatrical (or Extra Lights) fixture that can be flown. */
+    static boolean isFixtureBlock(net.minecraft.world.level.block.Block block) {
+        return block instanceof dev.imabad.theatrical.blocks.light.BaseLightBlock;
+    }
+
     static void registerScreen(DmxScreen screen) {
         TheatricalNetwork network = networkOf(screen.getLevel(), screen.dmx().getNetworkId());
         if (network == null) {

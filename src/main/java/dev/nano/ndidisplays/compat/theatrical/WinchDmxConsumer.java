@@ -65,7 +65,35 @@ final class WinchDmxConsumer implements DMXConsumer {
         if (dmxValues.length < start + getChannelCount()) {
             return;
         }
-        if (be.isTwinMode()) {
+        int payload = be.getPayload();
+        if (payload == KineticWinchBlockEntity.PAYLOAD_KINETIC_SPHERE) {
+            // Height c/f, speed, dimmer, R, G, B.
+            int height = (Byte.toUnsignedInt(dmxValues[start]) << 8)
+                    | Byte.toUnsignedInt(dmxValues[start + 1]);
+            be.applyDmxSphere(height,
+                    Byte.toUnsignedInt(dmxValues[start + 2]),
+                    Byte.toUnsignedInt(dmxValues[start + 3]),
+                    Byte.toUnsignedInt(dmxValues[start + 4]),
+                    Byte.toUnsignedInt(dmxValues[start + 5]),
+                    Byte.toUnsignedInt(dmxValues[start + 6]));
+            return;
+        }
+        if (payload == KineticWinchBlockEntity.PAYLOAD_FIXTURE) {
+            // Height c/f, speed, then the head: intensity, R, G, B, focus, pan, tilt.
+            int height = (Byte.toUnsignedInt(dmxValues[start]) << 8)
+                    | Byte.toUnsignedInt(dmxValues[start + 1]);
+            be.applyDmxFixture(height,
+                    Byte.toUnsignedInt(dmxValues[start + 2]),
+                    Byte.toUnsignedInt(dmxValues[start + 3]),
+                    Byte.toUnsignedInt(dmxValues[start + 4]),
+                    Byte.toUnsignedInt(dmxValues[start + 5]),
+                    Byte.toUnsignedInt(dmxValues[start + 6]),
+                    Byte.toUnsignedInt(dmxValues[start + 7]),
+                    Byte.toUnsignedInt(dmxValues[start + 8]),
+                    Byte.toUnsignedInt(dmxValues[start + 9]));
+            return;
+        }
+        if (payload == KineticWinchBlockEntity.PAYLOAD_LED_TILE && be.isTwinMode()) {
             int heightA = (Byte.toUnsignedInt(dmxValues[start]) << 8)
                     | Byte.toUnsignedInt(dmxValues[start + 1]);
             int heightB = (Byte.toUnsignedInt(dmxValues[start + 2]) << 8)

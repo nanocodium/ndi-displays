@@ -75,5 +75,12 @@
  "gui.ndidisplays.screen_dmx.title": "DMX Source Slots",
  "gui.ndidisplays.screen_dmx.patch": "Patched: universe %s, address %s — 2ch (dimmer, source select)",
  "gui.ndidisplays.screen_dmx.hint": "Patch with Theatrical's configuration card. CH2 picks a slot per 32 DMX values.",
- "gui.ndidisplays.screen.dmx_patched": "Screen patched — universe %s, address %s (2ch: dimmer, source)"
+ "gui.ndidisplays.screen.dmx_patched": "Screen patched — universe %s, address %s (2ch: dimmer, source)",
+ "gui.ndidisplays.winch.payload": "Payload",
+ "gui.ndidisplays.winch.payload.tile": "LED Tile",
+ "gui.ndidisplays.winch.payload.sphere": "Kinetic Sphere",
+ "gui.ndidisplays.winch.payload.mirror": "Mirror Ball",
+ "gui.ndidisplays.winch.payload.fixture": "Fixture",
+ "gui.ndidisplays.winch.payload.no_fixture": "Right-click winch with a fixture",
+ "gui.ndidisplays.winch.fixture_loaded": "Fixture %s hung on the winch (10ch DMX)"
 }

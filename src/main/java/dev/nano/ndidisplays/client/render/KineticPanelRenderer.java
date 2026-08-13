@@ -72,6 +72,12 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
             return;
         }
 
+        // Non-tile payloads hang from a single hook cable and never tilt.
+        if (be.getPayload() != KineticWinchBlockEntity.PAYLOAD_LED_TILE) {
+            renderSuspendedPayload(be, partialTick, poseStack, buffers, packedLight);
+            return;
+        }
+
         // Twin mode: each cable is its own motor. The tile hangs level at the mean of
         // the two drops and rolls around the facing axis to meet both attachment
         // heights — same UV window on the shared canvas, only the transform changes.
@@ -275,6 +281,134 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
         poseStack.popPose();
     }
 
+    // ------------------------------------------------------------------ payloads
+
+    /** Ball radius for the mirror ball and the kinetic sphere, blocks. */
+    private static final float BALL_RADIUS = 0.38F;
+    private static final int SPHERE_LAT = 12;
+    private static final int SPHERE_LON = 18;
+
+    /**
+     * A non-tile payload: one hook cable straight down from the drum, then the
+     * kinetic sphere, mirror ball or flown Theatrical fixture at the hook.
+     */
+    private void renderSuspendedPayload(KineticWinchBlockEntity be, float partialTick,
+                                        PoseStack poseStack, MultiBufferSource buffers,
+                                        int packedLight) {
+        float drop = Math.max(0.05F, be.getRenderDrop(partialTick));
+        double hookY = -drop;
+        Direction facing = be.getFacing();
+        Vec3 fwd = Vec3.atLowerCornerOf(facing.getNormal());
+        Vec3 right = Vec3.atLowerCornerOf(facing.getClockWise().getNormal());
+        Matrix4f mat = poseStack.last().pose();
+
+        VertexConsumer solid = buffers.getBuffer(
+                RenderType.entityCutoutNoCull(FallbackTextures.whiteLocation()));
+        drawCable(solid, mat, new Vec3(0.5, hookY, 0.5), new Vec3(0.5, DRUM_Y, 0.5),
+                right, fwd, packedLight);
+        // Hook / motor canister at the top of the payload.
+        shadedBox(solid, mat, new Vec3(0.5 - 0.05, hookY - 0.08, 0.5 - 0.05),
+                new Vec3(0.5 + 0.05, hookY, 0.5 + 0.05), 0.18F, packedLight);
+
+        Vec3 ballCenter = new Vec3(0.5, hookY - 0.08 - BALL_RADIUS, 0.5);
+        switch (be.getPayload()) {
+            case KineticWinchBlockEntity.PAYLOAD_MIRROR_BALL ->
+                    renderMirrorBall(be, partialTick, ballCenter, mat, buffers, packedLight);
+            case KineticWinchBlockEntity.PAYLOAD_KINETIC_SPHERE ->
+                    renderKineticSphere(be, ballCenter, mat, buffers);
+            case KineticWinchBlockEntity.PAYLOAD_FIXTURE ->
+                    FlownFixtureRenderer.render(be, partialTick, hookY, poseStack, buffers, packedLight);
+            default -> {
+            }
+        }
+    }
+
+    /**
+     * The classic disco mirror ball: a faceted sphere in slowly rotating specular
+     * greys, a few facets catching the light as full-bright glints.
+     */
+    private static void renderMirrorBall(KineticWinchBlockEntity be, float partialTick,
+                                         Vec3 center, Matrix4f mat, MultiBufferSource buffers,
+                                         int packedLight) {
+        float spin = ((be.getLevel().getGameTime() % 720) + partialTick) * 0.008F * (float) Math.PI;
+        VertexConsumer facets = buffers.getBuffer(
+                RenderType.entityCutoutNoCull(FallbackTextures.whiteLocation()));
+        VertexConsumer glints = buffers.getBuffer(
+                RenderType.entityTranslucentEmissive(FallbackTextures.whiteLocation()));
+        for (int i = 0; i < SPHERE_LAT; i++) {
+            double t0 = Math.PI * i / SPHERE_LAT;
+            double t1 = Math.PI * (i + 1) / SPHERE_LAT;
+            for (int j = 0; j < SPHERE_LON; j++) {
+                double p0 = 2 * Math.PI * j / SPHERE_LON + spin;
+                double p1 = 2 * Math.PI * (j + 1) / SPHERE_LON + spin;
+                Vec3 a = spherePoint(center, BALL_RADIUS, t0, p0);
+                Vec3 b = spherePoint(center, BALL_RADIUS, t0, p1);
+                Vec3 c = spherePoint(center, BALL_RADIUS, t1, p1);
+                Vec3 d = spherePoint(center, BALL_RADIUS, t1, p0);
+                float h = hash(i, j);
+                if (h > 0.90F) {
+                    // A facet flashing the room: full-bright, like catching a beam.
+                    Vec3 n = a.subtract(center).normalize();
+                    emissiveVertex(glints, mat, a, 0, 0, n, 1, 1, 1, 1);
+                    emissiveVertex(glints, mat, b, 1, 0, n, 1, 1, 1, 1);
+                    emissiveVertex(glints, mat, c, 1, 1, n, 1, 1, 1, 1);
+                    emissiveVertex(glints, mat, d, 0, 1, n, 1, 1, 1, 1);
+                } else {
+                    float shade = 0.30F + 0.45F * h;
+                    shadedQuad(facets, mat, shade, packedLight, a, b, c, d);
+                }
+            }
+        }
+    }
+
+    /**
+     * The kinetic-lights RGB sphere: an emissive globe in the winch's DMX colour with
+     * a soft translucent halo — hundreds of these on a grid make 3D colour waves.
+     */
+    private static void renderKineticSphere(KineticWinchBlockEntity be, Vec3 center,
+                                            Matrix4f mat, MultiBufferSource buffers) {
+        float[] rgb = be.getSphereColor();
+        VertexConsumer vc = buffers.getBuffer(
+                RenderType.entityTranslucentEmissive(FallbackTextures.whiteLocation()));
+        drawEmissiveSphere(vc, mat, center, BALL_RADIUS * 0.9F, rgb[0], rgb[1], rgb[2], 1.0F);
+        // Halo: a slightly larger translucent shell that reads as glow at distance.
+        drawEmissiveSphere(vc, mat, center, BALL_RADIUS * 1.12F,
+                rgb[0], rgb[1], rgb[2], 0.18F);
+    }
+
+    private static void drawEmissiveSphere(VertexConsumer vc, Matrix4f mat, Vec3 center,
+                                           float radius, float r, float g, float b, float alpha) {
+        for (int i = 0; i < SPHERE_LAT; i++) {
+            double t0 = Math.PI * i / SPHERE_LAT;
+            double t1 = Math.PI * (i + 1) / SPHERE_LAT;
+            for (int j = 0; j < SPHERE_LON; j++) {
+                double p0 = 2 * Math.PI * j / SPHERE_LON;
+                double p1 = 2 * Math.PI * (j + 1) / SPHERE_LON;
+                Vec3 a = spherePoint(center, radius, t0, p0);
+                Vec3 bb = spherePoint(center, radius, t0, p1);
+                Vec3 c = spherePoint(center, radius, t1, p1);
+                Vec3 d = spherePoint(center, radius, t1, p0);
+                Vec3 n = a.subtract(center).normalize();
+                emissiveVertex(vc, mat, a, 0, 0, n, r, g, b, alpha);
+                emissiveVertex(vc, mat, bb, 1, 0, n, r, g, b, alpha);
+                emissiveVertex(vc, mat, c, 1, 1, n, r, g, b, alpha);
+                emissiveVertex(vc, mat, d, 0, 1, n, r, g, b, alpha);
+            }
+        }
+    }
+
+    private static Vec3 spherePoint(Vec3 center, float radius, double theta, double phi) {
+        return center.add(radius * Math.sin(theta) * Math.cos(phi),
+                radius * Math.cos(theta),
+                radius * Math.sin(theta) * Math.sin(phi));
+    }
+
+    /** Deterministic per-facet pseudo-random in [0,1) — mirror-ball facet variation. */
+    private static float hash(int i, int j) {
+        int h = i * 73856093 ^ j * 19349663;
+        return ((h >> 8) & 0xFF) / 256.0F;
+    }
+
     /** Rodrigues rotation of {@code p} by {@code angle} around {@code axis} through {@code pivot}. */
     private static Vec3 rotateAroundPivot(Vec3 p, Vec3 pivot, Vec3 axis, float angle) {
         if (Math.abs(angle) < 1e-4F) {
@@ -337,6 +471,11 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
         emissiveVertex(vc, mat, p10, u1, v1, normal, cr * bright, cg * bright, cb * bright, alpha);
         emissiveVertex(vc, mat, p11, u1, v0, normal, cr * bright, cg * bright, cb * bright, alpha);
         emissiveVertex(vc, mat, p01, u0, v0, normal, cr * bright, cg * bright, cb * bright, alpha);
+    }
+
+    /** Dark box for the flown-fixture placeholder when Theatrical models are unavailable. */
+    static void placeholderBox(VertexConsumer vc, Matrix4f mat, Vec3 min, Vec3 max, int light) {
+        shadedBox(vc, mat, min, max, 0.15F, light);
     }
 
     /** An axis-aligned box in a flat dark shade — rigging hardware (bumper bar, links). */

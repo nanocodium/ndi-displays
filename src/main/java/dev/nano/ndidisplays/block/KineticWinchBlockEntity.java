@@ -63,6 +63,28 @@ public class KineticWinchBlockEntity extends BlockEntity {
     public static final float MAX_TILT_LIMIT = 45.0F;
     private static final float DEFAULT_MAX_TILT = 15.0F;
 
+    // --- Payload kinds: what hangs from the hook ---
+    /** The LED video tile (default, the floating-sky element). */
+    public static final int PAYLOAD_LED_TILE = 0;
+    /** Kinetic-lights RGB sphere on a single cable. */
+    public static final int PAYLOAD_KINETIC_SPHERE = 1;
+    /** Rotating mirror ball, pure decor (no extra DMX channels). */
+    public static final int PAYLOAD_MIRROR_BALL = 2;
+    /** A Theatrical / Extra Lights fixture flown on the hook. */
+    public static final int PAYLOAD_FIXTURE = 3;
+    public static final int PAYLOAD_COUNT = 4;
+
+    /** Sphere footprint: height 16-bit, speed, dimmer, R, G, B. */
+    public static final int DMX_CHANNEL_COUNT_SPHERE = 7;
+    /** Flown fixture footprint: height 16-bit, speed, intensity, R, G, B, focus, pan, tilt. */
+    public static final int DMX_CHANNEL_COUNT_FIXTURE = 10;
+
+    /** Moving-head sweep speeds for the flown fixture's pan/tilt interpolation. */
+    private static final float PAN_RANGE = 540.0F;
+    private static final float TILT_RANGE = 270.0F;
+    private static final float PAN_SPEED = 240.0F;
+    private static final float TILT_SPEED = 200.0F;
+
     /** Seconds to reach full speed — sets the accel/decel ramp of the motion profile. */
     private static final float ACCEL_TIME = 0.5F;
     private static final float DT = 0.05F;
@@ -122,6 +144,29 @@ public class KineticWinchBlockEntity extends BlockEntity {
     private float velocityB;
     /** Set after the first NBT load so later sync packets never teleport the tile. */
     private boolean motionInitialized;
+
+    // --- Payload ---
+    private int payload = PAYLOAD_LED_TILE;
+    /** Registry id of the Theatrical fixture block flown in PAYLOAD_FIXTURE mode. */
+    private String fixtureBlockId = "";
+    /** Kinetic-sphere colour, DMX-driven (255/255/255 when unpatched). */
+    private int dmxRed = 255;
+    private int dmxGreen = 255;
+    private int dmxBlue = 255;
+    // Flown fixture head state. Raw DMX bytes are the targets; the client sweeps the
+    // head towards them at moving-head speeds, like Theatrical's own renderers.
+    private int fixIntensity;
+    private int fixRed = 255;
+    private int fixGreen = 255;
+    private int fixBlue = 255;
+    private int fixFocus = 128;
+    private int fixPan = 128;
+    private int fixTilt = 128;
+    private float curPan;
+    private float curTilt;
+    private float prevPan;
+    private float prevTilt;
+    private boolean headInitialized;
 
     // --- DMX (Theatrical) ---
     private int dmxUniverse = 0;
@@ -261,6 +306,56 @@ public class KineticWinchBlockEntity extends BlockEntity {
                 * cableSpan();
     }
 
+    public int getPayload() {
+        return payload;
+    }
+
+    public String getFixtureBlockId() {
+        return fixtureBlockId;
+    }
+
+    /** Kinetic-sphere colour with the DMX dimmer folded in, 0-1 per component. */
+    public float[] getSphereColor() {
+        float dim = dmxDimmer / 255.0F;
+        return new float[]{dmxRed / 255.0F * dim, dmxGreen / 255.0F * dim, dmxBlue / 255.0F * dim};
+    }
+
+    /** Flown fixture beam colour (intensity NOT folded in), 0-1 per component. */
+    public float[] getFixtureColor() {
+        return new float[]{fixRed / 255.0F, fixGreen / 255.0F, fixBlue / 255.0F};
+    }
+
+    public float getFixtureIntensity() {
+        return fixIntensity / 255.0F;
+    }
+
+    public float getFixtureFocus() {
+        return fixFocus / 255.0F;
+    }
+
+    public float getRenderPan(float partialTick) {
+        return prevPan + (curPan - prevPan) * partialTick;
+    }
+
+    public float getRenderTilt(float partialTick) {
+        return prevTilt + (curTilt - prevTilt) * partialTick;
+    }
+
+    private static float panTargetDegrees(int panByte) {
+        return (panByte / 255.0F - 0.5F) * PAN_RANGE;
+    }
+
+    private static float tiltTargetDegrees(int tiltByte) {
+        return (tiltByte / 255.0F - 0.5F) * TILT_RANGE;
+    }
+
+    /** Sets the flown fixture by registry id (right-click the winch with the block item). */
+    public void setFixturePayload(String blockId) {
+        this.payload = PAYLOAD_FIXTURE;
+        this.fixtureBlockId = Clamps.name(blockId, 256);
+        setChanged();
+    }
+
     public int getDmxUniverse() {
         return dmxUniverse;
     }
@@ -307,6 +402,7 @@ public class KineticWinchBlockEntity extends BlockEntity {
                             int panelW, int panelH, int orientation, boolean mesh,
                             float minDrop, float maxDrop, float speed, float targetDrop,
                             boolean twinMode, float maxTilt, float targetDropB,
+                            int payload,
                             int universe, int address, UUID network) {
         this.sourceName = Clamps.name(source, MAX_SOURCE_NAME);
         this.pixelsPerBlock = Clamps.i(pxPerBlock, 8, 1024);
@@ -327,6 +423,7 @@ public class KineticWinchBlockEntity extends BlockEntity {
         this.twinMode = twinMode;
         this.maxTilt = Clamps.f(maxTilt, 0.0F, MAX_TILT_LIMIT, DEFAULT_MAX_TILT);
         this.targetDropB = clampTargetB(Clamps.f(targetDropB, this.minDrop, this.maxDrop, this.targetDrop));
+        this.payload = Clamps.i(payload, 0, PAYLOAD_COUNT - 1);
         this.dmxUniverse = Clamps.i(universe, 0, 32767);
         this.dmxAddress = Clamps.i(address, 1, 512);
         this.networkId = network == null ? NULL_UUID : network;
@@ -423,9 +520,75 @@ public class KineticWinchBlockEntity extends BlockEntity {
         }
     }
 
-    /** This winch's DMX footprint: 4 channels LINKED (the default), 6 in TWIN. */
+    /**
+     * Kinetic-sphere DMX frame: height + speed + dimmer as usual, plus the sphere's
+     * RGB colour — the classic kinetic-lights footprint.
+     */
+    public void applyDmxSphere(int height16, int speedByte, int dimmer, int r, int g, int b) {
+        float span = maxDrop - minDrop;
+        float newTarget = minDrop + (height16 / 65535.0F) * span;
+        boolean changed = Math.abs(newTarget - targetDrop) > 0.001F
+                || speedByte != dmxSpeed || dimmer != dmxDimmer
+                || r != dmxRed || g != dmxGreen || b != dmxBlue;
+        if (!changed) {
+            return;
+        }
+        targetDrop = newTarget;
+        dmxSpeed = speedByte;
+        dmxDimmer = dimmer;
+        dmxRed = r;
+        dmxGreen = g;
+        dmxBlue = b;
+        setChanged();
+        if (level != null) {
+            BlockState state = getBlockState();
+            level.sendBlockUpdated(worldPosition, state, state, 3);
+        }
+    }
+
+    /**
+     * Flown-fixture DMX frame: winch height + speed, then the head — intensity, RGB,
+     * focus, pan, tilt. Pan/tilt land as targets; both sides sweep the head towards
+     * them at moving-head speeds, so desk moves read as physical motion.
+     */
+    public void applyDmxFixture(int height16, int speedByte, int intensity,
+                                int r, int g, int b, int focus, int pan, int tilt) {
+        float span = maxDrop - minDrop;
+        float newTarget = minDrop + (height16 / 65535.0F) * span;
+        boolean changed = Math.abs(newTarget - targetDrop) > 0.001F
+                || speedByte != dmxSpeed
+                || intensity != fixIntensity || r != fixRed || g != fixGreen || b != fixBlue
+                || focus != fixFocus || pan != fixPan || tilt != fixTilt;
+        if (!changed) {
+            return;
+        }
+        targetDrop = newTarget;
+        dmxSpeed = speedByte;
+        fixIntensity = intensity;
+        fixRed = r;
+        fixGreen = g;
+        fixBlue = b;
+        fixFocus = focus;
+        fixPan = pan;
+        fixTilt = tilt;
+        setChanged();
+        if (level != null) {
+            BlockState state = getBlockState();
+            level.sendBlockUpdated(worldPosition, state, state, 3);
+        }
+    }
+
+    /**
+     * This winch's DMX footprint, by payload: LED tile 4 (LINKED) or 6 (TWIN),
+     * kinetic sphere 7, flown fixture 10, mirror ball 4 (height/speed only).
+     */
     public int getDmxChannelCount() {
-        return twinMode ? DMX_CHANNEL_COUNT_TWIN : DMX_CHANNEL_COUNT;
+        return switch (payload) {
+            case PAYLOAD_KINETIC_SPHERE -> DMX_CHANNEL_COUNT_SPHERE;
+            case PAYLOAD_FIXTURE -> DMX_CHANNEL_COUNT_FIXTURE;
+            case PAYLOAD_MIRROR_BALL -> DMX_CHANNEL_COUNT;
+            default -> twinMode ? DMX_CHANNEL_COUNT_TWIN : DMX_CHANNEL_COUNT;
+        };
     }
 
     /** Working speed for this move: DMX speed channel overrides the configured speed. */
@@ -465,6 +628,26 @@ public class KineticWinchBlockEntity extends BlockEntity {
             be.targetDropB = be.targetDrop;
             be.velocityB = 0;
         }
+
+        if (be.payload == PAYLOAD_FIXTURE) {
+            be.stepHead();
+        }
+    }
+
+    /** Sweeps the flown fixture's head towards its DMX pan/tilt targets. */
+    private void stepHead() {
+        prevPan = curPan;
+        prevTilt = curTilt;
+        curPan = approach(curPan, panTargetDegrees(fixPan), PAN_SPEED * DT);
+        curTilt = approach(curTilt, tiltTargetDegrees(fixTilt), TILT_SPEED * DT);
+    }
+
+    private static float approach(float current, float target, float maxStep) {
+        float diff = target - current;
+        if (Math.abs(diff) <= maxStep) {
+            return target;
+        }
+        return current + Math.signum(diff) * maxStep;
     }
 
     /** One 50 ms integration of the trapezoidal profile; returns {position, velocity}. */
@@ -539,6 +722,18 @@ public class KineticWinchBlockEntity extends BlockEntity {
         tag.putFloat("CurrentDrop", currentDrop);
         tag.putFloat("TargetDropB", targetDropB);
         tag.putFloat("CurrentDropB", currentDropB);
+        tag.putInt("Payload", payload);
+        tag.putString("FixtureBlock", fixtureBlockId);
+        tag.putInt("DmxRed", dmxRed);
+        tag.putInt("DmxGreen", dmxGreen);
+        tag.putInt("DmxBlue", dmxBlue);
+        tag.putInt("FixIntensity", fixIntensity);
+        tag.putInt("FixRed", fixRed);
+        tag.putInt("FixGreen", fixGreen);
+        tag.putInt("FixBlue", fixBlue);
+        tag.putInt("FixFocus", fixFocus);
+        tag.putInt("FixPan", fixPan);
+        tag.putInt("FixTilt", fixTilt);
         tag.putInt("DmxUniverse", dmxUniverse);
         tag.putInt("DmxAddress", dmxAddress);
         tag.putUUID("DmxNetwork", networkId);
@@ -575,6 +770,18 @@ public class KineticWinchBlockEntity extends BlockEntity {
         targetDrop = Clamps.f(tag.getFloat("TargetDrop"), minDrop, maxDrop, minDrop);
         targetDropB = Clamps.f(tag.contains("TargetDropB") ? tag.getFloat("TargetDropB") : targetDrop,
                 minDrop, maxDrop, targetDrop);
+        payload = Clamps.i(tag.getInt("Payload"), 0, PAYLOAD_COUNT - 1);
+        fixtureBlockId = Clamps.name(tag.getString("FixtureBlock"), 256);
+        dmxRed = Clamps.i(tag.contains("DmxRed") ? tag.getInt("DmxRed") : 255, 0, 255);
+        dmxGreen = Clamps.i(tag.contains("DmxGreen") ? tag.getInt("DmxGreen") : 255, 0, 255);
+        dmxBlue = Clamps.i(tag.contains("DmxBlue") ? tag.getInt("DmxBlue") : 255, 0, 255);
+        fixIntensity = Clamps.i(tag.getInt("FixIntensity"), 0, 255);
+        fixRed = Clamps.i(tag.contains("FixRed") ? tag.getInt("FixRed") : 255, 0, 255);
+        fixGreen = Clamps.i(tag.contains("FixGreen") ? tag.getInt("FixGreen") : 255, 0, 255);
+        fixBlue = Clamps.i(tag.contains("FixBlue") ? tag.getInt("FixBlue") : 255, 0, 255);
+        fixFocus = Clamps.i(tag.contains("FixFocus") ? tag.getInt("FixFocus") : 128, 0, 255);
+        fixPan = Clamps.i(tag.contains("FixPan") ? tag.getInt("FixPan") : 128, 0, 255);
+        fixTilt = Clamps.i(tag.contains("FixTilt") ? tag.getInt("FixTilt") : 128, 0, 255);
         dmxUniverse = Clamps.i(tag.getInt("DmxUniverse"), 0, 32767);
         dmxAddress = Clamps.i(tag.contains("DmxAddress") ? tag.getInt("DmxAddress") : 1, 1, 512);
         networkId = tag.hasUUID("DmxNetwork") ? tag.getUUID("DmxNetwork") : NULL_UUID;
@@ -597,6 +804,13 @@ public class KineticWinchBlockEntity extends BlockEntity {
             prevDropB = currentDropB;
             velocityB = 0;
             motionInitialized = true;
+        }
+        if (!headInitialized) {
+            curPan = panTargetDegrees(fixPan);
+            curTilt = tiltTargetDegrees(fixTilt);
+            prevPan = curPan;
+            prevTilt = curTilt;
+            headInitialized = true;
         }
     }
 

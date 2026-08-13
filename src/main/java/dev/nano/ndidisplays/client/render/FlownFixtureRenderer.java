@@ -107,6 +107,15 @@ final class FlownFixtureRenderer {
             Vec3 dir = new Vec3(-head.m20(), -head.m21(), -head.m22()).normalize();
             float length = beamLength(be, origin, dir);
 
+            // Shimmer dynamic light at the beam impact point, like Theatrical's own
+            // fixtures (their emission block): the spot actually lights the floor.
+            if (LedWallRenderer.SHIMMER_LOADED) {
+                Vec3 impact = origin.add(dir.scale(Math.max(0.5, length - 0.5)));
+                float spread = 2.0F + be.getFixtureFocus() * 8.0F;
+                ShimmerSphereLights.update(be.getBlockPos(), impact,
+                        rgb[0] * intensity, rgb[1] * intensity, rgb[2] * intensity, spread);
+            }
+
             boolean raymarched = TheatricalCompat.submitFixtureBeam(be.getBlockPos(), head,
                     data.beamWidth(), be.getFixtureFocus(),
                     rgb[0], rgb[1], rgb[2], intensity, length);

@@ -35,7 +35,15 @@ public final class ShimmerSphereLights {
     /** Called from the sphere render path each frame; positions are world-space. */
     static void update(BlockPos owner, Vec3 pos, float r, float g, float b) {
         float lum = Math.max(r, Math.max(g, b));
-        float radius = 3.0F + 8.0F * Math.min(1.0F, lum);
+        update(owner, pos, r, g, b, 3.0F + 8.0F * Math.min(1.0F, lum));
+    }
+
+    /**
+     * Explicit-radius variant, also used for the flown fixture's beam-impact light
+     * (one dynamic light per winch either way, so the same registry serves both).
+     */
+    static void update(BlockPos owner, Vec3 pos, float r, float g, float b, float radius) {
+        float lum = Math.max(r, Math.max(g, b));
         Holder holder = LIGHTS.get(owner);
         if (holder == null) {
             ColorPointLight light = LightManager.INSTANCE.addLight(

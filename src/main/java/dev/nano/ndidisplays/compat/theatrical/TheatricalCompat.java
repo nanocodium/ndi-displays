@@ -109,6 +109,27 @@ public final class TheatricalCompat {
      * renderer. Client side; null when Theatrical is absent or the id isn't a fixture.
      * Cached per block id — the data is static per fixture type.
      */
+    /**
+     * Submits a flown-fixture beam into Theatrical's volumetric raymarch pipeline.
+     * Returns false when it isn't available and the caller should draw a classic
+     * beam cone itself. Client side.
+     */
+    public static boolean submitFixtureBeam(net.minecraft.core.BlockPos fixturePos,
+                                            org.joml.Matrix4f headMatrix, float beamWidth,
+                                            float focus01, float r, float g, float b,
+                                            float intensity01, float length) {
+        if (!active()) {
+            return false;
+        }
+        try {
+            return TheatricalBeamHooks.submitBeam(fixturePos, headMatrix, beamWidth,
+                    focus01, r, g, b, intensity01, length);
+        } catch (LinkageError e) {
+            markBroken(e);
+            return false;
+        }
+    }
+
     @javax.annotation.Nullable
     public static FixtureModelData fixtureModelData(String blockId) {
         if (!active() || blockId.isEmpty()) {

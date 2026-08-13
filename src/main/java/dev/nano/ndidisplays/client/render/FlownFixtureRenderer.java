@@ -24,8 +24,10 @@ import org.joml.Matrix4f;
  */
 final class FlownFixtureRenderer {
 
-    /** Beam length drawn, blocks (visual only, no raymarch like Theatrical's). */
+    /** Fallback beam length when the surface raycast can't run, blocks. */
     private static final float BEAM_LENGTH = 12.0F;
+    /** How far the beam raycast looks for a surface, blocks. */
+    private static final float MAX_BEAM_LENGTH = 40.0F;
 
     private FlownFixtureRenderer() {
     }
@@ -86,21 +88,82 @@ final class FlownFixtureRenderer {
             renderModel(poseStack, cutout, data, tiltModel, packedLight);
         }
 
-        // Beam: a translucent cone out of the lens along the head's axis, coloured by
-        // the DMX head state and scaled by intensity. Drawn in the tilt space so it
-        // follows every move.
+        // Beam. Preferred path: Theatrical's own volumetric raymarch pipeline — the
+        // exact light a truss-mounted fixture emits. It wants the head transform in
+        // block-local space (it adds the BlockPos itself), so the transform chain is
+        // rebuilt on an identity stack. Fallback: classic translucent cone quads.
         float intensity = be.getFixtureIntensity();
         if (intensity > 0.01F) {
             float[] rgb = be.getFixtureColor();
+            if (rgb[0] + rgb[1] + rgb[2] < 0.01F) {
+                // Dimmer up but no colour patched yet: open white, like a real lamp.
+                rgb = new float[]{1.0F, 1.0F, 1.0F};
+            }
             float[] beamStart = data.beamStart();
-            poseStack.pushPose();
-            poseStack.translate(beamStart[0], beamStart[1], beamStart[2]);
-            drawBeam(poseStack, buffers, data.beamWidth(), be.getFixtureFocus(),
-                    rgb[0], rgb[1], rgb[2], intensity * 0.35F);
-            poseStack.popPose();
+            Matrix4f head = localHeadMatrix(be, hookY, facing, pan, tilt, data, beamStart);
+
+            Vec3 origin = Vec3.atLowerCornerOf(be.getBlockPos())
+                    .add(head.m30(), head.m31(), head.m32());
+            Vec3 dir = new Vec3(-head.m20(), -head.m21(), -head.m22()).normalize();
+            float length = beamLength(be, origin, dir);
+
+            boolean raymarched = TheatricalCompat.submitFixtureBeam(be.getBlockPos(), head,
+                    data.beamWidth(), be.getFixtureFocus(),
+                    rgb[0], rgb[1], rgb[2], intensity, length);
+            if (!raymarched) {
+                poseStack.pushPose();
+                poseStack.translate(beamStart[0], beamStart[1], beamStart[2]);
+                drawBeam(poseStack, buffers, data.beamWidth(), be.getFixtureFocus(), length,
+                        rgb[0], rgb[1], rgb[2], intensity * 0.35F);
+                poseStack.popPose();
+            }
         }
 
         poseStack.popPose();
+    }
+
+    /**
+     * The head transform in block-local space: the same chain as the render pass
+     * (hang under the hook, yaw to facing, flip, pan stage, tilt stage, beam start),
+     * but on an identity stack instead of the camera-relative BER stack.
+     */
+    private static Matrix4f localHeadMatrix(KineticWinchBlockEntity be, double hookY,
+                                            Direction facing, float pan, float tilt,
+                                            FixtureModelData data, float[] beamStart) {
+        PoseStack local = new PoseStack();
+        local.translate(0, hookY - 1.0, 0);
+        local.translate(0.5, 0.5, 0.5);
+        local.mulPose(Axis.YP.rotationDegrees(facing.toYRot()));
+        local.mulPose(Axis.ZP.rotationDegrees(180));
+        local.translate(-0.5, -0.5, -0.5);
+        float[] pans = data.panPivot();
+        local.translate(pans[0], pans[1], pans[2]);
+        local.mulPose(Axis.YP.rotationDegrees(pan));
+        local.translate(-pans[0], -pans[1], -pans[2]);
+        float[] tilts = data.tiltPivot();
+        local.translate(tilts[0], tilts[1], tilts[2]);
+        local.mulPose(Axis.XP.rotationDegrees(-180));
+        local.mulPose(Axis.XP.rotationDegrees(tilt));
+        local.translate(-tilts[0], -tilts[1], -tilts[2]);
+        local.translate(beamStart[0], beamStart[1], beamStart[2]);
+        return new Matrix4f(local.last().pose());
+    }
+
+    /** Beam length to the first surface the light hits, like Theatrical's fixtures. */
+    private static float beamLength(KineticWinchBlockEntity be, Vec3 origin, Vec3 dir) {
+        var level = be.getLevel();
+        var player = Minecraft.getInstance().player;
+        if (level == null || player == null) {
+            return BEAM_LENGTH;
+        }
+        var hit = level.clip(new net.minecraft.world.level.ClipContext(
+                origin, origin.add(dir.scale(MAX_BEAM_LENGTH)),
+                net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                net.minecraft.world.level.ClipContext.Fluid.NONE, player));
+        if (hit.getType() == net.minecraft.world.phys.HitResult.Type.MISS) {
+            return MAX_BEAM_LENGTH;
+        }
+        return (float) Math.max(1.0, hit.getLocation().distanceTo(origin));
     }
 
     private static BakedModel model(net.minecraft.resources.ResourceLocation location) {
@@ -119,11 +182,11 @@ final class FlownFixtureRenderer {
      * -Z of the current pose (the head's optical axis after the tilt transforms).
      */
     private static void drawBeam(PoseStack poseStack, MultiBufferSource buffers,
-                                 float beamSize, float focus, float r, float g, float b,
-                                 float alpha) {
+                                 float beamSize, float focus, float length,
+                                 float r, float g, float b, float alpha) {
         VertexConsumer vc = buffers.getBuffer(RenderType.lightning());
         Matrix4f m = poseStack.last().pose();
-        float len = BEAM_LENGTH;
+        float len = length;
         float endMul = 1.0F + focus * len * 0.06F;
         int a = (int) (alpha * 255);
         int cr = (int) (r * 255);

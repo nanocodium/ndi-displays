@@ -55,6 +55,10 @@ final class ExtraLightsBeamHooks {
     private ExtraLightsBeamHooks() {
     }
 
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
+    private static boolean loggedDisabled;
+    private static boolean loggedSubmit;
+
     private static synchronized boolean resolve() {
         if (state != State.UNKNOWN) {
             return state == State.READY;
@@ -86,9 +90,13 @@ final class ExtraLightsBeamHooks {
                 enabledMethod = null;
             }
             state = State.READY;
+            LOGGER.info("[ndidisplays] Extra Lights volumetric beam API resolved"
+                    + " (config gate {})", enabledMethod != null ? "present" : "absent");
             return true;
         } catch (ReflectiveOperationException | LinkageError absent) {
             state = State.ABSENT;
+            LOGGER.info("[ndidisplays] Extra Lights volumetric beam unavailable ({});"
+                    + " flown fixtures will use the classic beam", absent.toString());
             return false;
         }
     }
@@ -102,8 +110,19 @@ final class ExtraLightsBeamHooks {
             return true;
         }
         try {
-            return Boolean.TRUE.equals(enabledMethod.invoke(null));
-        } catch (ReflectiveOperationException | LinkageError e) {
+            boolean on = Boolean.TRUE.equals(enabledMethod.invoke(null));
+            if (!on && !loggedDisabled) {
+                loggedDisabled = true;
+                LOGGER.info("[ndidisplays] Extra Lights reports its volumetric beam is"
+                        + " switched off; flown fixtures will use the classic beam");
+            }
+            return on;
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException e) {
+            // RuntimeException included deliberately: this runs *outside* submit()'s try, so an
+            // unchecked throw here would escape into the block entity renderer rather than
+            // falling back to the classic beam.
+            state = State.ABSENT;
+            LOGGER.warn("[ndidisplays] Extra Lights volumetric config gate failed: {}", e.toString(), e);
             return false;
         }
     }
@@ -178,10 +197,20 @@ final class ExtraLightsBeamHooks {
             // A fresh identity stack: the data is already world-space, and Extra Lights
             // re-anchors camera-relatively inside its own lazy render.
             renderMethod.invoke(renderer, data, new PoseStack());
+            if (!loggedSubmit) {
+                loggedSubmit = true;
+                LOGGER.info("[ndidisplays] flown fixture beam submitted to Extra Lights'"
+                        + " volumetric renderer");
+            }
             return true;
         } catch (ReflectiveOperationException | LinkageError | RuntimeException e) {
-            // One failure means the contract moved; stop trying and let the classic cone draw.
+            // Log the real cause before giving up — a silent fallback here is indistinguishable
+            // from Extra Lights simply not being installed, which makes it undebuggable.
+            Throwable cause = e instanceof java.lang.reflect.InvocationTargetException ite
+                    && ite.getCause() != null ? ite.getCause() : e;
             state = State.ABSENT;
+            LOGGER.warn("[ndidisplays] Extra Lights volumetric beam failed, falling back to the"
+                    + " classic beam: {}", cause.toString(), cause);
             return false;
         }
     }

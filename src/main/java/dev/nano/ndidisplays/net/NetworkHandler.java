@@ -76,5 +76,9 @@ public final class NetworkHandler {
                 UpdateRoundScreenConfigPacket::encode,
                 UpdateRoundScreenConfigPacket::decode,
                 UpdateRoundScreenConfigPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateCurvedScreenConfigPacket.class,
+                UpdateCurvedScreenConfigPacket::encode,
+                UpdateCurvedScreenConfigPacket::decode,
+                UpdateCurvedScreenConfigPacket::handle);
     }
 }

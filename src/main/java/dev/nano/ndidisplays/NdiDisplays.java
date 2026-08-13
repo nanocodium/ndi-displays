@@ -110,6 +110,26 @@ public class NdiDisplays {
                     () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.RoundScreenBlockEntity::new,
                             ROUND_SCREEN.get()).build(null));
 
+    /**
+     * Curved LED screen: a cylindrical arc of configurable radius, opening angle and
+     * height. 360 degrees closes it into a full video column.
+     */
+    public static final RegistryObject<Block> CURVED_SCREEN = BLOCKS.register("curved_screen",
+            () -> new dev.nano.ndidisplays.block.CurvedScreenBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 10)));
+
+    public static final RegistryObject<Item> CURVED_SCREEN_ITEM = ITEMS.register("curved_screen",
+            () -> new BlockItem(CURVED_SCREEN.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.CurvedScreenBlockEntity>> CURVED_SCREEN_BE =
+            BLOCK_ENTITIES.register("curved_screen",
+                    () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.CurvedScreenBlockEntity::new,
+                            CURVED_SCREEN.get()).build(null));
+
     private static BlockBehaviour.Properties cameraProps() {
         return BlockBehaviour.Properties.of()
                 .mapColor(MapColor.COLOR_BLACK)
@@ -191,6 +211,7 @@ public class NdiDisplays {
                         output.accept(BLOW_THROUGH_PANEL_ITEM.get());
                         output.accept(KINETIC_WINCH_ITEM.get());
                         output.accept(ROUND_SCREEN_ITEM.get());
+                        output.accept(CURVED_SCREEN_ITEM.get());
                         output.accept(BROADCAST_CAMERA_ITEM.get());
                         output.accept(PTZ_CAMERA_ITEM.get());
                         output.accept(JIB_CAMERA_ITEM.get());

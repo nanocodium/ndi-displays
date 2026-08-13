@@ -59,6 +59,15 @@ public final class ClientHooks {
         }
     }
 
+    public static void openCurvedScreenConfig(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level != null && level.getBlockEntity(pos)
+                instanceof dev.nano.ndidisplays.block.CurvedScreenBlockEntity screen) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.CurvedScreenConfigScreen(screen));
+        }
+    }
+
     public static void openCameraConfig(BlockPos pos) {
         Minecraft mc = Minecraft.getInstance();
         Level level = mc.level;

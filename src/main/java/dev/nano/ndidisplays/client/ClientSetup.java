@@ -42,6 +42,8 @@ public final class ClientSetup {
                 ctx -> new dev.nano.ndidisplays.client.render.RoundScreenRenderer());
         event.registerBlockEntityRenderer(NdiDisplays.CURVED_SCREEN_BE.get(),
                 ctx -> new dev.nano.ndidisplays.client.render.CurvedScreenRenderer());
+        event.registerBlockEntityRenderer(NdiDisplays.MULTIVIEW_BE.get(),
+                ctx -> new dev.nano.ndidisplays.client.render.MultiviewRenderer());
     }
 
     @SubscribeEvent

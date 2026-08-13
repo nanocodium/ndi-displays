@@ -171,7 +171,7 @@ public final class LedWallBaker {
         GlStateManager._clearColor(0.0F, 0.0F, 0.0F, 0.0F);
         GlStateManager._clear(GL11C.GL_COLOR_BUFFER_BIT, Minecraft.ON_OSX);
 
-        shader.safeGetUniform("LedParams").set(gridW, gridH, 0.15F, be.getBrightness());
+        shader.safeGetUniform("LedParams").set(gridW, gridH, 0.15F, be.getEffectiveBrightness());
         shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode, (float) pxPerBlock, 0.06F);
         RenderSystem.setShader(() -> shader);
         RenderSystem.setShaderTexture(0, sourceTex);

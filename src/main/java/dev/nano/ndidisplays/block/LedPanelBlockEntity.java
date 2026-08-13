@@ -14,7 +14,7 @@ import net.minecraft.world.phys.AABB;
 
 import javax.annotation.Nullable;
 
-public class LedPanelBlockEntity extends BlockEntity {
+public class LedPanelBlockEntity extends BlockEntity implements DmxScreen {
 
     /** Test pattern ids, mirrored in the shader: 0 video, 1 bars, 2 grid, 3 white, 4 red, 5 green, 6 blue, 7 checker. */
     public static final int PATTERN_COUNT = 8;
@@ -37,6 +37,8 @@ public class LedPanelBlockEntity extends BlockEntity {
     private boolean cachedRenderAnchor;
     private long cacheTime = Long.MIN_VALUE;
 
+    private final ScreenDmxState dmx = new ScreenDmxState();
+
     public LedPanelBlockEntity(BlockPos pos, BlockState state) {
         super(NdiDisplays.LED_PANEL_BE.get(), pos, state);
     }
@@ -55,6 +57,11 @@ public class LedPanelBlockEntity extends BlockEntity {
 
     public float getBrightness() {
         return brightness;
+    }
+
+    /** Panel brightness with the DMX dimmer applied. */
+    public float getEffectiveBrightness() {
+        return brightness * dmx.dimmerFactor();
     }
 
     public float getGamma() {
@@ -134,6 +141,82 @@ public class LedPanelBlockEntity extends BlockEntity {
         cachedWall = null;
     }
 
+    // ------------------------------------------------------------------ DMX (Theatrical)
+
+    @Override
+    public ScreenDmxState dmx() {
+        return dmx;
+    }
+
+    @Override
+    public String getDmxModelName() {
+        return "NDI LED Wall";
+    }
+
+    @Override
+    public String getDmxTranslationKey() {
+        return getBlockState().getBlock().getDescriptionId();
+    }
+
+    /**
+     * One DMX frame for the whole wall: the patched panel fans dimmer and source out
+     * to every panel of its wall group, so one 2-channel fixture owns the full screen.
+     */
+    @Override
+    public void applyDmxFrame(int dimmer, int sourceByte) {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        String slot = dmx.slotForByte(sourceByte);
+        WallScanner.WallInfo wall = getWallInfo();
+        if (wall == null) {
+            acceptWallDmx(dimmer, slot);
+            return;
+        }
+        net.minecraft.core.Vec3i right = wall.facing().rightStep();
+        for (int w = 0; w < wall.width(); w++) {
+            for (int h = 0; h < wall.height(); h++) {
+                BlockPos p = wall.anchor()
+                        .offset(right.getX() * w, right.getY() * w, right.getZ() * w)
+                        .above(h);
+                if (level.getBlockEntity(p) instanceof LedPanelBlockEntity panel) {
+                    panel.acceptWallDmx(dimmer, slot);
+                }
+            }
+        }
+    }
+
+    /** Applies DMX dimmer/source to this one panel, syncing only on change. */
+    private void acceptWallDmx(int dimmer, @Nullable String slotSource) {
+        boolean changed = dmx.setDimmer(dimmer);
+        if (slotSource != null && (!slotSource.equals(sourceName) || testPattern != 0)) {
+            sourceName = slotSource;
+            testPattern = 0;
+            changed = true;
+        }
+        if (changed && level != null) {
+            setChanged();
+            BlockState state = getBlockState();
+            level.sendBlockUpdated(worldPosition, state, state, 3);
+        }
+    }
+
+    @Override
+    public void setLevel(Level level) {
+        super.setLevel(level);
+        if (level != null && !level.isClientSide) {
+            dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.registerScreen(this);
+        }
+    }
+
+    @Override
+    public void setRemoved() {
+        if (level != null && !level.isClientSide) {
+            dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.unregisterScreen(this);
+        }
+        super.setRemoved();
+    }
+
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
@@ -142,6 +225,7 @@ public class LedPanelBlockEntity extends BlockEntity {
         tag.putFloat("Brightness", brightness);
         tag.putFloat("Gamma", gamma);
         tag.putInt("Pattern", testPattern);
+        dmx.save(tag);
     }
 
     /**
@@ -161,6 +245,7 @@ public class LedPanelBlockEntity extends BlockEntity {
                 1.0F, 3.0F, DEFAULT_GAMMA);
         testPattern = Clamps.i(tag.contains("Pattern") ? tag.getInt("Pattern") : DEFAULT_PATTERN,
                 0, PATTERN_COUNT - 1);
+        dmx.load(tag);
     }
 
     @Override

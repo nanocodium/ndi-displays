@@ -111,7 +111,13 @@ public class PanelConfigScreen extends Screen {
         addRenderableWidget(new FloatSlider(left + 132, y, 128, gamma, 1.8, 2.8,
                 v -> gamma = (float) v,
                 v -> String.format("Gamma: %.2f", v)));
-        y += 30;
+        y += 24;
+
+        addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.screen_dmx.open"), b ->
+                        net.minecraft.client.Minecraft.getInstance().setScreen(
+                                new ScreenDmxSlotsScreen(anchor, this)))
+                .bounds(left, y, 260, 20).build());
+        y += 28;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.apply"), b -> apply())
                 .bounds(cx - 130, y, 128, 20).build());

@@ -97,7 +97,13 @@ public class RoundScreenConfigScreen extends Screen {
                 RoundScreenBlockEntity.MIN_RADIUS, RoundScreenBlockEntity.MAX_RADIUS,
                 v -> radius = (float) v,
                 v -> String.format("Radius: %.1f m", v)));
-        y += 28;
+        y += 22;
+
+        addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.screen_dmx.open"), b ->
+                        net.minecraft.client.Minecraft.getInstance().setScreen(
+                                new ScreenDmxSlotsScreen(screen, this)))
+                .bounds(left, y, 264, 18).build());
+        y += 26;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.winch.apply"), b -> apply())
                 .bounds(cx - 132, y, 130, 20).build());

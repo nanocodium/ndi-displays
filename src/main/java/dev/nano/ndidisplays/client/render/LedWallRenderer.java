@@ -114,7 +114,7 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
         Vec3 p11 = base.add(span).add(0, h, 0);   // top, viewer-right
         Vec3 p01 = base.add(0, h, 0);             // top, viewer-left
 
-        shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getBrightness());
+        shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness());
         shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode, (float) pxPerBlock, CALIBRATION_VARIANCE);
         // Walls always show the whole video; kinetic tiles set a sub-rectangle here, so
         // this must be reset every draw or a wall drawn after a tile inherits its slice.
@@ -162,7 +162,7 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
             ResourceLocation shimmerTex = mode == 0 ? bloomTexture : FallbackTextures.whiteLocation();
             if (shimmerTex != null) {
                 ShimmerCompat.submitBloom(mat, p00, p10, p11, p01, shimmerTex, new float[]{
-                        gridW, gridH, PIXEL_GAP, be.getBrightness(),
+                        gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness(),
                         be.getGamma(), (float) mode, (float) pxPerBlock, CALIBRATION_VARIANCE});
             }
         }
@@ -205,7 +205,7 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
         }
 
         // First frame (or bake failure): flat approximation until the bake lands.
-        float bright = be.getBrightness();
+        float bright = be.getEffectiveBrightness();
         float alpha = blowThrough ? 0.55F : 1.0F;
         ResourceLocation tex;
         float cr = 1.0F;

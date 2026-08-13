@@ -80,5 +80,9 @@ public final class NetworkHandler {
                 UpdateCurvedScreenConfigPacket::encode,
                 UpdateCurvedScreenConfigPacket::decode,
                 UpdateCurvedScreenConfigPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateScreenDmxSlotsPacket.class,
+                UpdateScreenDmxSlotsPacket::encode,
+                UpdateScreenDmxSlotsPacket::decode,
+                UpdateScreenDmxSlotsPacket::handle);
     }
 }

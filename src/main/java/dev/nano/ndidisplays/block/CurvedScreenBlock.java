@@ -66,6 +66,14 @@ public class CurvedScreenBlock extends HorizontalDirectionalBlock implements Ent
             }
             return InteractionResult.sidedSuccess(level.isClientSide);
         }
+        // Theatrical configuration card: patch the arc as a 2ch fixture (dimmer + source).
+        if (DmxScreen.isTheatricalCard(player.getItemInHand(hand))) {
+            if (!level.isClientSide && level.getBlockEntity(pos) instanceof CurvedScreenBlockEntity screen) {
+                DmxScreen.applyTheatricalCard(level, pos, state, player,
+                        player.getItemInHand(hand), screen);
+            }
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
         if (level.isClientSide) {
             DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
                     dev.nano.ndidisplays.client.ClientHooks.openCurvedScreenConfig(pos));

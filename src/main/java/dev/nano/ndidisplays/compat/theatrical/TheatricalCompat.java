@@ -64,6 +64,30 @@ public final class TheatricalCompat {
         }
     }
 
+    /** Registers a fixed screen (wall panel / round / curved) as a 2ch DMX consumer. */
+    public static void registerScreen(dev.nano.ndidisplays.block.DmxScreen screen) {
+        if (!active()) {
+            return;
+        }
+        try {
+            TheatricalHooks.registerScreen(screen);
+        } catch (LinkageError e) {
+            markBroken(e);
+        }
+    }
+
+    /** Removes a fixed screen from its Theatrical network (server side). */
+    public static void unregisterScreen(dev.nano.ndidisplays.block.DmxScreen screen) {
+        if (!active()) {
+            return;
+        }
+        try {
+            TheatricalHooks.unregisterScreen(screen);
+        } catch (LinkageError e) {
+            markBroken(e);
+        }
+    }
+
     /**
      * Known Theatrical networks (id → display name), for the config screen's network
      * picker. Client side; empty when Theatrical is absent.

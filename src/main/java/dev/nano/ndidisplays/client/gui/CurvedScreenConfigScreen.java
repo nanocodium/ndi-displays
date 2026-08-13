@@ -122,6 +122,10 @@ public class CurvedScreenConfigScreen extends Screen {
                 .displayOnlyValue()
                 .create(left, y, 130, 18, Component.translatable("gui.ndidisplays.curved.side"),
                         (btn, val) -> convex = val));
+        addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.screen_dmx.open"), b ->
+                        net.minecraft.client.Minecraft.getInstance().setScreen(
+                                new ScreenDmxSlotsScreen(screen, this)))
+                .bounds(left + 134, y, 130, 18).build());
         y += 28;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.winch.apply"), b -> apply())

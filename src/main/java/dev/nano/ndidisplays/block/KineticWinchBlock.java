@@ -89,6 +89,24 @@ public class KineticWinchBlock extends HorizontalDirectionalBlock implements Ent
             return InteractionResult.sidedSuccess(level.isClientSide);
         }
 
+        // A Theatrical/Extra Lights fixture block: hang it from the hook. The winch
+        // stores the registry id and its renderer draws the fixture's baked models at
+        // the flown height (10-channel DMX footprint: height, speed, head).
+        if (held.getItem() instanceof net.minecraft.world.item.BlockItem blockItem
+                && dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.isFixtureBlock(blockItem.getBlock())) {
+            if (!level.isClientSide && level.getBlockEntity(pos) instanceof KineticWinchBlockEntity winch) {
+                ResourceLocation id = ForgeRegistries.BLOCKS.getKey(blockItem.getBlock());
+                // Re-register: the payload change moves the footprint from 4/6 to 10 ch.
+                TheatricalCompat.unregister(winch);
+                winch.setFixturePayload(id != null ? id.toString() : "");
+                TheatricalCompat.register(winch);
+                level.sendBlockUpdated(pos, state, state, 3);
+                player.displayClientMessage(Component.translatable(
+                        "gui.ndidisplays.winch.fixture_loaded", held.getHoverName()), true);
+            }
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
+
         // Theatrical configuration card: patch the winch's DMX exactly like a fixture —
         // network, universe, address, with the card's auto-increment stepping 4 channels.
         if (isTheatricalCard(held)) {

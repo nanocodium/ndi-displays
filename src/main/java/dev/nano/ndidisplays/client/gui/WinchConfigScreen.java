@@ -66,6 +66,7 @@ public class WinchConfigScreen extends Screen {
     private double targetBNorm;
     private boolean twinMode;
     private float maxTilt;
+    private int payload;
     private UUID networkId;
 
     private EditBox sourceBox;
@@ -96,6 +97,7 @@ public class WinchConfigScreen extends Screen {
         this.targetBNorm = (winch.getTargetDropB() - winch.getMinDrop()) / span;
         this.twinMode = winch.isTwinMode();
         this.maxTilt = winch.getMaxTilt();
+        this.payload = winch.getPayload();
         this.networkId = winch.getNetworkId();
     }
 
@@ -222,6 +224,21 @@ public class WinchConfigScreen extends Screen {
         }
         y += 24;
 
+        // What hangs from the hook: video tile, kinetic sphere, mirror ball or a
+        // Theatrical fixture (set by right-clicking the winch with the fixture item).
+        addRenderableWidget(CycleButton.<Integer>builder(p -> Component.translatable(switch (p) {
+                    case KineticWinchBlockEntity.PAYLOAD_KINETIC_SPHERE -> "gui.ndidisplays.winch.payload.sphere";
+                    case KineticWinchBlockEntity.PAYLOAD_MIRROR_BALL -> "gui.ndidisplays.winch.payload.mirror";
+                    case KineticWinchBlockEntity.PAYLOAD_FIXTURE -> "gui.ndidisplays.winch.payload.fixture";
+                    default -> "gui.ndidisplays.winch.payload.tile";
+                }))
+                .withValues(range(KineticWinchBlockEntity.PAYLOAD_COUNT))
+                .withInitialValue(payload)
+                .displayOnlyValue()
+                .create(left, y, 130, 18, Component.translatable("gui.ndidisplays.winch.payload"),
+                        (btn, val) -> payload = val));
+        y += 24;
+
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.winch.apply"), b -> apply())
                 .bounds(cx - 132, y, 130, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> onClose())
@@ -261,6 +278,7 @@ public class WinchConfigScreen extends Screen {
                 twinMode,
                 maxTilt,
                 targetB,
+                payload,
                 parseI(universeText, winch.getDmxUniverse()),
                 parseI(addressText, winch.getDmxAddress()),
                 networkId));
@@ -296,6 +314,14 @@ public class WinchConfigScreen extends Screen {
         labels(graphics, left, 214, "Mode", "Max tilt", "", "");
         labels(graphics, left, 244, "Universe", "Address",
                 TheatricalCompat.LOADED ? "DMX Network" : "", "");
+        labels(graphics, left, 268, "Payload", "", "", "");
+        if (payload == KineticWinchBlockEntity.PAYLOAD_FIXTURE) {
+            String id = winch.getFixtureBlockId();
+            graphics.drawString(font, id.isEmpty()
+                            ? Component.translatable("gui.ndidisplays.winch.payload.no_fixture").getString()
+                            : id,
+                    left + 138, 282, id.isEmpty() ? 0xE06060 : 0xA0A0A0);
+        }
         graphics.drawString(font, NdiManager.getStatus(), left, height - 16,
                 NdiManager.isAvailable() ? 0x60D060 : 0xE06060);
         if (!TheatricalCompat.LOADED) {

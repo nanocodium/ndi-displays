@@ -331,10 +331,12 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
                                          Vec3 center, Matrix4f mat, MultiBufferSource buffers,
                                          int packedLight) {
         float spin = ((be.getLevel().getGameTime() % 720) + partialTick) * 0.008F * (float) Math.PI;
+        // Everything through the cutout type: it writes depth, so screens rendered
+        // later in the frame cannot paint over a ball hanging in front of them
+        // (translucent-emissive is colour-only and loses that fight).
         VertexConsumer facets = buffers.getBuffer(
                 RenderType.entityCutoutNoCull(FallbackTextures.whiteLocation()));
-        VertexConsumer glints = buffers.getBuffer(
-                RenderType.entityTranslucentEmissive(FallbackTextures.whiteLocation()));
+        VertexConsumer glints = facets;
         for (int i = 0; i < SPHERE_LAT; i++) {
             double t0 = Math.PI * i / SPHERE_LAT;
             double t1 = Math.PI * (i + 1) / SPHERE_LAT;
@@ -368,11 +370,15 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
     private static void renderKineticSphere(KineticWinchBlockEntity be, Vec3 center,
                                             Matrix4f mat, MultiBufferSource buffers) {
         float[] rgb = be.getSphereColor();
-        VertexConsumer vc = buffers.getBuffer(
-                RenderType.entityTranslucentEmissive(FallbackTextures.whiteLocation()));
-        drawEmissiveSphere(vc, mat, center, BALL_RADIUS * 0.9F, rgb[0], rgb[1], rgb[2], 1.0F);
+        // Body through the cutout type so it writes depth — otherwise a screen drawn
+        // later in the frame paints straight over a sphere hanging in front of it.
+        VertexConsumer body = buffers.getBuffer(
+                RenderType.entityCutoutNoCull(FallbackTextures.whiteLocation()));
+        drawEmissiveSphere(body, mat, center, BALL_RADIUS * 0.9F, rgb[0], rgb[1], rgb[2], 1.0F);
         // Halo: a slightly larger translucent shell that reads as glow at distance.
-        drawEmissiveSphere(vc, mat, center, BALL_RADIUS * 1.12F,
+        VertexConsumer halo = buffers.getBuffer(
+                RenderType.entityTranslucentEmissive(FallbackTextures.whiteLocation()));
+        drawEmissiveSphere(halo, mat, center, BALL_RADIUS * 1.12F,
                 rgb[0], rgb[1], rgb[2], 0.18F);
     }
 

@@ -1,0 +1,8 @@
+{
+    "variants": {
+        "facing=north": { "model": "ndidisplays:block/curved_screen" },
+        "facing=east": { "model": "ndidisplays:block/curved_screen", "y": 90 },
+        "facing=south": { "model": "ndidisplays:block/curved_screen", "y": 180 },
+        "facing=west": { "model": "ndidisplays:block/curved_screen", "y": 270 }
+    }
+}

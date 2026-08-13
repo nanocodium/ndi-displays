@@ -1,0 +1,16 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "GGG",
+        "GRG",
+        "GGG"
+    ],
+    "key": {
+        "G": { "item": "minecraft:glass_pane" },
+        "R": { "item": "ndidisplays:led_panel" }
+    },
+    "result": {
+        "item": "ndidisplays:multiview",
+        "count": 1
+    }
+}

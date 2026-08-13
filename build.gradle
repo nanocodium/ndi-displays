@@ -107,6 +107,9 @@ minecraft {
 repositories {
     mavenCentral()
     maven { url = 'https://maven.firstdarkdev.xyz/snapshots' }
+    // Theatrical (DMX/Art-Net stage lighting) — for the kinetic winch fixture integration.
+    maven { url = 'https://mvn.imabad.dev/repository/maven-releases/' }
+    maven { url = 'https://jitpack.io' }
 }
 
 jarJar.enable()
@@ -123,6 +126,25 @@ dependencies {
     // apply in the mojmap dev runtime; the integration activates in a real launcher
     // when Shimmer is installed). Transitives off — its pom references unresolvable deps.
     compileOnly fg.deobf(project.dependencies.create('com.lowdragmc.shimmer:Shimmer-forge:1.20.1-0.2.4') { transitive = false })
+
+    // Optional Theatrical integration: kinetic winch panels register as patchable DMX
+    // fixtures (16-bit height + speed + dimmer) on a Theatrical network. Compile-only —
+    // all Theatrical-touching code lives behind compat classes that only load when the
+    // mod is present at runtime.
+    //
+    // The API compiled against is the local Theatrical-official-1.20.1 build when
+    // present (it has the current networks API — TheatricalNetworkData/network.dmx() —
+    // which is what the locally-built Theatrical jar in use actually ships). The Maven
+    // alpha.28 artifact is years of API behind (old dmx.DMXNetworkData) and is only a
+    // fallback so the project still compiles on a machine without the local checkout.
+    // artnet4j is needed because DMXConsumer's signature references RDMDeviceId.
+    def theatricalLocalClasses = file("${rootDir}/../Theatrical-official-1.20.1/common/build/classes/java/main")
+    if (theatricalLocalClasses.isDirectory()) {
+        compileOnly files(theatricalLocalClasses)
+    } else {
+        compileOnly fg.deobf(project.dependencies.create('dev.imabad:Theatrical-forge:1.0.0-alpha.28.120+mc1.20.1') { transitive = false })
+    }
+    compileOnly 'ch.bildspur:artnet4j:0.6.3'
 }
 
 jar {

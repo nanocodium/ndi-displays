@@ -2,6 +2,8 @@ package dev.nano.ndidisplays;
 
 import dev.nano.ndidisplays.block.CameraKind;
 import dev.nano.ndidisplays.block.CameraTrackBlock;
+import dev.nano.ndidisplays.block.KineticWinchBlock;
+import dev.nano.ndidisplays.block.KineticWinchBlockEntity;
 import dev.nano.ndidisplays.block.LedPanelBlock;
 import dev.nano.ndidisplays.block.LedPanelBlockEntity;
 import dev.nano.ndidisplays.block.NdiCameraBlock;
@@ -69,6 +71,85 @@ public class NdiDisplays {
             () -> BlockEntityType.Builder.of(LedPanelBlockEntity::new,
                     LED_PANEL.get(), BLOW_THROUGH_PANEL.get()).build(null));
 
+    /**
+     * Kinetic winch: flies an LED video tile below itself on rendered cables — the
+     * "floating sky" element (Tomorrowland Freedom Stage style). Height, speed and
+     * dimmer are DMX-controllable through Theatrical when it is installed.
+     */
+    public static final RegistryObject<Block> KINETIC_WINCH = BLOCKS.register("kinetic_winch",
+            () -> new KineticWinchBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()));
+
+    public static final RegistryObject<Item> KINETIC_WINCH_ITEM = ITEMS.register("kinetic_winch",
+            () -> new BlockItem(KINETIC_WINCH.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<KineticWinchBlockEntity>> KINETIC_WINCH_BE =
+            BLOCK_ENTITIES.register("kinetic_winch",
+                    () -> BlockEntityType.Builder.of(KineticWinchBlockEntity::new, KINETIC_WINCH.get()).build(null));
+
+    /**
+     * Circular LED screen: one mount block rendering a video disc of configurable
+     * radius — the round-screen counterpart of the rectangular walls.
+     */
+    public static final RegistryObject<Block> ROUND_SCREEN = BLOCKS.register("round_screen",
+            () -> new dev.nano.ndidisplays.block.RoundScreenBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 10)));
+
+    public static final RegistryObject<Item> ROUND_SCREEN_ITEM = ITEMS.register("round_screen",
+            () -> new BlockItem(ROUND_SCREEN.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.RoundScreenBlockEntity>> ROUND_SCREEN_BE =
+            BLOCK_ENTITIES.register("round_screen",
+                    () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.RoundScreenBlockEntity::new,
+                            ROUND_SCREEN.get()).build(null));
+
+    /**
+     * Curved LED screen: a cylindrical arc of configurable radius, opening angle and
+     * height. 360 degrees closes it into a full video column.
+     */
+    public static final RegistryObject<Block> CURVED_SCREEN = BLOCKS.register("curved_screen",
+            () -> new dev.nano.ndidisplays.block.CurvedScreenBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 10)));
+
+    public static final RegistryObject<Item> CURVED_SCREEN_ITEM = ITEMS.register("curved_screen",
+            () -> new BlockItem(CURVED_SCREEN.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.CurvedScreenBlockEntity>> CURVED_SCREEN_BE =
+            BLOCK_ENTITIES.register("curved_screen",
+                    () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.CurvedScreenBlockEntity::new,
+                            CURVED_SCREEN.get()).build(null));
+
+    /**
+     * Multiview control monitor: a wall screen showing a 2x2 or 3x3 mosaic of NDI
+     * sources for the video engineer — direct video, no LED simulation.
+     */
+    public static final RegistryObject<Block> MULTIVIEW = BLOCKS.register("multiview",
+            () -> new dev.nano.ndidisplays.block.MultiviewBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 8)));
+
+    public static final RegistryObject<Item> MULTIVIEW_ITEM = ITEMS.register("multiview",
+            () -> new BlockItem(MULTIVIEW.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.MultiviewBlockEntity>> MULTIVIEW_BE =
+            BLOCK_ENTITIES.register("multiview",
+                    () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.MultiviewBlockEntity::new,
+                            MULTIVIEW.get()).build(null));
+
     private static BlockBehaviour.Properties cameraProps() {
         return BlockBehaviour.Properties.of()
                 .mapColor(MapColor.COLOR_BLACK)
@@ -112,6 +193,14 @@ public class NdiDisplays {
             () -> new Item(new Item.Properties().stacksTo(1)));
 
     /**
+     * NDI configuration card: pick a source on the card (right-click in the air), then
+     * right-click screens to switch them to NDI video with that source — Theatrical's
+     * configuration-card workflow, applied to video routing.
+     */
+    public static final RegistryObject<Item> NDI_CONFIG_CARD_ITEM = ITEMS.register("ndi_config_card",
+            () -> new dev.nano.ndidisplays.item.NdiConfigCardItem(new Item.Properties().stacksTo(1)));
+
+    /**
      * NDI router: publishes a stable output name and forwards whichever source is patched
      * to it, using NDI's routing API — no decode or re-encode, so it costs nothing.
      */
@@ -140,12 +229,17 @@ public class NdiDisplays {
                     .displayItems((params, output) -> {
                         output.accept(LED_PANEL_ITEM.get());
                         output.accept(BLOW_THROUGH_PANEL_ITEM.get());
+                        output.accept(KINETIC_WINCH_ITEM.get());
+                        output.accept(ROUND_SCREEN_ITEM.get());
+                        output.accept(CURVED_SCREEN_ITEM.get());
+                        output.accept(MULTIVIEW_ITEM.get());
                         output.accept(BROADCAST_CAMERA_ITEM.get());
                         output.accept(PTZ_CAMERA_ITEM.get());
                         output.accept(JIB_CAMERA_ITEM.get());
                         output.accept(TRACK_CAMERA_ITEM.get());
                         output.accept(CAMERA_TRACK_ITEM.get());
                         output.accept(HANDHELD_CAMERA_ITEM.get());
+                        output.accept(NDI_CONFIG_CARD_ITEM.get());
                         output.accept(NDI_ROUTER_ITEM.get());
                     })
                     .build());

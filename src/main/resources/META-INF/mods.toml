@@ -34,3 +34,10 @@ mandatory=false
 versionRange="[1.20.1-0.2.0,)"
 ordering="AFTER"
 side="CLIENT"
+
+[[dependencies.ndidisplays]]
+modId="theatrical"
+mandatory=false
+versionRange="[0,)"
+ordering="AFTER"
+side="BOTH"

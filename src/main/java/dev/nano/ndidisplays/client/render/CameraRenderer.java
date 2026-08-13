@@ -44,6 +44,16 @@ public class CameraRenderer implements BlockEntityRenderer<NdiCameraBlockEntity>
     private static final int ORANGE = 14;     // accent
     private static final int CABLE = 15;      // cable rubber
 
+    // Row 2: dedicated PTZ materials (richer graphite/glass/LED set)
+    private static final int PTZ_BODY = 16;        // graphite panel, seam + screw
+    private static final int PTZ_BODY_LIGHT = 17;  // brushed light grey
+    private static final int PTZ_GLASS = 18;       // lens glass, cyan highlight + fringe
+    private static final int PTZ_RING = 19;        // cyan LED ring
+    private static final int PTZ_VENT = 20;        // vent slits on graphite
+    private static final int PTZ_SILVER = 21;      // bright silver bezel
+    private static final int PTZ_GLOSS = 22;       // piano-black barrel
+    private static final int PTZ_IR = 23;          // IR window
+
     @Override
     public void render(NdiCameraBlockEntity be, float partialTick, PoseStack pose,
                        MultiBufferSource buffers, int packedLight, int packedOverlay) {
@@ -133,28 +143,83 @@ public class CameraRenderer implements BlockEntityRenderer<NdiCameraBlockEntity>
         pose.pushPose();
         pose.translate(0.5, 0.34, 0.5);
         pose.mulPose(Axis.YP.rotationDegrees(-(be.getFacing().toYRot() + pt[0])));
-        // rotating base: disc, LED status ring, connector panel at back
-        box(pose, vc, light, -0.125F, 0.0F, -0.125F, 0.125F, 0.05F, 0.125F, BODY);
-        box(pose, vc, light, -0.10F, 0.018F, -0.128F, 0.10F, 0.034F, -0.125F, BLUE_LED);
-        box(pose, vc, light, -0.05F, 0.005F, 0.123F, 0.05F, 0.045F, 0.127F, CONNECTOR);
-        // yoke arms (two-piece, brushed)
-        box(pose, vc, light, -0.13F, 0.05F, -0.035F, -0.088F, 0.25F, 0.035F, BODY_LIGHT);
-        box(pose, vc, light, 0.088F, 0.05F, -0.035F, 0.13F, 0.25F, 0.035F, BODY_LIGHT);
-        box(pose, vc, light, -0.135F, 0.14F, -0.02F, -0.13F, 0.20F, 0.02F, LABEL);
-        box(pose, vc, light, 0.13F, 0.14F, -0.02F, 0.135F, 0.20F, 0.02F, LABEL);
-        // tilting camera block between the arms
+
+        // Rotating pan platter: octagonal drum, glowing cyan status ring around its
+        // waist, brushed top cap, connector field at the back.
+        octoY(pose, vc, light, 0.125F, 0.0F, 0.05F, PTZ_BODY);
+        octoY(pose, vc, LightTexture.FULL_BRIGHT, 0.1285F, 0.016F, 0.032F, PTZ_RING);
+        octoY(pose, vc, light, 0.102F, 0.05F, 0.064F, PTZ_BODY_LIGHT);
+        box(pose, vc, light, -0.05F, 0.006F, 0.118F, 0.05F, 0.046F, 0.132F, CONNECTOR);
+
+        // Yoke arms: graphite uprights with brushed chamfered shoulders and silver
+        // tilt-pivot caps on the outside (octagonal, like a real drive hub).
+        box(pose, vc, light, -0.138F, 0.055F, -0.034F, -0.096F, 0.245F, 0.034F, PTZ_BODY);
+        box(pose, vc, light, 0.096F, 0.055F, -0.034F, 0.138F, 0.245F, 0.034F, PTZ_BODY);
+        box(pose, vc, light, -0.132F, 0.245F, -0.026F, -0.102F, 0.263F, 0.026F, PTZ_BODY_LIGHT);
+        box(pose, vc, light, 0.102F, 0.245F, -0.026F, 0.132F, 0.263F, 0.026F, PTZ_BODY_LIGHT);
+        octoX(pose, vc, light, -0.145F, -0.138F, 0.16F, 0.05F, PTZ_SILVER);
+        octoX(pose, vc, light, 0.138F, 0.145F, 0.16F, 0.05F, PTZ_SILVER);
+
+        // Tilting camera pod between the arms.
         pose.translate(0.0, 0.16, 0.0);
         pose.mulPose(Axis.XP.rotationDegrees(-pt[1]));
-        box(pose, vc, light, -0.085F, -0.078F, -0.10F, 0.085F, 0.078F, 0.08F, BODY);
-        box(pose, vc, light, -0.086F, -0.03F, -0.06F, -0.0845F, 0.03F, 0.02F, VENT);
-        box(pose, vc, light, 0.0845F, -0.03F, -0.06F, 0.086F, 0.03F, 0.02F, VENT);
-        // front face: silver bezel, glass, IR window below
-        box(pose, vc, light, -0.062F, -0.052F, 0.08F, 0.062F, 0.058F, 0.112F, SILVER);
-        box(pose, vc, light, -0.047F, -0.038F, 0.110F, 0.047F, 0.044F, 0.116F, LENS);
-        box(pose, vc, light, -0.055F, -0.072F, 0.079F, 0.055F, -0.054F, 0.083F, BLACK);
+        // main pod with chamfered top and bottom so it reads rounded
+        box(pose, vc, light, -0.092F, -0.068F, -0.118F, 0.092F, 0.068F, 0.092F, PTZ_BODY);
+        box(pose, vc, light, -0.078F, 0.068F, -0.108F, 0.078F, 0.078F, 0.082F, PTZ_BODY_LIGHT);
+        box(pose, vc, light, -0.078F, -0.078F, -0.108F, 0.078F, -0.068F, 0.082F, PTZ_BODY);
+        // side vents + thin silver trim lines
+        box(pose, vc, light, -0.0928F, -0.032F, -0.082F, -0.092F, 0.034F, 0.02F, PTZ_VENT);
+        box(pose, vc, light, 0.092F, -0.032F, -0.082F, 0.0928F, 0.034F, 0.02F, PTZ_VENT);
+        box(pose, vc, light, -0.0928F, 0.042F, -0.10F, -0.092F, 0.052F, 0.055F, PTZ_SILVER);
+        box(pose, vc, light, 0.092F, 0.042F, -0.10F, 0.0928F, 0.052F, 0.055F, PTZ_SILVER);
+        // rear: connector field + always-on power LED
+        box(pose, vc, light, -0.05F, -0.03F, -0.1225F, 0.05F, 0.04F, -0.118F, CONNECTOR);
+        box(pose, vc, LightTexture.FULL_BRIGHT, 0.056F, -0.052F, -0.121F, 0.072F, -0.038F, -0.118F, BLUE_LED);
+        // lens train, octagonal: graphite collar → piano-black zoom barrel →
+        // silver front bezel → recessed glass with cyan bloom
+        octoZ(pose, vc, light, 0.092F, 0.112F, 0.054F, PTZ_BODY);
+        octoZ(pose, vc, light, 0.112F, 0.158F, 0.047F, PTZ_GLOSS);
+        octoZ(pose, vc, light, 0.158F, 0.176F, 0.051F, PTZ_SILVER);
+        box(pose, vc, light, -0.038F, -0.038F, 0.1745F, 0.038F, 0.038F, 0.1765F, PTZ_GLASS);
+        // IR window under the lens on the front face
+        box(pose, vc, light, -0.05F, -0.063F, 0.0921F, 0.05F, -0.045F, 0.0945F, PTZ_IR);
+        // tally on the pod's top front
         if (be.isActive()) {
-            box(pose, vc, LightTexture.FULL_BRIGHT, -0.022F, 0.078F, -0.03F, 0.022F, 0.092F, 0.014F, TALLY);
+            box(pose, vc, LightTexture.FULL_BRIGHT, -0.03F, 0.0785F, 0.018F, 0.03F, 0.0925F, 0.068F, TALLY);
         }
+        pose.popPose();
+    }
+
+    // --- octagon helpers (box + the same box rotated 45° about the axis) ---
+
+    /** Octagonal drum about the vertical axis (pan platter, caps). */
+    private static void octoY(PoseStack pose, VertexConsumer vc, int light,
+                              float half, float y0, float y1, int tile) {
+        box(pose, vc, light, -half, y0, -half, half, y1, half, tile);
+        pose.pushPose();
+        pose.mulPose(Axis.YP.rotationDegrees(45.0F));
+        box(pose, vc, light, -half, y0, -half, half, y1, half, tile);
+        pose.popPose();
+    }
+
+    /** Octagonal disc about the X axis, centred at height {@code cy} (tilt pivots). */
+    private static void octoX(PoseStack pose, VertexConsumer vc, int light,
+                              float x0, float x1, float cy, float half, int tile) {
+        pose.pushPose();
+        pose.translate(0.0, cy, 0.0);
+        box(pose, vc, light, x0, -half, -half, x1, half, half, tile);
+        pose.mulPose(Axis.XP.rotationDegrees(45.0F));
+        box(pose, vc, light, x0, -half, -half, x1, half, half, tile);
+        pose.popPose();
+    }
+
+    /** Octagonal barrel about the Z axis, centred on the lens axis (lens rings). */
+    private static void octoZ(PoseStack pose, VertexConsumer vc, int light,
+                              float z0, float z1, float half, int tile) {
+        box(pose, vc, light, -half, -half, z0, half, half, z1, tile);
+        pose.pushPose();
+        pose.mulPose(Axis.ZP.rotationDegrees(45.0F));
+        box(pose, vc, light, -half, -half, z0, half, half, z1, tile);
         pose.popPose();
     }
 

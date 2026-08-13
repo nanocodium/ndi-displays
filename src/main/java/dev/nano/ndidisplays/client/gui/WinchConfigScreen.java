@@ -67,6 +67,7 @@ public class WinchConfigScreen extends Screen {
     private boolean twinMode;
     private float maxTilt;
     private int payload;
+    private int fixtureMode;
     private UUID networkId;
 
     private EditBox sourceBox;
@@ -98,6 +99,7 @@ public class WinchConfigScreen extends Screen {
         this.twinMode = winch.isTwinMode();
         this.maxTilt = winch.getMaxTilt();
         this.payload = winch.getPayload();
+        this.fixtureMode = winch.getFixtureMode();
         this.networkId = winch.getNetworkId();
     }
 
@@ -237,6 +239,20 @@ public class WinchConfigScreen extends Screen {
                 .displayOnlyValue()
                 .create(left, y, 130, 18, Component.translatable("gui.ndidisplays.winch.payload"),
                         (btn, val) -> payload = val));
+
+        // Fixture config: which DMX mode a flown fixture is patched in. The modes are
+        // nested, so this only adds or removes control from the tail of the footprint —
+        // channel 1 is always height coarse whichever mode is selected.
+        addRenderableWidget(CycleButton.<Integer>builder(m -> Component.translatable(switch (m) {
+                    case KineticWinchBlockEntity.FIXTURE_MODE_BASIC -> "gui.ndidisplays.winch.fixture_mode.basic";
+                    case KineticWinchBlockEntity.FIXTURE_MODE_COLOUR -> "gui.ndidisplays.winch.fixture_mode.colour";
+                    default -> "gui.ndidisplays.winch.fixture_mode.full";
+                }))
+                .withValues(range(KineticWinchBlockEntity.FIXTURE_MODE_COUNT))
+                .withInitialValue(fixtureMode)
+                .create(cx + 2, y, 130, 18,
+                        Component.translatable("gui.ndidisplays.winch.fixture_mode"),
+                        (btn, val) -> fixtureMode = val));
         y += 24;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.winch.apply"), b -> apply())
@@ -279,6 +295,7 @@ public class WinchConfigScreen extends Screen {
                 maxTilt,
                 targetB,
                 payload,
+                fixtureMode,
                 parseI(universeText, winch.getDmxUniverse()),
                 parseI(addressText, winch.getDmxAddress()),
                 networkId));

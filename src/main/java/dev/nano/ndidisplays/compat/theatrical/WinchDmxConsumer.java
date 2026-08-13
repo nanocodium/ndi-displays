@@ -31,6 +31,25 @@ import java.util.UUID;
  *   6  Dimmer
  * </pre>
  *
+ * Flown fixture, selectable mode (Fixture Config in the winch GUI). The modes are nested,
+ * so channel N means the same thing in all three and changing mode never re-shuffles what a
+ * desk is already programmed against — it only adds or removes control at the tail:
+ *
+ * <pre>
+ *   1  Height coarse ┐ 16-bit                                  BASIC  COLOUR  FULL
+ *   2  Height fine   ┘                                           4ch    7ch   10ch
+ *   3  Speed                                                      •      •      •
+ *   4  Intensity        the head's dimmer                         •      •      •
+ *   5  Red                                                               •      •
+ *   6  Green                                                             •      •
+ *   7  Blue                                                              •      •
+ *   8  Focus                                                                    •
+ *   9  Pan              centre-scaled: 128 = centre, ±270°                      •
+ *  10  Tilt             centre-scaled: 128 = centre, ±135°                      •
+ * </pre>
+ *
+ * Omitted channels hold rather than zero, as on a real head patched in a smaller mode.
+ *
  * With height patched 16-bit, a desk can run {@code Fixture 201 Thru 210 At 100}
  * to drop a whole row, phase a sine over height for the Freedom Stage ceiling wave,
  * or in twin mode phase A against B for tilt waves. The winch's own motion profile
@@ -79,15 +98,27 @@ final class WinchDmxConsumer implements DMXConsumer {
             return;
         }
         if (payload == KineticWinchBlockEntity.PAYLOAD_FIXTURE) {
-            // Height c/f, speed, then the head: intensity, R, G, B, focus, pan, tilt.
+            // Height c/f, speed, intensity, then colour, then focus/pan/tilt — read only as
+            // far as the patched mode reaches. The modes are nested, so each is a prefix of
+            // the next and channel numbers never shift between them. Channels the mode omits
+            // hold their previous values, which the block entity fills in.
             int height = (Byte.toUnsignedInt(dmxValues[start]) << 8)
                     | Byte.toUnsignedInt(dmxValues[start + 1]);
-            be.applyDmxFixture(height,
-                    Byte.toUnsignedInt(dmxValues[start + 2]),
-                    Byte.toUnsignedInt(dmxValues[start + 3]),
-                    Byte.toUnsignedInt(dmxValues[start + 4]),
-                    Byte.toUnsignedInt(dmxValues[start + 5]),
-                    Byte.toUnsignedInt(dmxValues[start + 6]),
+            int speedByte = Byte.toUnsignedInt(dmxValues[start + 2]);
+            int intensity = Byte.toUnsignedInt(dmxValues[start + 3]);
+            int mode = be.getFixtureMode();
+            if (mode == KineticWinchBlockEntity.FIXTURE_MODE_BASIC) {
+                be.applyDmxFixture(height, speedByte, intensity);
+                return;
+            }
+            int r = Byte.toUnsignedInt(dmxValues[start + 4]);
+            int g = Byte.toUnsignedInt(dmxValues[start + 5]);
+            int b = Byte.toUnsignedInt(dmxValues[start + 6]);
+            if (mode == KineticWinchBlockEntity.FIXTURE_MODE_COLOUR) {
+                be.applyDmxFixture(height, speedByte, intensity, r, g, b);
+                return;
+            }
+            be.applyDmxFixture(height, speedByte, intensity, r, g, b,
                     Byte.toUnsignedInt(dmxValues[start + 7]),
                     Byte.toUnsignedInt(dmxValues[start + 8]),
                     Byte.toUnsignedInt(dmxValues[start + 9]));

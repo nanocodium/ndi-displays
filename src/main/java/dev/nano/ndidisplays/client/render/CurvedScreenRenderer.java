@@ -142,7 +142,10 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
         shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness());
         shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode,
                 (float) be.getPixelsPerBlock(), CALIBRATION_VARIANCE);
-        shader.safeGetUniform("UvRegion").set(0.0F, 0.0F, 1.0F, 1.0F);
+        // Input window (video-processor crop): vertex uv is 0..1 per tiled copy, and the
+        // shader remaps it into this region — so every copy shows the cropped window.
+        dev.nano.ndidisplays.block.CropWindow crop = be.crop();
+        shader.safeGetUniform("UvRegion").set(crop.u0(), crop.v0(), crop.du(), crop.dv());
 
         RenderSystem.setShader(() -> shader);
         RenderSystem.setShaderTexture(0, texId);
@@ -232,6 +235,8 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
             }
         }
 
+        // Input window (video-processor crop) applied to the raw fallback arc.
+        dev.nano.ndidisplays.block.CropWindow crop = be.crop();
         VertexConsumer vc = buffers.getBuffer(RenderType.entityTranslucentEmissive(tex));
         for (int i = 0; i < segments; i++) {
             double t0 = i / (double) segments;
@@ -239,14 +244,18 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
             Vec3 d0 = arcDir(fwd, right, arc, t0);
             Vec3 d1 = arcDir(fwd, right, arc, t1);
             float[] uu = u(t0, t1, repeat, convex);
+            float cu0 = crop.u0() + uu[0] * crop.du();
+            float cu1 = crop.u0() + uu[1] * crop.du();
+            float cvTop = crop.v0();
+            float cvBottom = crop.v1();
             Vec3 normal = convex ? d0 : d0.scale(-1);
-            emissiveVertex(vc, mat, at(center, d0, rFace, yTop), uu[0], 0.0F, normal,
+            emissiveVertex(vc, mat, at(center, d0, rFace, yTop), cu0, cvTop, normal,
                     cr * bright, cg * bright, cb * bright);
-            emissiveVertex(vc, mat, at(center, d1, rFace, yTop), uu[1], 0.0F, normal,
+            emissiveVertex(vc, mat, at(center, d1, rFace, yTop), cu1, cvTop, normal,
                     cr * bright, cg * bright, cb * bright);
-            emissiveVertex(vc, mat, at(center, d1, rFace, yBottom), uu[1], 1.0F, normal,
+            emissiveVertex(vc, mat, at(center, d1, rFace, yBottom), cu1, cvBottom, normal,
                     cr * bright, cg * bright, cb * bright);
-            emissiveVertex(vc, mat, at(center, d0, rFace, yBottom), uu[0], 1.0F, normal,
+            emissiveVertex(vc, mat, at(center, d0, rFace, yBottom), cu0, cvBottom, normal,
                     cr * bright, cg * bright, cb * bright);
         }
     }

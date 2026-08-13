@@ -57,9 +57,15 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
     private int videoRepeat = 1;
 
     private final ScreenDmxState dmx = new ScreenDmxState();
+    /** Input window: the region of the source frame this screen displays. */
+    private final CropWindow crop = new CropWindow();
 
     public CurvedScreenBlockEntity(BlockPos pos, BlockState state) {
         super(NdiDisplays.CURVED_SCREEN_BE.get(), pos, state);
+    }
+
+    public CropWindow crop() {
+        return crop;
     }
 
     public String getSourceName() {
@@ -198,6 +204,7 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
         tag.putFloat("ScreenHeight", screenHeight);
         tag.putBoolean("Convex", convex);
         tag.putInt("VideoRepeat", videoRepeat);
+        crop.save(tag);
         dmx.save(tag);
     }
 
@@ -220,6 +227,7 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
                 MIN_HEIGHT, MAX_HEIGHT, DEFAULT_HEIGHT);
         convex = tag.getBoolean("Convex");
         videoRepeat = Clamps.i(tag.contains("VideoRepeat") ? tag.getInt("VideoRepeat") : 1, 1, MAX_REPEAT);
+        crop.load(tag);
         dmx.load(tag);
     }
 

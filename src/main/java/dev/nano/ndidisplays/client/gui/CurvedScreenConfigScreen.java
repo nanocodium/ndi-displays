@@ -137,8 +137,13 @@ public class CurvedScreenConfigScreen extends Screen {
                                 : n + "\u00D7"))
                 .withValues(rangeFrom1(CurvedScreenBlockEntity.MAX_REPEAT))
                 .withInitialValue(Math.min(videoRepeat, CurvedScreenBlockEntity.MAX_REPEAT))
-                .create(left, y, 264, 18, Component.translatable("gui.ndidisplays.curved.repeat"),
+                .create(left, y, 130, 18, Component.translatable("gui.ndidisplays.curved.repeat"),
                         (btn, val) -> videoRepeat = val));
+        addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.processor.open"), b ->
+                        net.minecraft.client.Minecraft.getInstance().setScreen(
+                                new VideoProcessorScreen(this, screen.getBlockPos(),
+                                        source.trim(), screen.crop())))
+                .bounds(left + 134, y, 130, 18).build());
         y += 28;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.winch.apply"), b -> apply())

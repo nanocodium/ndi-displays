@@ -32,6 +32,8 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
     public static final float MAX_ANGLE = 360.0F;
     public static final float MIN_HEIGHT = 0.5F;
     public static final float MAX_HEIGHT = 16.0F;
+    /** Most times the source can tile around the arc. */
+    public static final int MAX_REPEAT = 8;
 
     private static final int DEFAULT_PX_PER_BLOCK = 128;
     private static final float DEFAULT_BRIGHTNESS = 0.85F;
@@ -51,11 +53,19 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
     private float screenHeight = DEFAULT_HEIGHT;
     /** false = concave (video reads correctly from inside the arc), true = convex (from outside). */
     private boolean convex;
+    /** How many times the source frame tiles around the arc (1 = stretched once over the whole sweep). */
+    private int videoRepeat = 1;
 
     private final ScreenDmxState dmx = new ScreenDmxState();
+    /** Input window: the region of the source frame this screen displays. */
+    private final CropWindow crop = new CropWindow();
 
     public CurvedScreenBlockEntity(BlockPos pos, BlockState state) {
         super(NdiDisplays.CURVED_SCREEN_BE.get(), pos, state);
+    }
+
+    public CropWindow crop() {
+        return crop;
     }
 
     public String getSourceName() {
@@ -99,12 +109,17 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
         return convex;
     }
 
+    public int getVideoRepeat() {
+        return videoRepeat;
+    }
+
     public Direction getFacing() {
         return getBlockState().getValue(CurvedScreenBlock.FACING);
     }
 
     public void applyConfig(String source, int pxPerBlock, float brightness, int pattern,
-                            float radius, float arcAngle, float screenHeight, boolean convex) {
+                            float radius, float arcAngle, float screenHeight, boolean convex,
+                            int videoRepeat) {
         this.sourceName = Clamps.name(source, MAX_SOURCE_NAME);
         this.pixelsPerBlock = Clamps.i(pxPerBlock, 8, 1024);
         this.brightness = Clamps.f(brightness, 0.02F, 1.0F, DEFAULT_BRIGHTNESS);
@@ -113,6 +128,7 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
         this.arcAngle = Clamps.f(arcAngle, MIN_ANGLE, MAX_ANGLE, DEFAULT_ANGLE);
         this.screenHeight = Clamps.f(screenHeight, MIN_HEIGHT, MAX_HEIGHT, DEFAULT_HEIGHT);
         this.convex = convex;
+        this.videoRepeat = Clamps.i(videoRepeat, 1, MAX_REPEAT);
         setChanged();
     }
 
@@ -187,6 +203,8 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
         tag.putFloat("ArcAngle", arcAngle);
         tag.putFloat("ScreenHeight", screenHeight);
         tag.putBoolean("Convex", convex);
+        tag.putInt("VideoRepeat", videoRepeat);
+        crop.save(tag);
         dmx.save(tag);
     }
 
@@ -208,6 +226,8 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
         screenHeight = Clamps.f(tag.contains("ScreenHeight") ? tag.getFloat("ScreenHeight") : DEFAULT_HEIGHT,
                 MIN_HEIGHT, MAX_HEIGHT, DEFAULT_HEIGHT);
         convex = tag.getBoolean("Convex");
+        videoRepeat = Clamps.i(tag.contains("VideoRepeat") ? tag.getInt("VideoRepeat") : 1, 1, MAX_REPEAT);
+        crop.load(tag);
         dmx.load(tag);
     }
 

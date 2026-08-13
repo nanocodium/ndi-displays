@@ -77,8 +77,9 @@ public final class ShimmerCompat {
     }
 
     /**
-     * @param ledParams 8 floats: gridW, gridH, gap, brightness, gamma, mode,
-     *                  pxPerBlock, variance — the same values as the direct pass.
+     * @param ledParams 12 floats: gridW, gridH, gap, brightness, gamma, mode,
+     *                  pxPerBlock, variance, cropU0, cropV0, cropDu, cropDv —
+     *                  the same values as the direct pass.
      */
     public static void submitBloom(Matrix4f pose, Vec3 p00, Vec3 p10, Vec3 p11, Vec3 p01,
                                    ResourceLocation texture, float[] ledParams) {
@@ -131,6 +132,11 @@ public final class ShimmerCompat {
                         if (shader != null) {
                             shader.safeGetUniform("LedParams").set(p[0], p[1], p[2], p[3]);
                             shader.safeGetUniform("LedParams2").set(p[4], p[5], p[6], p[7]);
+                            if (p.length >= 12) {
+                                shader.safeGetUniform("UvRegion").set(p[8], p[9], p[10], p[11]);
+                            } else {
+                                shader.safeGetUniform("UvRegion").set(0.0F, 0.0F, 1.0F, 1.0F);
+                            }
                         }
                     }, () -> {
                     }))

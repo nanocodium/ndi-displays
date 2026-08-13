@@ -301,6 +301,16 @@ public class NdiStream {
         return allocatedWidth > 0 ? textureLocation : null;
     }
 
+    /** Source frame width in pixels, or 0 until the first frame has been uploaded. */
+    public int getVideoWidth() {
+        return Math.max(0, allocatedWidth);
+    }
+
+    /** Source frame height in pixels, or 0 until the first frame has been uploaded. */
+    public int getVideoHeight() {
+        return Math.max(0, allocatedHeight);
+    }
+
     void shutdown() {
         running = false;
         thread.interrupt();

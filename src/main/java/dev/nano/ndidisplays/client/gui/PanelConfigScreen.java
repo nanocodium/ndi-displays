@@ -116,7 +116,12 @@ public class PanelConfigScreen extends Screen {
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.screen_dmx.open"), b ->
                         net.minecraft.client.Minecraft.getInstance().setScreen(
                                 new ScreenDmxSlotsScreen(anchor, this)))
-                .bounds(left, y, 260, 20).build());
+                .bounds(left, y, 128, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.processor.open"), b ->
+                        net.minecraft.client.Minecraft.getInstance().setScreen(
+                                new VideoProcessorScreen(this, anchor.getBlockPos(),
+                                        source.trim(), anchor.crop())))
+                .bounds(left + 132, y, 128, 20).build());
         y += 28;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.apply"), b -> apply())

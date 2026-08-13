@@ -16,6 +16,9 @@ uniform sampler2D Sampler0;
 uniform vec4 ColorModulator;
 uniform vec4 LedParams;
 uniform vec4 LedParams2;
+// (u offset, v offset, u scale, v scale) — the slice of the video this wall shows,
+// same convention as led_wall.fsh (video-processor input window).
+uniform vec4 UvRegion;
 
 in vec2 texCoord0;
 in vec4 vertexColor;
@@ -73,8 +76,8 @@ void main() {
     // like a real LED processor. LOD picks the mip matching feed px per LED.
     vec3 col;
     if (LedParams2.y < 0.5) {
-        vec2 uvLed = (cell + 0.5) / grid;
-        vec2 texSize = vec2(textureSize(Sampler0, 0));
+        vec2 uvLed = UvRegion.xy + ((cell + 0.5) / grid) * UvRegion.zw;
+        vec2 texSize = vec2(textureSize(Sampler0, 0)) * UvRegion.zw;
         float lod = max(0.0, log2(max(texSize.x / grid.x, texSize.y / grid.y)));
         col = textureLod(Sampler0, uvLed, lod).rgb;
     } else {

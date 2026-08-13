@@ -173,6 +173,8 @@ public final class LedWallBaker {
 
         shader.safeGetUniform("LedParams").set(gridW, gridH, 0.15F, be.getEffectiveBrightness());
         shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode, (float) pxPerBlock, 0.06F);
+        dev.nano.ndidisplays.block.CropWindow crop = be.crop();
+        shader.safeGetUniform("UvRegion").set(crop.u0(), crop.v0(), crop.du(), crop.dv());
         RenderSystem.setShader(() -> shader);
         RenderSystem.setShaderTexture(0, sourceTex);
 

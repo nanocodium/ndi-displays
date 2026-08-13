@@ -38,9 +38,15 @@ public class LedPanelBlockEntity extends BlockEntity implements DmxScreen {
     private long cacheTime = Long.MIN_VALUE;
 
     private final ScreenDmxState dmx = new ScreenDmxState();
+    /** Input window: the region of the source frame this wall displays. */
+    private final CropWindow crop = new CropWindow();
 
     public LedPanelBlockEntity(BlockPos pos, BlockState state) {
         super(NdiDisplays.LED_PANEL_BE.get(), pos, state);
+    }
+
+    public CropWindow crop() {
+        return crop;
     }
 
     public PanelFacing getFacing() {
@@ -225,6 +231,7 @@ public class LedPanelBlockEntity extends BlockEntity implements DmxScreen {
         tag.putFloat("Brightness", brightness);
         tag.putFloat("Gamma", gamma);
         tag.putInt("Pattern", testPattern);
+        crop.save(tag);
         dmx.save(tag);
     }
 
@@ -245,6 +252,7 @@ public class LedPanelBlockEntity extends BlockEntity implements DmxScreen {
                 1.0F, 3.0F, DEFAULT_GAMMA);
         testPattern = Clamps.i(tag.contains("Pattern") ? tag.getInt("Pattern") : DEFAULT_PATTERN,
                 0, PATTERN_COUNT - 1);
+        crop.load(tag);
         dmx.load(tag);
     }
 

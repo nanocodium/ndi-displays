@@ -116,9 +116,10 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
 
         shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness());
         shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode, (float) pxPerBlock, CALIBRATION_VARIANCE);
-        // Walls always show the whole video; kinetic tiles set a sub-rectangle here, so
-        // this must be reset every draw or a wall drawn after a tile inherits its slice.
-        shader.safeGetUniform("UvRegion").set(0.0F, 0.0F, 1.0F, 1.0F);
+        // The wall's input window (video-processor crop). Must be set every draw:
+        // kinetic tiles reuse this uniform for their canvas slice.
+        dev.nano.ndidisplays.block.CropWindow crop = be.crop();
+        shader.safeGetUniform("UvRegion").set(crop.u0(), crop.v0(), crop.du(), crop.dv());
 
         RenderSystem.setShader(() -> shader);
         RenderSystem.setShaderTexture(0, texId);
@@ -163,7 +164,8 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
             if (shimmerTex != null) {
                 ShimmerCompat.submitBloom(mat, p00, p10, p11, p01, shimmerTex, new float[]{
                         gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness(),
-                        be.getGamma(), (float) mode, (float) pxPerBlock, CALIBRATION_VARIANCE});
+                        be.getGamma(), (float) mode, (float) pxPerBlock, CALIBRATION_VARIANCE,
+                        crop.u0(), crop.v0(), crop.du(), crop.dv()});
             }
         }
     }
@@ -251,7 +253,12 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
                         bars[i][2] * 0.75F * bright, alpha);
             }
         } else {
-            compatQuad(vc, mat, p00, p10, p11, p01, f, cr * bright, cg * bright, cb * bright, alpha);
+            // The wall's input window (video-processor crop) applied to the raw quad.
+            dev.nano.ndidisplays.block.CropWindow crop = be.crop();
+            compatVertex(vc, mat, p00, crop.u0(), crop.v1(), f, cr * bright, cg * bright, cb * bright, alpha);
+            compatVertex(vc, mat, p10, crop.u1(), crop.v1(), f, cr * bright, cg * bright, cb * bright, alpha);
+            compatVertex(vc, mat, p11, crop.u1(), crop.v0(), f, cr * bright, cg * bright, cb * bright, alpha);
+            compatVertex(vc, mat, p01, crop.u0(), crop.v0(), f, cr * bright, cg * bright, cb * bright, alpha);
         }
     }
 

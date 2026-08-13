@@ -190,12 +190,15 @@ final class ExtraLightsBeamHooks {
             return false;
         }
         try {
-            // World-space frame of the head. JOML stores translation in m30..m32 and the
-            // basis vectors in the first three columns.
-            Vec3 origin = new Vec3(
-                    fixturePos.getX() + headMatrix.m30(),
-                    fixturePos.getY() + headMatrix.m31(),
-                    fixturePos.getZ() + headMatrix.m32());
+            // Origin is FIXTURE-LOCAL, not world. Extra Lights builds the beam geometry from
+            // this origin, then its lazy pass translates the whole thing by
+            // (fixturePos - cameraPos) before drawing. Passing absolute world coordinates
+            // therefore counts the position twice and throws the beam roughly twice as far
+            // from the camera as the fixture — it renders, just nowhere near the light.
+            //
+            // The direction and basis vectors below are orientation only, so they are the same
+            // either way.
+            Vec3 origin = new Vec3(headMatrix.m30(), headMatrix.m31(), headMatrix.m32());
             Vec3 axisU = norm(headMatrix.m00(), headMatrix.m01(), headMatrix.m02());
             Vec3 axisV = norm(headMatrix.m10(), headMatrix.m11(), headMatrix.m12());
             Vec3 dir = norm(-headMatrix.m20(), -headMatrix.m21(), -headMatrix.m22());

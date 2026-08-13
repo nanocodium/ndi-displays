@@ -70,5 +70,10 @@
  "gui.ndidisplays.curved.title": "Curved LED Screen",
  "gui.ndidisplays.curved.side": "Video Side",
  "gui.ndidisplays.curved.concave": "Concave (inside)",
- "gui.ndidisplays.curved.convex": "Convex (outside)"
+ "gui.ndidisplays.curved.convex": "Convex (outside)",
+ "gui.ndidisplays.screen_dmx.open": "DMX Slots…",
+ "gui.ndidisplays.screen_dmx.title": "DMX Source Slots",
+ "gui.ndidisplays.screen_dmx.patch": "Patched: universe %s, address %s — 2ch (dimmer, source select)",
+ "gui.ndidisplays.screen_dmx.hint": "Patch with Theatrical's configuration card. CH2 picks a slot per 32 DMX values.",
+ "gui.ndidisplays.screen.dmx_patched": "Screen patched — universe %s, address %s (2ch: dimmer, source)"
 }

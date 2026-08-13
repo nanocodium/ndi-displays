@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
  * inscribed circle of the source), through the same LED-simulation shaders as the
  * rectangular walls — pitch, brightness, gamma and test patterns all behave the same.
  */
-public class RoundScreenBlockEntity extends BlockEntity {
+public class RoundScreenBlockEntity extends BlockEntity implements DmxScreen {
 
     public static final int MAX_SOURCE_NAME = LedPanelBlockEntity.MAX_SOURCE_NAME;
     public static final int PATTERN_COUNT = LedPanelBlockEntity.PATTERN_COUNT;
@@ -42,6 +42,8 @@ public class RoundScreenBlockEntity extends BlockEntity {
     private int testPattern = DEFAULT_PATTERN;
     private float radius = DEFAULT_RADIUS;
 
+    private final ScreenDmxState dmx = new ScreenDmxState();
+
     public RoundScreenBlockEntity(BlockPos pos, BlockState state) {
         super(NdiDisplays.ROUND_SCREEN_BE.get(), pos, state);
     }
@@ -56,6 +58,11 @@ public class RoundScreenBlockEntity extends BlockEntity {
 
     public float getBrightness() {
         return brightness;
+    }
+
+    /** Brightness with the DMX dimmer applied. */
+    public float getEffectiveBrightness() {
+        return brightness * dmx.dimmerFactor();
     }
 
     public float getGamma() {
@@ -95,6 +102,58 @@ public class RoundScreenBlockEntity extends BlockEntity {
         setChanged();
     }
 
+    // ------------------------------------------------------------------ DMX (Theatrical)
+
+    @Override
+    public ScreenDmxState dmx() {
+        return dmx;
+    }
+
+    @Override
+    public String getDmxModelName() {
+        return "NDI Round Screen";
+    }
+
+    @Override
+    public String getDmxTranslationKey() {
+        return getBlockState().getBlock().getDescriptionId();
+    }
+
+    @Override
+    public void applyDmxFrame(int dimmer, int sourceByte) {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        boolean changed = dmx.setDimmer(dimmer);
+        String slot = dmx.slotForByte(sourceByte);
+        if (slot != null && (!slot.equals(sourceName) || testPattern != 0)) {
+            sourceName = slot;
+            testPattern = 0;
+            changed = true;
+        }
+        if (changed) {
+            setChanged();
+            BlockState state = getBlockState();
+            level.sendBlockUpdated(worldPosition, state, state, 3);
+        }
+    }
+
+    @Override
+    public void setLevel(net.minecraft.world.level.Level level) {
+        super.setLevel(level);
+        if (level != null && !level.isClientSide) {
+            dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.registerScreen(this);
+        }
+    }
+
+    @Override
+    public void setRemoved() {
+        if (level != null && !level.isClientSide) {
+            dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.unregisterScreen(this);
+        }
+        super.setRemoved();
+    }
+
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
@@ -104,6 +163,7 @@ public class RoundScreenBlockEntity extends BlockEntity {
         tag.putFloat("Gamma", gamma);
         tag.putInt("Pattern", testPattern);
         tag.putFloat("Radius", radius);
+        dmx.save(tag);
     }
 
     @Override
@@ -119,6 +179,7 @@ public class RoundScreenBlockEntity extends BlockEntity {
                 0, PATTERN_COUNT - 1);
         radius = Clamps.f(tag.contains("Radius") ? tag.getFloat("Radius") : DEFAULT_RADIUS,
                 MIN_RADIUS, MAX_RADIUS, DEFAULT_RADIUS);
+        dmx.load(tag);
     }
 
     @Override

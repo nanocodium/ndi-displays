@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
  * The video unrolls along the arc: u sweeps the opening angle, v the height, so
  * the full source frame wraps around the curve.
  */
-public class CurvedScreenBlockEntity extends BlockEntity {
+public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
 
     public static final int MAX_SOURCE_NAME = LedPanelBlockEntity.MAX_SOURCE_NAME;
     public static final int PATTERN_COUNT = LedPanelBlockEntity.PATTERN_COUNT;
@@ -52,6 +52,8 @@ public class CurvedScreenBlockEntity extends BlockEntity {
     /** false = concave (video reads correctly from inside the arc), true = convex (from outside). */
     private boolean convex;
 
+    private final ScreenDmxState dmx = new ScreenDmxState();
+
     public CurvedScreenBlockEntity(BlockPos pos, BlockState state) {
         super(NdiDisplays.CURVED_SCREEN_BE.get(), pos, state);
     }
@@ -66,6 +68,11 @@ public class CurvedScreenBlockEntity extends BlockEntity {
 
     public float getBrightness() {
         return brightness;
+    }
+
+    /** Brightness with the DMX dimmer applied. */
+    public float getEffectiveBrightness() {
+        return brightness * dmx.dimmerFactor();
     }
 
     public float getGamma() {
@@ -116,6 +123,58 @@ public class CurvedScreenBlockEntity extends BlockEntity {
         setChanged();
     }
 
+    // ------------------------------------------------------------------ DMX (Theatrical)
+
+    @Override
+    public ScreenDmxState dmx() {
+        return dmx;
+    }
+
+    @Override
+    public String getDmxModelName() {
+        return "NDI Curved Screen";
+    }
+
+    @Override
+    public String getDmxTranslationKey() {
+        return getBlockState().getBlock().getDescriptionId();
+    }
+
+    @Override
+    public void applyDmxFrame(int dimmer, int sourceByte) {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        boolean changed = dmx.setDimmer(dimmer);
+        String slot = dmx.slotForByte(sourceByte);
+        if (slot != null && (!slot.equals(sourceName) || testPattern != 0)) {
+            sourceName = slot;
+            testPattern = 0;
+            changed = true;
+        }
+        if (changed) {
+            setChanged();
+            BlockState state = getBlockState();
+            level.sendBlockUpdated(worldPosition, state, state, 3);
+        }
+    }
+
+    @Override
+    public void setLevel(net.minecraft.world.level.Level level) {
+        super.setLevel(level);
+        if (level != null && !level.isClientSide) {
+            dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.registerScreen(this);
+        }
+    }
+
+    @Override
+    public void setRemoved() {
+        if (level != null && !level.isClientSide) {
+            dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.unregisterScreen(this);
+        }
+        super.setRemoved();
+    }
+
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
@@ -128,6 +187,7 @@ public class CurvedScreenBlockEntity extends BlockEntity {
         tag.putFloat("ArcAngle", arcAngle);
         tag.putFloat("ScreenHeight", screenHeight);
         tag.putBoolean("Convex", convex);
+        dmx.save(tag);
     }
 
     @Override
@@ -148,6 +208,7 @@ public class CurvedScreenBlockEntity extends BlockEntity {
         screenHeight = Clamps.f(tag.contains("ScreenHeight") ? tag.getFloat("ScreenHeight") : DEFAULT_HEIGHT,
                 MIN_HEIGHT, MAX_HEIGHT, DEFAULT_HEIGHT);
         convex = tag.getBoolean("Convex");
+        dmx.load(tag);
     }
 
     @Override

@@ -132,7 +132,7 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
             texId = FallbackTextures.white();
         }
 
-        shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getBrightness());
+        shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness());
         shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode,
                 (float) be.getPixelsPerBlock(), CALIBRATION_VARIANCE);
         shader.safeGetUniform("UvRegion").set(0.0F, 0.0F, 1.0F, 1.0F);
@@ -189,7 +189,7 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
                                         Vec3 fwd, Vec3 right, double arc, int segments,
                                         float rFace, float yBottom, float yTop, boolean convex,
                                         Matrix4f mat, MultiBufferSource buffers) {
-        float bright = be.getBrightness();
+        float bright = be.getEffectiveBrightness();
         ResourceLocation tex;
         float cr = 1.0F;
         float cg = 1.0F;

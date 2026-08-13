@@ -161,7 +161,8 @@ public class KineticWinchBlockEntity extends BlockEntity {
     private int fixRed = 255;
     private int fixGreen = 255;
     private int fixBlue = 255;
-    private int fixFocus = 128;
+    /** 0 = tight beam at rest, like Theatrical's fixtures; the desk opens it. */
+    private int fixFocus;
     private int fixPan = 128;
     private int fixTilt = 128;
     private float curPan;
@@ -748,6 +749,9 @@ public class KineticWinchBlockEntity extends BlockEntity {
         tag.putInt("DmxGreen", dmxGreen);
         tag.putInt("DmxBlue", dmxBlue);
         tag.putInt("FixIntensity", fixIntensity);
+        // Marker: this build treats a saved intensity of 0 as a real desk value.
+        // Its absence identifies pre-fix saves whose 0 default must migrate to open.
+        tag.putBoolean("FixMk", true);
         tag.putInt("FixRed", fixRed);
         tag.putInt("FixGreen", fixGreen);
         tag.putInt("FixBlue", fixBlue);
@@ -795,15 +799,19 @@ public class KineticWinchBlockEntity extends BlockEntity {
         dmxRed = Clamps.i(tag.contains("DmxRed") ? tag.getInt("DmxRed") : 255, 0, 255);
         dmxGreen = Clamps.i(tag.contains("DmxGreen") ? tag.getInt("DmxGreen") : 255, 0, 255);
         dmxBlue = Clamps.i(tag.contains("DmxBlue") ? tag.getInt("DmxBlue") : 255, 0, 255);
-        // Saved zeros migrate to open: earlier builds defaulted the intensity to 0, so
-        // every fixture hung with them stayed dark forever. A desk in blackout re-sends
-        // its frames within a second anyway, so patched rigs are unaffected.
+        // Old saves (no FixMk marker) defaulted the intensity to 0, leaving every
+        // fixture hung with them dark forever: migrate those zeros to open. Tags
+        // carrying the marker — including every DMX sync packet — keep 0 as a real
+        // desk value, otherwise blackout would be impossible.
         int savedFixIntensity = tag.contains("FixIntensity") ? tag.getInt("FixIntensity") : 255;
-        fixIntensity = Clamps.i(savedFixIntensity == 0 ? 255 : savedFixIntensity, 0, 255);
+        if (savedFixIntensity == 0 && !tag.contains("FixMk")) {
+            savedFixIntensity = 255;
+        }
+        fixIntensity = Clamps.i(savedFixIntensity, 0, 255);
         fixRed = Clamps.i(tag.contains("FixRed") ? tag.getInt("FixRed") : 255, 0, 255);
         fixGreen = Clamps.i(tag.contains("FixGreen") ? tag.getInt("FixGreen") : 255, 0, 255);
         fixBlue = Clamps.i(tag.contains("FixBlue") ? tag.getInt("FixBlue") : 255, 0, 255);
-        fixFocus = Clamps.i(tag.contains("FixFocus") ? tag.getInt("FixFocus") : 128, 0, 255);
+        fixFocus = Clamps.i(tag.getInt("FixFocus"), 0, 255);
         fixPan = Clamps.i(tag.contains("FixPan") ? tag.getInt("FixPan") : 128, 0, 255);
         fixTilt = Clamps.i(tag.contains("FixTilt") ? tag.getInt("FixTilt") : 128, 0, 255);
         dmxUniverse = Clamps.i(tag.getInt("DmxUniverse"), 0, 32767);

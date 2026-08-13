@@ -200,11 +200,24 @@ final class FlownFixtureRenderer {
         VertexConsumer vc = buffers.getBuffer(RenderType.lightning());
         Matrix4f m = poseStack.last().pose();
         float len = length;
-        float endMul = 1.0F + focus * len * 0.06F;
+        // Raw-byte focus scaling, matching Theatrical's own flare formula.
+        float endMul = 1.0F + focus * 255.0F * len * 0.03F;
         int a = (int) (alpha * 255);
         int cr = (int) (r * 255);
         int cg = (int) (g * 255);
         int cb = (int) (b * 255);
+
+        // Coloured lens on the head, so the DMX colour reads on the fixture body.
+        int la = (int) (Math.min(1.0F, alpha * 3.0F) * 255);
+        float ls = Math.max(beamSize, 0.13F);
+        beamVertex(vc, m, cr, cg, cb, la, -ls, -ls, 0.01F);
+        beamVertex(vc, m, cr, cg, cb, la, -ls, ls, 0.01F);
+        beamVertex(vc, m, cr, cg, cb, la, ls, ls, 0.01F);
+        beamVertex(vc, m, cr, cg, cb, la, ls, -ls, 0.01F);
+        beamVertex(vc, m, cr, cg, cb, la, ls, -ls, 0.01F);
+        beamVertex(vc, m, cr, cg, cb, la, ls, ls, 0.01F);
+        beamVertex(vc, m, cr, cg, cb, la, -ls, ls, 0.01F);
+        beamVertex(vc, m, cr, cg, cb, la, -ls, -ls, 0.01F);
 
         beamQuad(vc, m, cr, cg, cb, a, beamSize, endMul, len, true, false);
         beamQuad(vc, m, cr, cg, cb, a, beamSize, endMul, len, true, true);

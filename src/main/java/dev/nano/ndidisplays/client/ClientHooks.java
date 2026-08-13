@@ -68,6 +68,15 @@ public final class ClientHooks {
         }
     }
 
+    public static void openMultiviewConfig(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level != null && level.getBlockEntity(pos)
+                instanceof dev.nano.ndidisplays.block.MultiviewBlockEntity monitor) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.MultiviewConfigScreen(monitor));
+        }
+    }
+
     public static void openCameraConfig(BlockPos pos) {
         Minecraft mc = Minecraft.getInstance();
         Level level = mc.level;

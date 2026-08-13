@@ -84,5 +84,9 @@ public final class NetworkHandler {
                 UpdateScreenDmxSlotsPacket::encode,
                 UpdateScreenDmxSlotsPacket::decode,
                 UpdateScreenDmxSlotsPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateMultiviewConfigPacket.class,
+                UpdateMultiviewConfigPacket::encode,
+                UpdateMultiviewConfigPacket::decode,
+                UpdateMultiviewConfigPacket::handle);
     }
 }

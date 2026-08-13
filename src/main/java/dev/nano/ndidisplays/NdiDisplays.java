@@ -130,6 +130,26 @@ public class NdiDisplays {
                     () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.CurvedScreenBlockEntity::new,
                             CURVED_SCREEN.get()).build(null));
 
+    /**
+     * Multiview control monitor: a wall screen showing a 2x2 or 3x3 mosaic of NDI
+     * sources for the video engineer — direct video, no LED simulation.
+     */
+    public static final RegistryObject<Block> MULTIVIEW = BLOCKS.register("multiview",
+            () -> new dev.nano.ndidisplays.block.MultiviewBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 8)));
+
+    public static final RegistryObject<Item> MULTIVIEW_ITEM = ITEMS.register("multiview",
+            () -> new BlockItem(MULTIVIEW.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.MultiviewBlockEntity>> MULTIVIEW_BE =
+            BLOCK_ENTITIES.register("multiview",
+                    () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.MultiviewBlockEntity::new,
+                            MULTIVIEW.get()).build(null));
+
     private static BlockBehaviour.Properties cameraProps() {
         return BlockBehaviour.Properties.of()
                 .mapColor(MapColor.COLOR_BLACK)
@@ -212,6 +232,7 @@ public class NdiDisplays {
                         output.accept(KINETIC_WINCH_ITEM.get());
                         output.accept(ROUND_SCREEN_ITEM.get());
                         output.accept(CURVED_SCREEN_ITEM.get());
+                        output.accept(MULTIVIEW_ITEM.get());
                         output.accept(BROADCAST_CAMERA_ITEM.get());
                         output.accept(PTZ_CAMERA_ITEM.get());
                         output.accept(JIB_CAMERA_ITEM.get());

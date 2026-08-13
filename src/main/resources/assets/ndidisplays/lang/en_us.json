@@ -82,5 +82,11 @@
  "gui.ndidisplays.winch.payload.mirror": "Mirror Ball",
  "gui.ndidisplays.winch.payload.fixture": "Fixture",
  "gui.ndidisplays.winch.payload.no_fixture": "Right-click winch with a fixture",
- "gui.ndidisplays.winch.fixture_loaded": "Fixture %s hung on the winch (10ch DMX)"
+ "gui.ndidisplays.winch.fixture_loaded": "Fixture %s hung on the winch (10ch DMX)",
+ "gui.ndidisplays.card.mode": "Winch Mode",
+ "gui.ndidisplays.card.mode.keep": "Winch Mode: Unchanged",
+ "gui.ndidisplays.card.mode.linked": "Winch Mode: Linked (4ch)",
+ "gui.ndidisplays.card.mode.twin": "Winch Mode: Twin (6ch)",
+ "item.ndidisplays.ndi_config_card.mode_linked": "Winch mode: Linked (4ch DMX)",
+ "item.ndidisplays.ndi_config_card.mode_twin": "Winch mode: Twin (6ch DMX)"
 }

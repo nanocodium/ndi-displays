@@ -449,6 +449,22 @@ public class KineticWinchBlockEntity extends BlockEntity {
     }
 
     /**
+     * NDI configuration card motor-mode override. Entering TWIN seeds motor B on A's
+     * position so the tile never jumps; back to LINKED simply re-slaves B (the tick
+     * mirrors it). Caller re-registers the DMX consumer — the footprint moves 4↔6 ch.
+     */
+    public void applyCardWinchMode(boolean twin) {
+        if (this.twinMode == twin) {
+            return;
+        }
+        this.twinMode = twin;
+        if (twin) {
+            targetDropB = targetDrop;
+        }
+        setChanged();
+    }
+
+    /**
      * Theatrical configuration card patch. Caller is responsible for unregistering the
      * DMX consumer before and re-registering it after, since the network may change.
      */

@@ -38,6 +38,12 @@ public class NdiConfigCardItem extends Item {
     public static final String TAG_POS2 = "selPos2";
     /** Dimension the selection lives in; a corner set in another dimension resets it. */
     public static final String TAG_DIM = "selDim";
+    /** Winch motor mode the card imposes: 0 leave unchanged, 1 linked, 2 twin. */
+    public static final String TAG_WINCH_MODE = "winchMode";
+
+    public static final int WINCH_MODE_KEEP = 0;
+    public static final int WINCH_MODE_LINKED = 1;
+    public static final int WINCH_MODE_TWIN = 2;
 
     public NdiConfigCardItem(Properties properties) {
         super(properties);
@@ -46,6 +52,13 @@ public class NdiConfigCardItem extends Item {
     public static String storedSource(ItemStack stack) {
         CompoundTag tag = stack.getTag();
         return tag == null ? "" : tag.getString(TAG_SOURCE);
+    }
+
+    /** The winch motor mode this card imposes (WINCH_MODE_KEEP when none). */
+    public static int storedWinchMode(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        int mode = tag == null ? WINCH_MODE_KEEP : tag.getInt(TAG_WINCH_MODE);
+        return mode >= WINCH_MODE_KEEP && mode <= WINCH_MODE_TWIN ? mode : WINCH_MODE_KEEP;
     }
 
     @Nullable
@@ -132,6 +145,13 @@ public class NdiConfigCardItem extends Item {
         if (!source.isEmpty()) {
             tooltip.add(Component.translatable("item.ndidisplays.ndi_config_card.source", source)
                     .withStyle(ChatFormatting.AQUA));
+        }
+        int mode = storedWinchMode(stack);
+        if (mode != WINCH_MODE_KEEP) {
+            tooltip.add(Component.translatable(mode == WINCH_MODE_TWIN
+                            ? "item.ndidisplays.ndi_config_card.mode_twin"
+                            : "item.ndidisplays.ndi_config_card.mode_linked")
+                    .withStyle(ChatFormatting.LIGHT_PURPLE));
         }
         BlockPos pos1 = selectionPos(stack, TAG_POS1);
         BlockPos pos2 = selectionPos(stack, TAG_POS2);

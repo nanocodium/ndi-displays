@@ -370,6 +370,11 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
     private static void renderKineticSphere(KineticWinchBlockEntity be, Vec3 center,
                                             Matrix4f mat, MultiBufferSource buffers) {
         float[] rgb = be.getSphereColor();
+        // Shimmer dynamic light: the ball washes the floor in its DMX colour.
+        if (LedWallRenderer.SHIMMER_LOADED) {
+            Vec3 world = Vec3.atLowerCornerOf(be.getBlockPos()).add(center);
+            ShimmerSphereLights.update(be.getBlockPos(), world, rgb[0], rgb[1], rgb[2]);
+        }
         // Body through the cutout type so it writes depth — otherwise a screen drawn
         // later in the frame paints straight over a sphere hanging in front of it.
         VertexConsumer body = buffers.getBuffer(

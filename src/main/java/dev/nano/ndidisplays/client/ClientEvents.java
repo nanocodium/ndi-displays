@@ -46,6 +46,9 @@ public final class ClientEvents {
         }
         NdiManager.tick();
         dev.nano.ndidisplays.client.ndi.RouterManager.tick();
+        if (dev.nano.ndidisplays.client.render.LedWallRenderer.SHIMMER_LOADED) {
+            dev.nano.ndidisplays.client.render.ShimmerSphereLights.tick();
+        }
     }
 
     @SubscribeEvent
@@ -54,5 +57,8 @@ public final class ClientEvents {
         NdiManager.shutdownAll();
         CameraFeedManager.shutdownAll();
         dev.nano.ndidisplays.client.ndi.RouterManager.shutdownAll();
+        if (dev.nano.ndidisplays.client.render.LedWallRenderer.SHIMMER_LOADED) {
+            dev.nano.ndidisplays.client.render.ShimmerSphereLights.clearAll();
+        }
     }
 }

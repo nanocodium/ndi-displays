@@ -74,7 +74,7 @@ final class TheatricalFixtureHooks {
                 sb.append(", ");
             }
             sb.append('"').append(p.description()).append("\" (").append(p.channelCount())
-                    .append("ch -> ").append(KineticWinchLead()).append(p.channelCount())
+                    .append("ch -> ").append(KineticWinchLead() + p.channelCount())
                     .append(" total) slots=");
             for (int k : p.slots()) {
                 sb.append(switch (k) {

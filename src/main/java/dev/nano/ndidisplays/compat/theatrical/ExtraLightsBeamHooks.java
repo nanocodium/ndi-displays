@@ -48,16 +48,20 @@ final class ExtraLightsBeamHooks {
                     "theatricalextralights", "textures/gobos/generic_1/open.png");
 
     /**
-     * Volumetric beams are opt-in with {@code -Dndidisplays.volumetricBeam=true}.
+     * Beam cone half-angle range, degrees, lerped by zoom — the same shape Extra Lights uses
+     * for its own fixtures ({@code tan(toRadians(min + zoom * (max - min)))}). Numbers chosen
+     * to read like a moving head: a tight 5 degrees at zoom 0 opening to 25 at full.
      *
-     * Default off deliberately. Extra Lights accepts the beam without complaint and draws
-     * geometry, but whether that geometry is actually *visible* depends on its own density,
-     * brightness and max-alpha settings plus the fixture's zoom — and when it comes out
-     * invisible the result is worse than the classic beam, because claiming success also
-     * suppresses the fallback cone. Until the visible-parameter range is pinned down against
-     * a real install, the reliable beam is the default.
+     * Getting this wrong is what made the beam invisible rather than merely wrong: an earlier
+     * version derived the tangent directly from beam width and focus, which for an unpatched
+     * fixture (focus 0) collapsed to 0.01 — tan(0.57 degrees), a laser too thin to see.
      */
-    private static final boolean OPT_IN = Boolean.getBoolean("ndidisplays.volumetricBeam");
+    private static final float BEAM_MIN_HALF_DEG = 5.0F;
+    private static final float BEAM_MAX_HALF_DEG = 25.0F;
+
+    /** Escape hatch: {@code -Dndidisplays.volumetricBeam=false} forces the classic cone. */
+    private static final boolean ENABLED =
+            !"false".equalsIgnoreCase(System.getProperty("ndidisplays.volumetricBeam", "true"));
 
     private enum State { UNKNOWN, READY, ABSENT }
 
@@ -178,7 +182,7 @@ final class ExtraLightsBeamHooks {
     static boolean submit(BlockPos fixturePos, Matrix4f headMatrix, float beamWidth,
                           float focus01, float r, float g, float b,
                           float intensity01, float length) {
-        if (!OPT_IN || !available()) {
+        if (!ENABLED || !available()) {
             return false;
         }
         Level level = Minecraft.getInstance().level;
@@ -196,11 +200,11 @@ final class ExtraLightsBeamHooks {
             Vec3 axisV = norm(headMatrix.m10(), headMatrix.m11(), headMatrix.m12());
             Vec3 dir = norm(-headMatrix.m20(), -headMatrix.m21(), -headMatrix.m22());
 
-            // Cone spread. Theatrical's flare grows the half-width from beamWidth at the lens
-            // to beamWidth * (1 + focus*255*len*0.03) at the far end, so the tangent of the
-            // half-angle is beamWidth * focus*255 * 0.03 — length cancels. Reusing that keeps
-            // a flown fixture's spread identical whichever beam style is drawing it.
-            float tanHalf = Math.max(0.01F, beamWidth * focus01 * 255.0F * 0.03F);
+            // Cone spread, as a real half-angle in degrees like Extra Lights computes for its
+            // own fixtures, not derived from beam width. Zoom widens the cone.
+            float zoom = Math.max(0.0F, Math.min(1.0F, focus01));
+            float halfDeg = BEAM_MIN_HALF_DEG + zoom * (BEAM_MAX_HALF_DEG - BEAM_MIN_HALF_DEG);
+            float tanHalf = (float) Math.tan(Math.toRadians(halfDeg));
             int colour = (clamp255(r) << 16) | (clamp255(g) << 8) | clamp255(b);
 
             Object data = dataCtor.newInstance(
@@ -209,7 +213,7 @@ final class ExtraLightsBeamHooks {
                     dir,
                     axisU,
                     axisV,
-                    Math.max(0.0F, Math.min(1.0F, focus01)),  // zoomNorm
+                    zoom,                                     // zoomNorm
                     length,                                   // scanLen
                     tanHalf,                                  // tanHalfAngle
                     colour,

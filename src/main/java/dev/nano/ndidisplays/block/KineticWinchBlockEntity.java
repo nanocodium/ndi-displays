@@ -355,6 +355,8 @@ public class KineticWinchBlockEntity extends BlockEntity {
     public void setFixturePayload(String blockId) {
         this.payload = PAYLOAD_FIXTURE;
         this.fixtureBlockId = Clamps.name(blockId, 256);
+        // A freshly hung fixture lights up without a desk; DMX takes over on patch.
+        this.fixIntensity = 255;
         setChanged();
     }
 
@@ -793,7 +795,11 @@ public class KineticWinchBlockEntity extends BlockEntity {
         dmxRed = Clamps.i(tag.contains("DmxRed") ? tag.getInt("DmxRed") : 255, 0, 255);
         dmxGreen = Clamps.i(tag.contains("DmxGreen") ? tag.getInt("DmxGreen") : 255, 0, 255);
         dmxBlue = Clamps.i(tag.contains("DmxBlue") ? tag.getInt("DmxBlue") : 255, 0, 255);
-        fixIntensity = Clamps.i(tag.contains("FixIntensity") ? tag.getInt("FixIntensity") : 255, 0, 255);
+        // Saved zeros migrate to open: earlier builds defaulted the intensity to 0, so
+        // every fixture hung with them stayed dark forever. A desk in blackout re-sends
+        // its frames within a second anyway, so patched rigs are unaffected.
+        int savedFixIntensity = tag.contains("FixIntensity") ? tag.getInt("FixIntensity") : 255;
+        fixIntensity = Clamps.i(savedFixIntensity == 0 ? 255 : savedFixIntensity, 0, 255);
         fixRed = Clamps.i(tag.contains("FixRed") ? tag.getInt("FixRed") : 255, 0, 255);
         fixGreen = Clamps.i(tag.contains("FixGreen") ? tag.getInt("FixGreen") : 255, 0, 255);
         fixBlue = Clamps.i(tag.contains("FixBlue") ? tag.getInt("FixBlue") : 255, 0, 255);

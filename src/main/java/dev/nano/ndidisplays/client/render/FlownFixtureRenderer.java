@@ -101,6 +101,10 @@ final class FlownFixtureRenderer {
             }
             float[] beamStart = data.beamStart();
             Matrix4f head = localHeadMatrix(be, hookY, facing, pan, tilt, data, beamStart);
+            // Many fixtures (washes, most Extra Lights) declare a beam width of 0 and
+            // rely on their own beam renderer; with zero width our quads are degenerate
+            // and nothing shows. Fall back to Theatrical's moving-light width.
+            float beamWidth = data.beamWidth() > 0.01F ? data.beamWidth() : 0.15F;
 
             Vec3 origin = Vec3.atLowerCornerOf(be.getBlockPos())
                     .add(head.m30(), head.m31(), head.m32());
@@ -117,12 +121,12 @@ final class FlownFixtureRenderer {
             }
 
             boolean raymarched = TheatricalCompat.submitFixtureBeam(be.getBlockPos(), head,
-                    data.beamWidth(), be.getFixtureFocus(),
+                    beamWidth, be.getFixtureFocus(),
                     rgb[0], rgb[1], rgb[2], intensity, length);
             if (!raymarched) {
                 poseStack.pushPose();
                 poseStack.translate(beamStart[0], beamStart[1], beamStart[2]);
-                drawBeam(poseStack, buffers, data.beamWidth(), be.getFixtureFocus(), length,
+                drawBeam(poseStack, buffers, beamWidth, be.getFixtureFocus(), length,
                         rgb[0], rgb[1], rgb[2], intensity * 0.35F);
                 poseStack.popPose();
             }

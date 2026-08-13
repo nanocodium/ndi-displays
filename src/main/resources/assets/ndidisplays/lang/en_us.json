@@ -71,6 +71,7 @@
  "gui.ndidisplays.curved.side": "Video Side",
  "gui.ndidisplays.curved.concave": "Concave (inside)",
  "gui.ndidisplays.curved.convex": "Convex (outside)",
+ "gui.ndidisplays.curved.repeat": "Video Repeat",
  "block.ndidisplays.multiview": "Multiview Monitor",
  "gui.ndidisplays.multiview.title": "Multiview Monitor",
  "gui.ndidisplays.multiview.layout": "Layout",

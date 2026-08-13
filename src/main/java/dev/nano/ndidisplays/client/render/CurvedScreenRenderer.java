@@ -54,7 +54,12 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
         double arc = Math.toRadians(be.getArcAngle());
         boolean fullCircle = be.getArcAngle() >= 359.5F;
         boolean convex = be.isConvex();
-        int segments = Math.max(8, (int) Math.ceil(be.getArcAngle() / SEGMENT_STEP));
+        int repeat = Math.max(1, be.getVideoRepeat());
+        // Segment count is a multiple of the repeat count so every video copy starts
+        // exactly on a quad boundary — no quad ever spans the seam between two copies.
+        int segsPerCopy = Math.max((int) Math.ceil(8.0 / repeat),
+                (int) Math.ceil(be.getArcAngle() / (SEGMENT_STEP * repeat)));
+        int segments = segsPerCopy * repeat;
 
         Direction facing = be.getFacing();
         Vec3 fwd = Vec3.atLowerCornerOf(facing.getNormal());
@@ -102,11 +107,13 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
 
         // --- LED surface.
         int mode = be.getTestPattern();
-        float gridW = (float) (be.getPixelsPerBlock() * arc * rFace);
+        // The shader's LED grid lives in uv space (one copy = uv 0..1), so the pixel
+        // count per copy keeps the physical pitch constant however many times it tiles.
+        float gridW = (float) (be.getPixelsPerBlock() * arc * rFace / repeat);
         float gridH = be.getPixelsPerBlock() * h;
 
         if (ShaderPackCompat.shaderPackActive()) {
-            renderShaderPackCompat(be, mode, center, fwd, right, arc, segments,
+            renderShaderPackCompat(be, mode, center, fwd, right, arc, segments, repeat,
                     rFace, yBottom, yTop, convex, mat, buffers);
             return;
         }
@@ -151,12 +158,11 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
             double t1 = (i + 1) / (double) segments;
             Vec3 d0 = arcDir(fwd, right, arc, t0);
             Vec3 d1 = arcDir(fwd, right, arc, t1);
-            float u0 = u(t0, convex);
-            float u1 = u(t1, convex);
-            vertex(builder, mat, at(center, d0, rFace, yTop), u0, 0.0F);
-            vertex(builder, mat, at(center, d1, rFace, yTop), u1, 0.0F);
-            vertex(builder, mat, at(center, d1, rFace, yBottom), u1, 1.0F);
-            vertex(builder, mat, at(center, d0, rFace, yBottom), u0, 1.0F);
+            float[] uu = u(t0, t1, repeat, convex);
+            vertex(builder, mat, at(center, d0, rFace, yTop), uu[0], 0.0F);
+            vertex(builder, mat, at(center, d1, rFace, yTop), uu[1], 0.0F);
+            vertex(builder, mat, at(center, d1, rFace, yBottom), uu[1], 1.0F);
+            vertex(builder, mat, at(center, d0, rFace, yBottom), uu[0], 1.0F);
         }
         BufferUploader.drawWithShader(builder.end());
 
@@ -173,12 +179,20 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
     }
 
     /**
-     * u along the arc, so the image reads left-to-right for the intended viewer:
-     * concave = standing at the centre looking out along FACING (their left is the
-     * -right side, i.e. t=0); convex = standing outside looking back, mirrored.
+     * u pair for one segment along the arc, so the image reads left-to-right for the
+     * intended viewer: concave = standing at the centre looking out along FACING
+     * (their left is the -right side, i.e. t=0); convex = standing outside looking
+     * back, mirrored. The source tiles {@code repeat} times over the sweep — each
+     * copy re-runs uv 0..1; segment boundaries are aligned on copy boundaries, so
+     * both ends of a quad always belong to the same copy.
      */
-    private static float u(double t, boolean convex) {
-        return convex ? (float) (1.0 - t) : (float) t;
+    private static float[] u(double t0, double t1, int repeat, boolean convex) {
+        double tt0 = convex ? 1.0 - t0 : t0;
+        double tt1 = convex ? 1.0 - t1 : t1;
+        int copy = (int) Math.floor((tt0 + tt1) * 0.5 * repeat);
+        return new float[]{
+                (float) (tt0 * repeat - copy),
+                (float) (tt1 * repeat - copy)};
     }
 
     private static Vec3 at(Vec3 center, Vec3 dir, float radius, float y) {
@@ -186,7 +200,7 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
     }
 
     private void renderShaderPackCompat(CurvedScreenBlockEntity be, int mode, Vec3 center,
-                                        Vec3 fwd, Vec3 right, double arc, int segments,
+                                        Vec3 fwd, Vec3 right, double arc, int segments, int repeat,
                                         float rFace, float yBottom, float yTop, boolean convex,
                                         Matrix4f mat, MultiBufferSource buffers) {
         float bright = be.getEffectiveBrightness();
@@ -224,16 +238,15 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
             double t1 = (i + 1) / (double) segments;
             Vec3 d0 = arcDir(fwd, right, arc, t0);
             Vec3 d1 = arcDir(fwd, right, arc, t1);
-            float u0 = u(t0, convex);
-            float u1 = u(t1, convex);
+            float[] uu = u(t0, t1, repeat, convex);
             Vec3 normal = convex ? d0 : d0.scale(-1);
-            emissiveVertex(vc, mat, at(center, d0, rFace, yTop), u0, 0.0F, normal,
+            emissiveVertex(vc, mat, at(center, d0, rFace, yTop), uu[0], 0.0F, normal,
                     cr * bright, cg * bright, cb * bright);
-            emissiveVertex(vc, mat, at(center, d1, rFace, yTop), u1, 0.0F, normal,
+            emissiveVertex(vc, mat, at(center, d1, rFace, yTop), uu[1], 0.0F, normal,
                     cr * bright, cg * bright, cb * bright);
-            emissiveVertex(vc, mat, at(center, d1, rFace, yBottom), u1, 1.0F, normal,
+            emissiveVertex(vc, mat, at(center, d1, rFace, yBottom), uu[1], 1.0F, normal,
                     cr * bright, cg * bright, cb * bright);
-            emissiveVertex(vc, mat, at(center, d0, rFace, yBottom), u0, 1.0F, normal,
+            emissiveVertex(vc, mat, at(center, d0, rFace, yBottom), uu[0], 1.0F, normal,
                     cr * bright, cg * bright, cb * bright);
         }
     }

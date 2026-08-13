@@ -47,6 +47,18 @@ final class ExtraLightsBeamHooks {
             new net.minecraft.resources.ResourceLocation(
                     "theatricalextralights", "textures/gobos/generic_1/open.png");
 
+    /**
+     * Volumetric beams are opt-in with {@code -Dndidisplays.volumetricBeam=true}.
+     *
+     * Default off deliberately. Extra Lights accepts the beam without complaint and draws
+     * geometry, but whether that geometry is actually *visible* depends on its own density,
+     * brightness and max-alpha settings plus the fixture's zoom — and when it comes out
+     * invisible the result is worse than the classic beam, because claiming success also
+     * suppresses the fallback cone. Until the visible-parameter range is pinned down against
+     * a real install, the reliable beam is the default.
+     */
+    private static final boolean OPT_IN = Boolean.getBoolean("ndidisplays.volumetricBeam");
+
     private enum State { UNKNOWN, READY, ABSENT }
 
     private static State state = State.UNKNOWN;
@@ -74,6 +86,8 @@ final class ExtraLightsBeamHooks {
      * failure — a resource reload, a frame where a shader was mid-swap — silently disabled the
      * volumetric beam for the whole session and looked exactly like the feature not existing.
      */
+    private static java.lang.reflect.Field beamCountField;
+    private static boolean loggedNoGeometry;
     private static int failures;
     private static final int MAX_FAILURES = 3;
 
@@ -100,6 +114,14 @@ final class ExtraLightsBeamHooks {
             }
             dataCtor = found;
             renderMethod = rendererClass.getMethod("render", dataClass, PoseStack.class);
+            try {
+                beamCountField = rendererClass.getDeclaredField("activeBeamCount");
+                beamCountField.setAccessible(true);
+            } catch (ReflectiveOperationException | RuntimeException noField) {
+                // Without it we cannot confirm geometry was built; better to decline the
+                // volumetric path than to risk suppressing the fallback for nothing.
+                beamCountField = null;
+            }
             try {
                 enabledMethod = Class.forName(PKG + ".config.TheatricalExtraLightsConfig")
                         .getMethod("isVolumetricBeamEnabled");
@@ -156,7 +178,7 @@ final class ExtraLightsBeamHooks {
     static boolean submit(BlockPos fixturePos, Matrix4f headMatrix, float beamWidth,
                           float focus01, float r, float g, float b,
                           float intensity01, float length) {
-        if (!available()) {
+        if (!OPT_IN || !available()) {
             return false;
         }
         Level level = Minecraft.getInstance().level;
@@ -215,6 +237,21 @@ final class ExtraLightsBeamHooks {
             // A fresh identity stack: the data is already world-space, and Extra Lights
             // re-anchors camera-relatively inside its own lazy render.
             renderMethod.invoke(renderer, data, new PoseStack());
+
+            // Verify rather than assume. render() returns void and silently does nothing when
+            // its own guards reject the beam (volumetric switched off, intensity not above
+            // zero), and its lazy pass then returns early because activeBeamCount is still 0.
+            // Reading that counter is the only way to know a beam was really built — without
+            // it we would report success and suppress the fallback cone, leaving no beam at
+            // all, which is exactly what happened before this check existed.
+            if (beamCountField != null && beamCountField.getInt(renderer) <= 0) {
+                if (!loggedNoGeometry) {
+                    loggedNoGeometry = true;
+                    LOGGER.warn("[ndidisplays] Extra Lights accepted the beam but built no"
+                            + " geometry (activeBeamCount 0); using the classic beam");
+                }
+                return false;
+            }
             failures = 0;
             if (!loggedSubmit) {
                 loggedSubmit = true;

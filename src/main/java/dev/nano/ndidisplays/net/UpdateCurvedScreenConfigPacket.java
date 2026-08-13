@@ -16,7 +16,8 @@ import java.util.function.Supplier;
  */
 public record UpdateCurvedScreenConfigPacket(BlockPos pos, String source, int pxPerBlock,
                                              float brightness, int pattern, float radius,
-                                             float arcAngle, float screenHeight, boolean convex) {
+                                             float arcAngle, float screenHeight, boolean convex,
+                                             int videoRepeat) {
 
     public static void encode(UpdateCurvedScreenConfigPacket msg, FriendlyByteBuf buf) {
         buf.writeBlockPos(msg.pos);
@@ -28,6 +29,7 @@ public record UpdateCurvedScreenConfigPacket(BlockPos pos, String source, int px
         buf.writeFloat(msg.arcAngle);
         buf.writeFloat(msg.screenHeight);
         buf.writeBoolean(msg.convex);
+        buf.writeVarInt(msg.videoRepeat);
     }
 
     public static UpdateCurvedScreenConfigPacket decode(FriendlyByteBuf buf) {
@@ -40,7 +42,8 @@ public record UpdateCurvedScreenConfigPacket(BlockPos pos, String source, int px
                 buf.readFloat(),
                 buf.readFloat(),
                 buf.readFloat(),
-                buf.readBoolean());
+                buf.readBoolean(),
+                buf.readVarInt());
     }
 
     public static void handle(UpdateCurvedScreenConfigPacket msg, Supplier<NetworkEvent.Context> ctx) {
@@ -57,7 +60,7 @@ public record UpdateCurvedScreenConfigPacket(BlockPos pos, String source, int px
                 return;
             }
             screen.applyConfig(msg.source, msg.pxPerBlock, msg.brightness, msg.pattern,
-                    msg.radius, msg.arcAngle, msg.screenHeight, msg.convex);
+                    msg.radius, msg.arcAngle, msg.screenHeight, msg.convex, msg.videoRepeat);
             BlockState state = level.getBlockState(msg.pos);
             level.sendBlockUpdated(msg.pos, state, state, 3);
         });

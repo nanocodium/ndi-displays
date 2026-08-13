@@ -44,6 +44,7 @@ public class CurvedScreenConfigScreen extends Screen {
     private float arcAngle;
     private float screenHeight;
     private boolean convex;
+    private int videoRepeat;
 
     private EditBox sourceBox;
     private NdiSourcePicker picker;
@@ -59,6 +60,7 @@ public class CurvedScreenConfigScreen extends Screen {
         this.arcAngle = screen.getArcAngle();
         this.screenHeight = screen.getScreenHeight();
         this.convex = screen.isConvex();
+        this.videoRepeat = screen.getVideoRepeat();
     }
 
     @Override
@@ -126,6 +128,17 @@ public class CurvedScreenConfigScreen extends Screen {
                         net.minecraft.client.Minecraft.getInstance().setScreen(
                                 new ScreenDmxSlotsScreen(screen, this)))
                 .bounds(left + 134, y, 130, 18).build());
+        y += 22;
+
+        // How many times the source frame tiles around the arc (1x = stretched once).
+        addRenderableWidget(CycleButton.<Integer>builder(n ->
+                        Component.literal(n == 1
+                                ? "1\u00D7 (stretch)"
+                                : n + "\u00D7"))
+                .withValues(rangeFrom1(CurvedScreenBlockEntity.MAX_REPEAT))
+                .withInitialValue(Math.min(videoRepeat, CurvedScreenBlockEntity.MAX_REPEAT))
+                .create(left, y, 264, 18, Component.translatable("gui.ndidisplays.curved.repeat"),
+                        (btn, val) -> videoRepeat = val));
         y += 28;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.winch.apply"), b -> apply())
@@ -144,7 +157,8 @@ public class CurvedScreenConfigScreen extends Screen {
                 radius,
                 arcAngle,
                 screenHeight,
-                convex));
+                convex,
+                videoRepeat));
         onClose();
     }
 
@@ -207,6 +221,14 @@ public class CurvedScreenConfigScreen extends Screen {
     private static List<Integer> range(int n) {
         List<Integer> list = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
+            list.add(i);
+        }
+        return list;
+    }
+
+    private static List<Integer> rangeFrom1(int n) {
+        List<Integer> list = new ArrayList<>(n);
+        for (int i = 1; i <= n; i++) {
             list.add(i);
         }
         return list;

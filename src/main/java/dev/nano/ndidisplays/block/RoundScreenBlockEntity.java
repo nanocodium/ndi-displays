@@ -43,9 +43,15 @@ public class RoundScreenBlockEntity extends BlockEntity implements DmxScreen {
     private float radius = DEFAULT_RADIUS;
 
     private final ScreenDmxState dmx = new ScreenDmxState();
+    /** Input window: the region of the source frame this screen displays. */
+    private final CropWindow crop = new CropWindow();
 
     public RoundScreenBlockEntity(BlockPos pos, BlockState state) {
         super(NdiDisplays.ROUND_SCREEN_BE.get(), pos, state);
+    }
+
+    public CropWindow crop() {
+        return crop;
     }
 
     public String getSourceName() {
@@ -163,6 +169,7 @@ public class RoundScreenBlockEntity extends BlockEntity implements DmxScreen {
         tag.putFloat("Gamma", gamma);
         tag.putInt("Pattern", testPattern);
         tag.putFloat("Radius", radius);
+        crop.save(tag);
         dmx.save(tag);
     }
 
@@ -179,6 +186,7 @@ public class RoundScreenBlockEntity extends BlockEntity implements DmxScreen {
                 0, PATTERN_COUNT - 1);
         radius = Clamps.f(tag.contains("Radius") ? tag.getFloat("Radius") : DEFAULT_RADIUS,
                 MIN_RADIUS, MAX_RADIUS, DEFAULT_RADIUS);
+        crop.load(tag);
         dmx.load(tag);
     }
 

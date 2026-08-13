@@ -102,7 +102,12 @@ public class RoundScreenConfigScreen extends Screen {
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.screen_dmx.open"), b ->
                         net.minecraft.client.Minecraft.getInstance().setScreen(
                                 new ScreenDmxSlotsScreen(screen, this)))
-                .bounds(left, y, 264, 18).build());
+                .bounds(left, y, 130, 18).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.processor.open"), b ->
+                        net.minecraft.client.Minecraft.getInstance().setScreen(
+                                new VideoProcessorScreen(this, screen.getBlockPos(),
+                                        source.trim(), screen.crop())))
+                .bounds(left + 134, y, 130, 18).build());
         y += 26;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.winch.apply"), b -> apply())

@@ -111,7 +111,9 @@ public class RoundScreenRenderer implements BlockEntityRenderer<RoundScreenBlock
         shader.safeGetUniform("LedParams").set(grid, grid, PIXEL_GAP, be.getEffectiveBrightness());
         shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode,
                 (float) be.getPixelsPerBlock(), CALIBRATION_VARIANCE);
-        shader.safeGetUniform("UvRegion").set(0.0F, 0.0F, 1.0F, 1.0F);
+        // Input window (video-processor crop): the disc samples its circle inside this region.
+        dev.nano.ndidisplays.block.CropWindow crop = be.crop();
+        shader.safeGetUniform("UvRegion").set(crop.u0(), crop.v0(), crop.du(), crop.dv());
 
         RenderSystem.setShader(() -> shader);
         RenderSystem.setShaderTexture(0, texId);
@@ -182,24 +184,33 @@ public class RoundScreenRenderer implements BlockEntityRenderer<RoundScreenBlock
             }
         }
 
+        // Input window (video-processor crop) applied to the raw fallback disc.
+        dev.nano.ndidisplays.block.CropWindow crop = be.crop();
         VertexConsumer vc = buffers.getBuffer(RenderType.entityTranslucentEmissive(tex));
         for (int i = 0; i < SEGMENTS; i++) {
             double a0 = (Math.PI * 2 * i) / SEGMENTS;
             double a1 = (Math.PI * 2 * (i + 1)) / SEGMENTS;
-            emissiveDiscVertex(vc, mat, faceCenter, right, up, r, a0, normal, cr * bright, cg * bright, cb * bright);
-            emissiveDiscVertex(vc, mat, faceCenter, right, up, r, a1, normal, cr * bright, cg * bright, cb * bright);
-            emissiveVertex(vc, mat, faceCenter, 0.5F, 0.5F, normal, cr * bright, cg * bright, cb * bright);
-            emissiveVertex(vc, mat, faceCenter, 0.5F, 0.5F, normal, cr * bright, cg * bright, cb * bright);
+            emissiveDiscVertex(vc, mat, faceCenter, right, up, r, a0, normal, crop,
+                    cr * bright, cg * bright, cb * bright);
+            emissiveDiscVertex(vc, mat, faceCenter, right, up, r, a1, normal, crop,
+                    cr * bright, cg * bright, cb * bright);
+            emissiveVertex(vc, mat, faceCenter, crop.u0() + 0.5F * crop.du(), crop.v0() + 0.5F * crop.dv(),
+                    normal, cr * bright, cg * bright, cb * bright);
+            emissiveVertex(vc, mat, faceCenter, crop.u0() + 0.5F * crop.du(), crop.v0() + 0.5F * crop.dv(),
+                    normal, cr * bright, cg * bright, cb * bright);
         }
     }
 
     private static void emissiveDiscVertex(VertexConsumer vc, Matrix4f mat, Vec3 faceCenter,
                                            Vec3 right, Vec3 up, float r, double angle, Vec3 normal,
+                                           dev.nano.ndidisplays.block.CropWindow crop,
                                            float cr, float cg, float cb) {
         double cos = Math.cos(angle);
         double sin = Math.sin(angle);
         Vec3 pos = faceCenter.add(right.scale(cos * r)).add(up.scale(sin * r));
-        emissiveVertex(vc, mat, pos, (float) (0.5 - 0.5 * cos), (float) (0.5 - 0.5 * sin),
+        emissiveVertex(vc, mat, pos,
+                crop.u0() + (float) (0.5 - 0.5 * cos) * crop.du(),
+                crop.v0() + (float) (0.5 - 0.5 * sin) * crop.dv(),
                 normal, cr, cg, cb);
     }
 

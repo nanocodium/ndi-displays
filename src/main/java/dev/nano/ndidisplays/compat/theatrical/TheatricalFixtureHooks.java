@@ -24,6 +24,8 @@ import javax.annotation.Nullable;
  */
 final class TheatricalFixtureHooks {
 
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
+
     private TheatricalFixtureHooks() {
     }
 
@@ -39,6 +41,9 @@ final class TheatricalFixtureHooks {
     static java.util.List<FixturePersonality> personalities(String blockId) {
         Fixture fixture = fixture(blockId);
         if (fixture == null || fixture.getDMXPersonalities() == null) {
+            LOGGER.info("[ndidisplays] '{}' declares no DMX modes ({}); the winch will offer"
+                    + " its generic footprints", blockId,
+                    fixture == null ? "not a Theatrical fixture" : "null personality list");
             return java.util.List.of();
         }
         java.util.List<FixturePersonality> out = new java.util.ArrayList<>();
@@ -56,7 +61,39 @@ final class TheatricalFixtureHooks {
                     : p.getDescription();
             out.add(new FixturePersonality(desc, count, kinds));
         }
+        // Cached per block id upstream, so this logs once per fixture type — enough to see in
+        // the log whether the real modes were found and what each channel was taken to mean.
+        LOGGER.info("[ndidisplays] '{}' DMX modes: {}", blockId, describe(out));
         return out;
+    }
+
+    private static String describe(java.util.List<FixturePersonality> list) {
+        StringBuilder sb = new StringBuilder();
+        for (FixturePersonality p : list) {
+            if (sb.length() > 0) {
+                sb.append(", ");
+            }
+            sb.append('"').append(p.description()).append("\" (").append(p.channelCount())
+                    .append("ch -> ").append(KineticWinchLead()).append(p.channelCount())
+                    .append(" total) slots=");
+            for (int k : p.slots()) {
+                sb.append(switch (k) {
+                    case FixturePersonality.SLOT_INTENSITY -> "I";
+                    case FixturePersonality.SLOT_RED -> "R";
+                    case FixturePersonality.SLOT_GREEN -> "G";
+                    case FixturePersonality.SLOT_BLUE -> "B";
+                    case FixturePersonality.SLOT_FOCUS -> "F";
+                    case FixturePersonality.SLOT_PAN -> "P";
+                    case FixturePersonality.SLOT_TILT -> "T";
+                    default -> "?";
+                });
+            }
+        }
+        return sb.toString();
+    }
+
+    private static int KineticWinchLead() {
+        return dev.nano.ndidisplays.block.KineticWinchBlockEntity.WINCH_LEAD_CHANNELS;
     }
 
     private static int kindOf(dev.imabad.theatrical.api.dmx.DMXSlot slot) {

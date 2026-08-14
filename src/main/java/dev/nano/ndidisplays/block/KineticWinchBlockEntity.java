@@ -72,7 +72,9 @@ public class KineticWinchBlockEntity extends BlockEntity {
     public static final int PAYLOAD_MIRROR_BALL = 2;
     /** A Theatrical / Extra Lights fixture flown on the hook. */
     public static final int PAYLOAD_FIXTURE = 3;
-    public static final int PAYLOAD_COUNT = 4;
+    /** Vertical LED slat / kinetic curtain blade on a single cable. */
+    public static final int PAYLOAD_SLAT = 4;
+    public static final int PAYLOAD_COUNT = 5;
 
     /** Sphere footprint: height 16-bit, speed, dimmer, R, G, B. */
     public static final int DMX_CHANNEL_COUNT_SPHERE = 7;
@@ -453,6 +455,10 @@ public class KineticWinchBlockEntity extends BlockEntity {
         this.maxTilt = Clamps.f(maxTilt, 0.0F, MAX_TILT_LIMIT, DEFAULT_MAX_TILT);
         this.targetDropB = clampTargetB(Clamps.f(targetDropB, this.minDrop, this.maxDrop, this.targetDrop));
         this.payload = Clamps.i(payload, 0, PAYLOAD_COUNT - 1);
+        if (this.payload == PAYLOAD_SLAT) {
+            // One blade, one motor — never a twin tilt footprint.
+            this.twinMode = false;
+        }
         this.fixtureMode = Clamps.i(fixtureMode, 0, 63);
         this.dmxUniverse = Clamps.i(universe, 0, 32767);
         this.dmxAddress = Clamps.i(address, 1, 512);
@@ -475,6 +481,18 @@ public class KineticWinchBlockEntity extends BlockEntity {
     public void applyNdiCard(String source) {
         this.sourceName = Clamps.name(source, MAX_SOURCE_NAME);
         this.testPattern = 0;
+        setChanged();
+    }
+
+    /**
+     * Assigns this winch's slice of a shared canvas from a physical park layout
+     * (region apply / auto-map).
+     */
+    public void applyCanvasMapping(int cols, int rows, int col, int row) {
+        this.canvasCols = Clamps.i(cols, 1, MAX_CANVAS);
+        this.canvasRows = Clamps.i(rows, 1, MAX_CANVAS);
+        this.canvasCol = Clamps.i(col, 0, this.canvasCols - 1);
+        this.canvasRow = Clamps.i(row, 0, this.canvasRows - 1);
         setChanged();
     }
 
@@ -664,7 +682,7 @@ public class KineticWinchBlockEntity extends BlockEntity {
         return switch (payload) {
             case PAYLOAD_KINETIC_SPHERE -> DMX_CHANNEL_COUNT_SPHERE;
             case PAYLOAD_FIXTURE -> fixtureFootprint();
-            case PAYLOAD_MIRROR_BALL -> DMX_CHANNEL_COUNT;
+            case PAYLOAD_MIRROR_BALL, PAYLOAD_SLAT -> DMX_CHANNEL_COUNT;
             default -> twinMode ? DMX_CHANNEL_COUNT_TWIN : DMX_CHANNEL_COUNT;
         };
     }

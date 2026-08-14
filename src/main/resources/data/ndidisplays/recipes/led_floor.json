@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "III",
+        "GRG",
+        "III"
+    ],
+    "key": {
+        "I": { "item": "minecraft:iron_ingot" },
+        "G": { "item": "minecraft:glowstone_dust" },
+        "R": { "item": "minecraft:black_concrete" }
+    },
+    "result": {
+        "item": "ndidisplays:led_floor",
+        "count": 8
+    }
+}

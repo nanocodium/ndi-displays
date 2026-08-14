@@ -233,6 +233,7 @@ public class WinchConfigScreen extends Screen {
                     case KineticWinchBlockEntity.PAYLOAD_KINETIC_SPHERE -> "gui.ndidisplays.winch.payload.sphere";
                     case KineticWinchBlockEntity.PAYLOAD_MIRROR_BALL -> "gui.ndidisplays.winch.payload.mirror";
                     case KineticWinchBlockEntity.PAYLOAD_FIXTURE -> "gui.ndidisplays.winch.payload.fixture";
+                    case KineticWinchBlockEntity.PAYLOAD_SLAT -> "gui.ndidisplays.winch.payload.slat";
                     default -> "gui.ndidisplays.winch.payload.tile";
                 }))
                 .withValues(range(KineticWinchBlockEntity.PAYLOAD_COUNT))

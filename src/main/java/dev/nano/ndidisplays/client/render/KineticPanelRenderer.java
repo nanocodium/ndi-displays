@@ -73,6 +73,12 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
             return;
         }
 
+        // Slat / curtain blade: a thin vertical LED strip on one cable.
+        if (be.getPayload() == KineticWinchBlockEntity.PAYLOAD_SLAT) {
+            renderSlat(be, partialTick, poseStack, buffers, packedLight);
+            return;
+        }
+
         // Non-tile payloads hang from a single hook cable and never tilt.
         if (be.getPayload() != KineticWinchBlockEntity.PAYLOAD_LED_TILE) {
             renderSuspendedPayload(be, partialTick, poseStack, buffers, packedLight);
@@ -288,6 +294,109 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
     private static final float BALL_RADIUS = 0.38F;
     private static final int SPHERE_LAT = 12;
     private static final int SPHERE_LON = 18;
+    /** Physical width of one curtain slat at panelWidth=1, blocks. */
+    private static final float SLAT_WIDTH = 0.30F;
+
+    /**
+     * Kinetic curtain blade: a thin vertical LED strip on a single cable. Each
+     * slat samples one column of the shared canvas so a row of motors reads as
+     * one video curtain that can open in a wave.
+     */
+    private void renderSlat(KineticWinchBlockEntity be, float partialTick, PoseStack poseStack,
+                            MultiBufferSource buffers, int packedLight) {
+        float drop = Math.max(0.05F, be.getRenderDrop(partialTick));
+        Direction facing = be.getFacing();
+        Vec3 fwd = Vec3.atLowerCornerOf(facing.getNormal());
+        Vec3 right = Vec3.atLowerCornerOf(facing.getClockWise().getNormal());
+        Vec3 center = new Vec3(0.5, 0, 0.5);
+        float w = SLAT_WIDTH * Math.max(1, be.getPanelWidth());
+        float h = be.getPanelHeight();
+        double topY = -drop;
+        Matrix4f mat = poseStack.last().pose();
+
+        VertexConsumer solid = buffers.getBuffer(
+                RenderType.entityCutoutNoCull(FallbackTextures.whiteLocation()));
+        drawCable(solid, mat, new Vec3(0.5, topY, 0.5), new Vec3(0.5, DRUM_Y, 0.5),
+                right, fwd, packedLight);
+        shadedBox(solid, mat, new Vec3(0.5 - 0.04, topY, 0.5 - 0.04),
+                new Vec3(0.5 + 0.04, topY + 0.06, 0.5 + 0.04), 0.18F, packedLight);
+
+        Vec3 face = center.add(fwd.scale(THICKNESS * 0.5 + SURFACE_EPSILON));
+        Vec3 ru = right.scale(w * 0.5);
+        Vec3 p00 = face.add(ru).add(0, topY - h, 0);
+        Vec3 p10 = face.subtract(ru).add(0, topY - h, 0);
+        Vec3 p11 = face.subtract(ru).add(0, topY, 0);
+        Vec3 p01 = face.add(ru).add(0, topY, 0);
+
+        if (!be.isMesh()) {
+            Vec3 fu = fwd.scale(THICKNESS * 0.5);
+            Vec3 c1 = center.subtract(ru).subtract(fu).add(0, topY - h, 0);
+            Vec3 c2 = center.add(ru).add(fu).add(0, topY, 0);
+            Vec3 boxMin = new Vec3(Math.min(c1.x, c2.x), Math.min(c1.y, c2.y), Math.min(c1.z, c2.z));
+            Vec3 boxMax = new Vec3(Math.max(c1.x, c2.x), Math.max(c1.y, c2.y), Math.max(c1.z, c2.z));
+            drawCabinet(buffers, mat, boxMin, boxMax, facing, packedLight);
+        }
+
+        float uOff = (float) be.getCanvasCol() / be.getCanvasCols();
+        float vOff = (float) be.getCanvasRow() / be.getCanvasRows();
+        float uScale = 1.0F / be.getCanvasCols();
+        float vScale = 1.0F / be.getCanvasRows();
+        int mode = be.getTestPattern();
+        float gridW = be.getPixelsPerBlock() * w;
+        float gridH = be.getPixelsPerBlock() * h;
+
+        if (ShaderPackCompat.shaderPackActive()) {
+            renderShaderPackCompat(be, mode, p00, p10, p11, p01, fwd,
+                    uOff, vOff, uScale, vScale, poseStack, buffers);
+            return;
+        }
+
+        ShaderInstance shader = be.isMesh() ? ClientSetup.ledWallTransparentShader : ClientSetup.ledWallShader;
+        if (shader == null) {
+            return;
+        }
+        int texId;
+        if (mode == 0) {
+            NdiStream stream = NdiManager.acquire(be.getSourceName());
+            texId = 0;
+            if (stream != null) {
+                stream.uploadIfNeeded();
+                texId = stream.getTextureId();
+            }
+            if (texId == 0) {
+                texId = FallbackTextures.black();
+            }
+        } else {
+            texId = FallbackTextures.white();
+        }
+
+        shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness());
+        shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode,
+                (float) be.getPixelsPerBlock(), CALIBRATION_VARIANCE);
+        shader.safeGetUniform("UvRegion").set(uOff, vOff, uScale, vScale);
+        RenderSystem.setShader(() -> shader);
+        RenderSystem.setShaderTexture(0, texId);
+        RenderSystem.enableDepthTest();
+        RenderSystem.depthMask(true);
+        if (be.isMesh()) {
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+        } else {
+            RenderSystem.disableBlend();
+        }
+        RenderSystem.disableCull();
+        BufferBuilder builder = Tesselator.getInstance().getBuilder();
+        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+        vertex(builder, mat, p00, 0.0F, 1.0F);
+        vertex(builder, mat, p10, 1.0F, 1.0F);
+        vertex(builder, mat, p11, 1.0F, 0.0F);
+        vertex(builder, mat, p01, 0.0F, 0.0F);
+        BufferUploader.drawWithShader(builder.end());
+        RenderSystem.enableCull();
+        if (be.isMesh()) {
+            RenderSystem.disableBlend();
+        }
+    }
 
     /**
      * A non-tile payload: one hook cable straight down from the drum, then the

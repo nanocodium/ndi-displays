@@ -51,8 +51,15 @@ public class KineticWinchBlockEntity extends BlockEntity {
     public static final float MAX_DROP_LIMIT = 32.0F;
     /** Fastest working speed selectable, m/s (a WX2512-class winch tops out around here). */
     public static final float MAX_SPEED = 4.0F;
-    /** Largest panel dimension, blocks. */
-    public static final int MAX_PANEL_SIZE = 8;
+    /**
+     * Largest flown tile dimension, blocks.
+     *
+     * The tile is a single quad, not a grid of blocks, so its size costs nothing to render —
+     * the only thing that scales with it is the render bounding box. That makes a generous
+     * limit cheap, and 8 was too small for a tile meant to read as one panel of a stadium-scale
+     * flying matrix.
+     */
+    public static final int MAX_PANEL_SIZE = 32;
     /** Largest video canvas dimension, tiles. */
     public static final int MAX_CANVAS = 64;
     /** DMX footprint in LINKED mode: height coarse, height fine, speed, dimmer. */

@@ -635,7 +635,28 @@ public final class CameraFeedManager {
         // several roving operators can each carry one on a server.
         return dev.nano.ndidisplays.client.ndi.NdiHost.shouldBroadcastHandheld()
                 && (player.getMainHandItem().is(NdiDisplays.HANDHELD_CAMERA_ITEM.get())
-                    || player.getOffhandItem().is(NdiDisplays.HANDHELD_CAMERA_ITEM.get()));
+                    || player.getOffhandItem().is(NdiDisplays.HANDHELD_CAMERA_ITEM.get())
+                    || wearingShoulderRig(player));
+    }
+
+    /**
+     * The shoulder rig broadcasts while worn, which is its whole reason to exist over the
+     * handheld: the operator keeps both hands free. It shares the handheld's capture path —
+     * the feed is the player's own view either way — and its switch, so one config option
+     * covers every camera an operator carries.
+     */
+    private static boolean wearingShoulderRig(LocalPlayer player) {
+        return player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST)
+                .is(NdiDisplays.SHOULDER_CAMERA_ITEM.get());
+    }
+
+    /**
+     * Source name for the operator's own feed. A worn rig and a held camera are different kit
+     * and a director needs to tell them apart on the network, so they advertise separately.
+     */
+    private static String operatorFeedName(LocalPlayer player) {
+        String who = player.getGameProfile().getName();
+        return (wearingShoulderRig(player) ? "MC Shoulder " : "MC Handheld ") + who;
     }
 
     /**
@@ -707,7 +728,7 @@ public final class CameraFeedManager {
             completePendingReadback(handheldFeed);
             RenderTarget main = mc.getMainRenderTarget();
             captureTarget = main;
-            readAndSend(handheldFeed, "MC Handheld " + player.getGameProfile().getName(),
+            readAndSend(handheldFeed, operatorFeedName(player),
                     HANDHELD_FPS, false, main.viewWidth, main.viewHeight);
         } catch (Throwable t) {
             LOGGER.warn("[ndidisplays] handheld screen copy failed: {}", t.toString());
@@ -747,7 +768,7 @@ public final class CameraFeedManager {
                     player.getEyePosition(1.0F).add(forward.scale(HANDHELD_FORWARD)),
                     yaw + wobbleYaw, pitch + wobblePitch);
             renderView(mc, view, mc.options.fov().get());
-            readAndSend(handheldFeed, "MC Handheld " + player.getGameProfile().getName(),
+            readAndSend(handheldFeed, operatorFeedName(player),
                     HANDHELD_FPS, false, captureTarget.viewWidth, captureTarget.viewHeight);
         } catch (Throwable t) {
             LOGGER.warn("[ndidisplays] handheld capture failed: {}", t.toString());

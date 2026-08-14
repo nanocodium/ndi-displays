@@ -193,6 +193,15 @@ public class NdiDisplays {
             () -> new Item(new Item.Properties().stacksTo(1)));
 
     /**
+     * Shoulder-mounted cine rig, worn in the chest slot: broadcasts the operator's view as
+     * "MC Shoulder &lt;player&gt;" while worn, leaving both hands free — the difference between
+     * this and the handheld. Cosmetic only, no armour protection.
+     */
+    public static final RegistryObject<Item> SHOULDER_CAMERA_ITEM = ITEMS.register("shoulder_camera",
+            () -> new dev.nano.ndidisplays.item.ShoulderCameraItem(
+                    new Item.Properties().stacksTo(1)));
+
+    /**
      * NDI configuration card: pick a source on the card (right-click in the air), then
      * right-click screens to switch them to NDI video with that source — Theatrical's
      * configuration-card workflow, applied to video routing.
@@ -239,6 +248,7 @@ public class NdiDisplays {
                         output.accept(TRACK_CAMERA_ITEM.get());
                         output.accept(CAMERA_TRACK_ITEM.get());
                         output.accept(HANDHELD_CAMERA_ITEM.get());
+                        output.accept(SHOULDER_CAMERA_ITEM.get());
                         output.accept(NDI_CONFIG_CARD_ITEM.get());
                         output.accept(NDI_ROUTER_ITEM.get());
                     })

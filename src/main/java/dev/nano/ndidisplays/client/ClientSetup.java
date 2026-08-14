@@ -29,7 +29,30 @@ public final class ClientSetup {
     /** Blow-through variant: alpha-blended, with the inter-emitter gaps discarded. */
     public static ShaderInstance ledWallTransparentShader;
 
+    /** Layer the worn shoulder rig's geometry is baked into. */
+    public static final net.minecraft.client.model.geom.ModelLayerLocation SHOULDER_RIG_LAYER =
+            new net.minecraft.client.model.geom.ModelLayerLocation(
+                    new ResourceLocation(NdiDisplays.MODID, "shoulder_rig"), "main");
+
+    /** Baked once on first use; the armour layer asks for it every frame it is worn. */
+    private static dev.nano.ndidisplays.client.render.ShoulderRigModel shoulderRig;
+
     private ClientSetup() {
+    }
+
+    @SubscribeEvent
+    public static void onRegisterLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
+        event.registerLayerDefinition(SHOULDER_RIG_LAYER,
+                dev.nano.ndidisplays.client.render.ShoulderRigModel::createLayer);
+    }
+
+    public static dev.nano.ndidisplays.client.render.ShoulderRigModel shoulderRig() {
+        if (shoulderRig == null) {
+            shoulderRig = new dev.nano.ndidisplays.client.render.ShoulderRigModel(
+                    net.minecraft.client.Minecraft.getInstance().getEntityModels()
+                            .bakeLayer(SHOULDER_RIG_LAYER));
+        }
+        return shoulderRig;
     }
 
     @SubscribeEvent

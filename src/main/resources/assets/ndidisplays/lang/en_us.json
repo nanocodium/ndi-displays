@@ -21,6 +21,7 @@
  "block.ndidisplays.track_camera": "Track Dolly Camera (NDI)",
  "block.ndidisplays.camera_track": "Camera Track",
  "item.ndidisplays.handheld_camera": "Handheld Camera (NDI)",
+ "item.ndidisplays.shoulder_camera": "Shoulder Camera Rig (NDI)",
  "block.ndidisplays.ndi_router": "NDI Router",
  "gui.ndidisplays.router.title": "NDI Router",
  "gui.ndidisplays.router.output": "Output Name",

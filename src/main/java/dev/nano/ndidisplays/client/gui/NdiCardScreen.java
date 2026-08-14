@@ -33,6 +33,12 @@ public class NdiCardScreen extends Screen {
     private boolean hasSelection;
     /** Winch motor mode the card imposes: keep / linked / twin. */
     private int winchMode;
+    /**
+     * When on, Apply Region also stamps canvas UV so the park reconstitutes one
+     * image. Off by default: applying a source must not overwrite each winch's
+     * existing col/row slice.
+     */
+    private boolean autoMapCanvas = false;
 
     public NdiCardScreen(InteractionHand hand, String storedSource) {
         super(Component.translatable("gui.ndidisplays.card.title"));
@@ -77,6 +83,11 @@ public class NdiCardScreen extends Screen {
                         (btn, val) -> winchMode = val));
         y += 24;
 
+        addRenderableWidget(net.minecraft.client.gui.components.CycleButton.onOffBuilder(autoMapCanvas)
+                .create(left, y, 264, 20, Component.translatable("gui.ndidisplays.card.automap"),
+                        (btn, val) -> autoMapCanvas = val));
+        y += 24;
+
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.card.save"), b -> apply())
                 .bounds(cx - 132, y, 130, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> onClose())
@@ -98,6 +109,11 @@ public class NdiCardScreen extends Screen {
                             Component.translatable("gui.ndidisplays.card.clear_selection"),
                             b -> clearSelection())
                     .bounds(cx + 62, y, 70, 20).build());
+            y += 24;
+            addRenderableWidget(Button.builder(
+                            Component.translatable("gui.ndidisplays.card.park_preview"),
+                            b -> openParkPreview())
+                    .bounds(cx - 132, y, 264, 20).build());
         }
     }
 
@@ -119,19 +135,30 @@ public class NdiCardScreen extends Screen {
     /** Stores the source on the card AND applies it to every screen in the selection. */
     private void applyRegion() {
         NetworkHandler.CHANNEL.sendToServer(new ApplyNdiCardRegionPacket(
-                hand == InteractionHand.MAIN_HAND, sourceBox.getValue().trim(), false, winchMode));
+                hand == InteractionHand.MAIN_HAND, sourceBox.getValue().trim(), false, winchMode,
+                autoMapCanvas));
         onClose();
     }
 
     private void clearSelection() {
         NetworkHandler.CHANNEL.sendToServer(new ApplyNdiCardRegionPacket(
-                hand == InteractionHand.MAIN_HAND, "", true, winchMode));
+                hand == InteractionHand.MAIN_HAND, "", true, winchMode, false));
         // Reflect it locally right away; the server does the authoritative clear.
         ItemStack card = heldCard();
         if (card != null) {
             NdiConfigCardItem.clearSelection(card);
         }
         rebuildWidgets();
+    }
+
+    private void openParkPreview() {
+        ItemStack card = heldCard();
+        if (card == null || !NdiConfigCardItem.hasSelection(card)) {
+            return;
+        }
+        BlockPos pos1 = NdiConfigCardItem.selectionPos(card, NdiConfigCardItem.TAG_POS1);
+        BlockPos pos2 = NdiConfigCardItem.selectionPos(card, NdiConfigCardItem.TAG_POS2);
+        Minecraft.getInstance().setScreen(new WinchParkScreen(this, pos1, pos2));
     }
 
     @Override

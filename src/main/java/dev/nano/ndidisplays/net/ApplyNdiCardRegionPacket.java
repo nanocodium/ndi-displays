@@ -27,7 +27,7 @@ import java.util.function.Supplier;
  * client cannot target arbitrary coordinates it never selected.
  */
 public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean clearOnly,
-                                       int winchMode) {
+                                       int winchMode, boolean autoMapCanvas) {
 
     /** Selections larger than this per horizontal axis are rejected outright. */
     private static final int MAX_SPAN = 512;
@@ -37,12 +37,13 @@ public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean 
         buf.writeUtf(msg.source, LedPanelBlockEntity.MAX_SOURCE_NAME);
         buf.writeBoolean(msg.clearOnly);
         buf.writeVarInt(msg.winchMode);
+        buf.writeBoolean(msg.autoMapCanvas);
     }
 
     public static ApplyNdiCardRegionPacket decode(FriendlyByteBuf buf) {
         return new ApplyNdiCardRegionPacket(buf.readBoolean(),
                 buf.readUtf(LedPanelBlockEntity.MAX_SOURCE_NAME), buf.readBoolean(),
-                buf.readVarInt());
+                buf.readVarInt(), buf.readBoolean());
     }
 
     public static void handle(ApplyNdiCardRegionPacket msg, Supplier<NetworkEvent.Context> ctx) {
@@ -92,6 +93,7 @@ public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean 
             // maps: for a huge but sparse selection this touches a few hundred map entries
             // instead of iterating millions of block positions.
             int applied = 0;
+            java.util.List<KineticWinchBlockEntity> park = new java.util.ArrayList<>();
             for (int cx = minX >> 4; cx <= maxX >> 4; cx++) {
                 for (int cz = minZ >> 4; cz <= maxZ >> 4; cz++) {
                     if (!level.hasChunk(cx, cz)) {
@@ -114,9 +116,12 @@ public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean 
                                 winch.applyCardWinchMode(winchMode == NdiConfigCardItem.WINCH_MODE_TWIN);
                                 dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.register(winch);
                             }
+                            park.add(winch);
                         } else if (be instanceof LedPanelBlockEntity panel) {
                             panel.applyConfig(source, panel.getPixelsPerBlock(),
                                     panel.getBrightness(), panel.getGamma(), 0);
+                        } else if (be instanceof dev.nano.ndidisplays.block.LedFloorBlockEntity floor) {
+                            floor.applyNdiCard(source);
                         } else if (be instanceof dev.nano.ndidisplays.block.RoundScreenBlockEntity round) {
                             round.applyNdiCard(source);
                         } else if (be instanceof dev.nano.ndidisplays.block.CurvedScreenBlockEntity curved) {
@@ -128,6 +133,13 @@ public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean 
                         level.sendBlockUpdated(pos, state, state, 3);
                         applied++;
                     }
+                }
+            }
+            if (msg.autoMapCanvas && !park.isEmpty()) {
+                dev.nano.ndidisplays.winch.WinchParkLayout.applyCanvasMap(park);
+                for (KineticWinchBlockEntity winch : park) {
+                    BlockState state = level.getBlockState(winch.getBlockPos());
+                    level.sendBlockUpdated(winch.getBlockPos(), state, state, 3);
                 }
             }
             player.displayClientMessage(Component.translatable(

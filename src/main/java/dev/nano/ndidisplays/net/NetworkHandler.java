@@ -88,9 +88,17 @@ public final class NetworkHandler {
                 UpdateScreenCropPacket::encode,
                 UpdateScreenCropPacket::decode,
                 UpdateScreenCropPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateFloorConfigPacket.class,
+                UpdateFloorConfigPacket::encode,
+                UpdateFloorConfigPacket::decode,
+                UpdateFloorConfigPacket::handle);
         CHANNEL.registerMessage(id++, UpdateMultiviewConfigPacket.class,
                 UpdateMultiviewConfigPacket::encode,
                 UpdateMultiviewConfigPacket::decode,
                 UpdateMultiviewConfigPacket::handle);
+        CHANNEL.registerMessage(id++, BindParkMonitorPacket.class,
+                BindParkMonitorPacket::encode,
+                BindParkMonitorPacket::decode,
+                BindParkMonitorPacket::handle);
     }
 }

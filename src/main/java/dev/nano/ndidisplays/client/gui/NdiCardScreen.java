@@ -34,9 +34,8 @@ public class NdiCardScreen extends Screen {
     /** Winch motor mode the card imposes: keep / linked / twin. */
     private int winchMode;
     /**
-     * When on, Apply Region also stamps canvas UV so the park reconstitutes one
-     * image. Off by default: applying a source must not overwrite each winch's
-     * existing col/row slice.
+     * When on, Apply Region stitches the park into one image. When off, each
+     * motor is reset to a full-frame canvas (1×1) so it shows the whole source.
      */
     private boolean autoMapCanvas = false;
 
@@ -47,6 +46,7 @@ public class NdiCardScreen extends Screen {
         ItemStack card = heldCard();
         this.winchMode = card != null ? NdiConfigCardItem.storedWinchMode(card)
                 : NdiConfigCardItem.WINCH_MODE_KEEP;
+        this.autoMapCanvas = card != null && NdiConfigCardItem.storedAutoMap(card);
     }
 
     @Override
@@ -83,7 +83,12 @@ public class NdiCardScreen extends Screen {
                         (btn, val) -> winchMode = val));
         y += 24;
 
-        addRenderableWidget(net.minecraft.client.gui.components.CycleButton.onOffBuilder(autoMapCanvas)
+        addRenderableWidget(net.minecraft.client.gui.components.CycleButton.<Boolean>builder(on ->
+                        Component.translatable(on
+                                ? "gui.ndidisplays.card.automap.on"
+                                : "gui.ndidisplays.card.automap.off"))
+                .withValues(java.util.List.of(Boolean.FALSE, Boolean.TRUE))
+                .withInitialValue(autoMapCanvas)
                 .create(left, y, 264, 20, Component.translatable("gui.ndidisplays.card.automap"),
                         (btn, val) -> autoMapCanvas = val));
         y += 24;
@@ -128,7 +133,8 @@ public class NdiCardScreen extends Screen {
 
     private void apply() {
         NetworkHandler.CHANNEL.sendToServer(new UpdateNdiCardPacket(
-                hand == InteractionHand.MAIN_HAND, sourceBox.getValue().trim(), winchMode));
+                hand == InteractionHand.MAIN_HAND, sourceBox.getValue().trim(), winchMode,
+                autoMapCanvas));
         onClose();
     }
 

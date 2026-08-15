@@ -15,11 +15,13 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Renders the camera rigs in broadcast-grade detail: ENG body with battery,
- * shoulder pad, viewfinder, matte box and lens rings; PTZ with LED ring and
- * yoke; jib truss boom with cabling and striped counterweights; track dolly
+ * shoulder pad, viewfinder, matte box and lens rings; a single-arm broadcast
+ * PTZ; jib truss boom with cabling and striped counterweights; track dolly
  * with wheel bogies. Live rigs show a red tally and a thin aim laser derived
  * from the same view state the NDI capture uses (beam == centre of the feed).
- * Static bases/tripods come from the block's JSON model.
+ * Static bases/tripods come from the block's JSON model. The PTZ is drawn
+ * entirely here (the block uses ENTITYBLOCK_ANIMATED); the JSON is the
+ * matching rest-pose silhouette for the inventory item.
  */
 public class CameraRenderer implements BlockEntityRenderer<NdiCameraBlockEntity> {
 
@@ -136,56 +138,72 @@ public class CameraRenderer implements BlockEntityRenderer<NdiCameraBlockEntity>
         pose.popPose();
     }
 
-    // --- PTZ dome ---------------------------------------------------------
+    // --- single-arm broadcast PTZ (matches models/block/ptz_camera.json) ---
 
     private void renderPtz(NdiCameraBlockEntity be, PoseStack pose, VertexConsumer vc, int light) {
         float[] pt = be.getEasedPanTilt();
+        boolean live = be.isActive();
         pose.pushPose();
-        pose.translate(0.5, 0.34, 0.5);
-        pose.mulPose(Axis.YP.rotationDegrees(-(be.getFacing().toYRot() + pt[0])));
+        pose.translate(0.5, 0.0, 0.5);
+        pose.mulPose(Axis.YP.rotationDegrees(-be.getFacing().toYRot()));
 
-        // Rotating pan platter: octagonal drum, glowing cyan status ring around its
-        // waist, brushed top cap, connector field at the back.
-        octoY(pose, vc, light, 0.125F, 0.0F, 0.05F, PTZ_BODY);
-        octoY(pose, vc, LightTexture.FULL_BRIGHT, 0.1285F, 0.016F, 0.032F, PTZ_RING);
-        octoY(pose, vc, light, 0.102F, 0.05F, 0.064F, PTZ_BODY_LIGHT);
-        box(pose, vc, light, -0.05F, 0.006F, 0.118F, 0.05F, 0.046F, 0.132F, CONNECTOR);
+        // Rubber feet tucked under a piano-black stepped puck (no 45° star).
+        for (int i = 0; i < 4; i++) {
+            float a = (float) Math.toRadians(45 + i * 90);
+            float fx = (float) Math.cos(a) * 0.132F;
+            float fz = (float) Math.sin(a) * 0.132F;
+            box(pose, vc, light, fx - 0.016F, 0.000F, fz - 0.016F, fx + 0.016F, 0.012F, fz + 0.016F, GRIP);
+        }
+        box(pose, vc, light, -0.168F, 0.008F, -0.168F, 0.168F, 0.022F, 0.168F, BLACK);
+        box(pose, vc, light, -0.158F, 0.022F, -0.158F, 0.158F, 0.148F, 0.158F, PTZ_GLOSS);
+        box(pose, vc, light, -0.146F, 0.148F, -0.146F, 0.146F, 0.172F, 0.146F, PTZ_BODY);
+        box(pose, vc, light, -0.132F, 0.172F, -0.132F, 0.132F, 0.198F, 0.132F, BLACK);
 
-        // Yoke arms: graphite uprights with brushed chamfered shoulders and silver
-        // tilt-pivot caps on the outside (octagonal, like a real drive hub).
-        box(pose, vc, light, -0.138F, 0.055F, -0.034F, -0.096F, 0.245F, 0.034F, PTZ_BODY);
-        box(pose, vc, light, 0.096F, 0.055F, -0.034F, 0.138F, 0.245F, 0.034F, PTZ_BODY);
-        box(pose, vc, light, -0.132F, 0.245F, -0.026F, -0.102F, 0.263F, 0.026F, PTZ_BODY_LIGHT);
-        box(pose, vc, light, 0.102F, 0.245F, -0.026F, 0.132F, 0.263F, 0.026F, PTZ_BODY_LIGHT);
-        octoX(pose, vc, light, -0.145F, -0.138F, 0.16F, 0.05F, PTZ_SILVER);
-        octoX(pose, vc, light, 0.138F, 0.145F, 0.16F, 0.05F, PTZ_SILVER);
+        // Flush side vents + compact rear I/O.
+        box(pose, vc, light, 0.154F, 0.048F, -0.042F, 0.162F, 0.128F, 0.042F, PTZ_VENT);
+        box(pose, vc, light, -0.162F, 0.048F, -0.042F, -0.154F, 0.128F, 0.042F, PTZ_VENT);
+        box(pose, vc, light, -0.048F, 0.046F, -0.166F, 0.048F, 0.132F, -0.154F, PTZ_BODY);
+        box(pose, vc, light, -0.038F, 0.088F, -0.174F, -0.008F, 0.118F, -0.162F, CONNECTOR);
+        box(pose, vc, light, 0.004F, 0.090F, -0.174F, 0.020F, 0.114F, -0.162F, CONNECTOR);
+        box(pose, vc, light, 0.024F, 0.056F, -0.178F, 0.040F, 0.082F, -0.160F, CABLE);
 
-        // Tilting camera pod between the arms.
-        pose.translate(0.0, 0.16, 0.0);
+        // Front: IR strip + two tiny status LEDs, inset in the face.
+        box(pose, vc, light, -0.038F, 0.108F, 0.154F, 0.038F, 0.132F, 0.164F, PTZ_IR);
+        box(pose, vc, light, -0.028F, 0.078F, 0.154F, 0.028F, 0.100F, 0.160F, LABEL);
+        box(pose, vc, live ? LightTexture.FULL_BRIGHT : light,
+                -0.030F, 0.048F, 0.154F, -0.010F, 0.068F, 0.162F, live ? TALLY : PTZ_BODY);
+        box(pose, vc, LightTexture.FULL_BRIGHT, 0.010F, 0.048F, 0.154F, 0.030F, 0.068F, 0.162F, BLUE_LED);
+
+        // Pan platter — thin black disc, no glow ring, no silver star.
+        pose.mulPose(Axis.YP.rotationDegrees(-pt[0]));
+        box(pose, vc, light, -0.118F, 0.196F, -0.118F, 0.118F, 0.224F, 0.118F, PTZ_GLOSS);
+        box(pose, vc, light, -0.036F, 0.222F, -0.036F, 0.036F, 0.236F, 0.036F, PTZ_BODY);
+
+        box(pose, vc, light, -0.188F, 0.218F, -0.048F, -0.098F, 0.268F, 0.048F, PTZ_BODY);
+        octoYAt(pose, vc, light, -0.148F, 0.036F, 0.260F, 0.482F, PTZ_BODY);
+        box(pose, vc, light, -0.184F, 0.455F, -0.061F, -0.038F, 0.555F, 0.061F, PTZ_BODY);
+        octoX(pose, vc, light, -0.195F, -0.168F, 0.500F, 0.044F, PTZ_SILVER);
+        box(pose, vc, light, -0.198F, 0.478F, -0.022F, -0.186F, 0.522F, 0.022F, PTZ_GLOSS);
+
+        // Tilting head — body, rear I/O, shoe, lens train. Pivot = capture eye height.
+        pose.translate(0.0, 0.500F, 0.0);
         pose.mulPose(Axis.XP.rotationDegrees(-pt[1]));
-        // main pod with chamfered top and bottom so it reads rounded
-        box(pose, vc, light, -0.092F, -0.068F, -0.118F, 0.092F, 0.068F, 0.092F, PTZ_BODY);
-        box(pose, vc, light, -0.078F, 0.068F, -0.108F, 0.078F, 0.078F, 0.082F, PTZ_BODY_LIGHT);
-        box(pose, vc, light, -0.078F, -0.078F, -0.108F, 0.078F, -0.068F, 0.082F, PTZ_BODY);
-        // side vents + thin silver trim lines
-        box(pose, vc, light, -0.0928F, -0.032F, -0.082F, -0.092F, 0.034F, 0.02F, PTZ_VENT);
-        box(pose, vc, light, 0.092F, -0.032F, -0.082F, 0.0928F, 0.034F, 0.02F, PTZ_VENT);
-        box(pose, vc, light, -0.0928F, 0.042F, -0.10F, -0.092F, 0.052F, 0.055F, PTZ_SILVER);
-        box(pose, vc, light, 0.092F, 0.042F, -0.10F, 0.0928F, 0.052F, 0.055F, PTZ_SILVER);
-        // rear: connector field + always-on power LED
-        box(pose, vc, light, -0.05F, -0.03F, -0.1225F, 0.05F, 0.04F, -0.118F, CONNECTOR);
-        box(pose, vc, LightTexture.FULL_BRIGHT, 0.056F, -0.052F, -0.121F, 0.072F, -0.038F, -0.118F, BLUE_LED);
-        // lens train, octagonal: graphite collar → piano-black zoom barrel →
-        // silver front bezel → recessed glass with cyan bloom
-        octoZ(pose, vc, light, 0.092F, 0.112F, 0.054F, PTZ_BODY);
-        octoZ(pose, vc, light, 0.112F, 0.158F, 0.047F, PTZ_GLOSS);
-        octoZ(pose, vc, light, 0.158F, 0.176F, 0.051F, PTZ_SILVER);
-        box(pose, vc, light, -0.038F, -0.038F, 0.1745F, 0.038F, 0.038F, 0.1765F, PTZ_GLASS);
-        // IR window under the lens on the front face
-        box(pose, vc, light, -0.05F, -0.063F, 0.0921F, 0.05F, -0.045F, 0.0945F, PTZ_IR);
-        // tally on the pod's top front
-        if (be.isActive()) {
-            box(pose, vc, LightTexture.FULL_BRIGHT, -0.03F, 0.0785F, 0.018F, 0.03F, 0.0925F, 0.068F, TALLY);
+        box(pose, vc, light, -0.101F, -0.099F, -0.116F, 0.151F, 0.080F, 0.089F, PTZ_BODY);
+        box(pose, vc, light, -0.086F, -0.086F, -0.170F, 0.136F, 0.068F, -0.112F, PTZ_GLOSS);
+        box(pose, vc, light, -0.053F, -0.053F, -0.180F, 0.103F, 0.034F, -0.168F, CONNECTOR);
+        box(pose, vc, light, 0.132F, -0.028F, -0.055F, 0.148F, 0.028F, 0.040F, PTZ_VENT);
+        box(pose, vc, light, -0.041F, 0.076F, -0.053F, 0.041F, 0.093F, 0.034F, PTZ_SILVER);
+        box(pose, vc, light, -0.025F, 0.090F, -0.028F, 0.025F, 0.099F, 0.016F, BLACK);
+
+        box(pose, vc, light, -0.080F, -0.080F, 0.086F, 0.130F, 0.061F, 0.136F, PTZ_BODY_LIGHT);
+        box(pose, vc, light, -0.070F, -0.070F, 0.134F, 0.120F, 0.051F, 0.184F, GRIP);
+        box(pose, vc, light, -0.064F, -0.064F, 0.182F, 0.114F, 0.045F, 0.205F, PTZ_SILVER);
+        box(pose, vc, light, -0.051F, -0.051F, 0.203F, 0.101F, 0.033F, 0.232F, BLACK);
+        box(pose, vc, light, -0.039F, -0.039F, 0.230F, 0.089F, 0.020F, 0.242F, PTZ_GLASS);
+        box(pose, vc, LightTexture.FULL_BRIGHT, -0.012F, -0.008F, 0.240F, 0.028F, 0.012F, 0.246F, LENS);
+
+        if (live) {
+            box(pose, vc, LightTexture.FULL_BRIGHT, -0.050F, 0.074F, 0.034F, 0.050F, 0.095F, 0.084F, TALLY);
         }
         pose.popPose();
     }
@@ -199,6 +217,15 @@ public class CameraRenderer implements BlockEntityRenderer<NdiCameraBlockEntity>
         pose.pushPose();
         pose.mulPose(Axis.YP.rotationDegrees(45.0F));
         box(pose, vc, light, -half, y0, -half, half, y1, half, tile);
+        pose.popPose();
+    }
+
+    /** {@link #octoY} centred on {@code (cx, 0, 0)} — used for the PTZ arm pillar. */
+    private static void octoYAt(PoseStack pose, VertexConsumer vc, int light,
+                                float cx, float half, float y0, float y1, int tile) {
+        pose.pushPose();
+        pose.translate(cx, 0.0, 0.0);
+        octoY(pose, vc, light, half, y0, y1, tile);
         pose.popPose();
     }
 

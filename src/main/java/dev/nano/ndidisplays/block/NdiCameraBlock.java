@@ -50,7 +50,7 @@ public class NdiCameraBlock extends HorizontalDirectionalBlock implements Entity
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return switch (kind) {
             case BROADCAST -> box(2, 0, 2, 14, 15, 14);
-            case PTZ -> box(4, 0, 4, 12, 8, 12);
+            case PTZ -> box(3, 0, 3, 13, 10, 13);
             case JIB -> box(2, 0, 2, 14, 12, 14);
             case TRACK -> box(1, 0, 1, 15, 8, 15);
         };
@@ -58,7 +58,8 @@ public class NdiCameraBlock extends HorizontalDirectionalBlock implements Entity
 
     @Override
     public RenderShape getRenderShape(BlockState state) {
-        return RenderShape.MODEL;
+        // The PTZ is drawn entirely by the BER (single-arm head + rotating platter).
+        return kind == CameraKind.PTZ ? RenderShape.ENTITYBLOCK_ANIMATED : RenderShape.MODEL;
     }
 
     @Override

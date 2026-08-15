@@ -101,15 +101,33 @@ void main() {
              * (vec2(1.0) - smoothstep(vec2(1.0 - gap) - aa, vec2(1.0 - gap) + aa, f));
     float window = win.x * win.y;
 
-    // Vertical R|G|B subpixel stripes inside the emitter window
-    float sx = clamp((f.x - gap) / max(1.0 - 2.0 * gap, 1e-3), 0.0, 1.0);
-    float s0 = smoothstep(0.3333 - aa.x, 0.3333 + aa.x, sx);
-    float s1 = smoothstep(0.6667 - aa.x, 0.6667 + aa.x, sx);
+    // Vertical R|G|B subpixel stripes inside the emitter window.
+    //
+    // sx spans the emitter, not the whole cell, so the antialiasing width has to be converted
+    // into the same units — using aa.x raw under-smooths every stripe edge by the gap fraction.
+    float emitter = max(1.0 - 2.0 * gap, 1e-3);
+    float sx = clamp((f.x - gap) / emitter, 0.0, 1.0);
+    float saa = aa.x / emitter;
+    float s0 = smoothstep(0.3333 - saa, 0.3333 + saa, sx);
+    float s1 = smoothstep(0.6667 - saa, 0.6667 + saa, sx);
     vec3 stripe = vec3(1.0 - s0, s0 * (1.0 - s1), s1);
 
-    // Emitters are small but intense; partially compensate so perceived energy
-    // stays constant while structure remains visible up close.
-    float fillFactor = (1.0 - 2.0 * gap) * (1.0 - 2.0 * gap) / 3.0;
+    // A stripe thinner than a screen pixel cannot be blended by the display it is drawn on, so
+    // it survives as a hard red or blue sliver rather than fusing into a colour: broad content
+    // still averages out across neighbouring LEDs, but anything an LED or two wide — UI, text,
+    // small icons — comes out chromatically shredded. Real emitters fuse in the eye at that
+    // angular size; emulated ones have to be faded deliberately. Below ~3 screen pixels per
+    // stripe, blend to a white emitter and keep only the per-LED window, which is the part of
+    // the LED look that still resolves.
+    float stripePx = emitter / (3.0 * max(aa.x, 1e-4));
+    float subFade = clamp((stripePx - 1.0) / 2.0, 0.0, 1.0);
+    stripe = mix(vec3(1.0), stripe, subFade);
+
+    // Emitters are small but intense; partially compensate so perceived energy stays constant
+    // while structure remains visible up close. A white emitter passes three times the energy of
+    // a single stripe, so the fill factor has to track subFade — otherwise fading the stripes
+    // out would brighten the wall as you walked away from it.
+    float fillFactor = emitter * emitter / mix(1.0, 3.0, subFade);
     float comp = min(1.0 / max(fillFactor, 1e-3), 2.4);
     vec3 structured = col * stripe * window * comp;
 

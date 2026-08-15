@@ -107,6 +107,14 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
 
         // --- LED surface.
         int mode = be.getTestPattern();
+
+        // Content-coloured light into the room. Before the shader-pack branch below so a wall
+        // still lights the stage under a pack, where its own core shader cannot run.
+        if (LedWallRenderer.SHIMMER_LOADED) {
+            ScreenLights.updateArc(be.getBlockPos(), center, fwd, right, arc, rFace,
+                    yBottom, yTop, repeat, convex, be.getSourceName(), mode, be.crop(),
+                    be.getEffectiveBrightness());
+        }
         // The shader's LED grid lives in uv space (one copy = uv 0..1), so the pixel
         // count per copy keeps the physical pitch constant however many times it tiles.
         float gridW = (float) (be.getPixelsPerBlock() * arc * rFace / repeat);
@@ -189,7 +197,9 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
      * copy re-runs uv 0..1; segment boundaries are aligned on copy boundaries, so
      * both ends of a quad always belong to the same copy.
      */
-    private static float[] u(double t0, double t1, int repeat, boolean convex) {
+    // Package-private so ScreenLights can light the arc from the same mapping the geometry
+    // uses; two copies of this would drift and put a light on the wrong copy of the video.
+    static float[] u(double t0, double t1, int repeat, boolean convex) {
         double tt0 = convex ? 1.0 - t0 : t0;
         double tt1 = convex ? 1.0 - t1 : t1;
         int copy = (int) Math.floor((tt0 + tt1) * 0.5 * repeat);

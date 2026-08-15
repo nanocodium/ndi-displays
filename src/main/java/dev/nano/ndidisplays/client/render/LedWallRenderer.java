@@ -63,6 +63,13 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
 
         int mode = be.getTestPattern();
 
+        // Content-coloured light into the room. Before the shader-pack branch below so a wall
+        // still lights the stage under a pack, where its own core shader cannot run.
+        if (SHIMMER_LOADED) {
+            ScreenLights.updateWall(be.getBlockPos(), wall, be.getSourceName(), mode,
+                    be.crop(), be.getEffectiveBrightness());
+        }
+
         // A shader pack (Iris/Oculus/OptiFine) replaces the world pipeline, and our own
         // core shader cannot participate in it — the wall would render black/invisible.
         // Fall back to a vanilla emissive RenderType the pack knows how to patch: the

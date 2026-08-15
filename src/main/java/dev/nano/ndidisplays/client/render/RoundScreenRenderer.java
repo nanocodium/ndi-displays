@@ -80,6 +80,13 @@ public class RoundScreenRenderer implements BlockEntityRenderer<RoundScreenBlock
 
         // --- LED surface.
         int mode = be.getTestPattern();
+
+        // Content-coloured light into the room. Before the shader-pack branch below so a disc
+        // still lights the stage under a pack, where its own core shader cannot run.
+        if (LedWallRenderer.SHIMMER_LOADED) {
+            ScreenLights.updateDisc(be.getBlockPos(), faceCenter, right, up, fwd, r,
+                    be.getSourceName(), mode, be.crop(), be.getEffectiveBrightness());
+        }
         float grid = be.getPixelsPerBlock() * r * 2.0F;
 
         if (ShaderPackCompat.shaderPackActive()) {

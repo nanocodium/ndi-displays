@@ -291,6 +291,78 @@ public class NdiStream {
         }
     }
 
+    /** Taps per axis per rectangle in {@link #sampleRects}; 36 samples is plenty for a mean. */
+    private static final int TAPS_PER_AXIS = 6;
+
+    /**
+     * Mean colour of a set of rectangles of the newest frame, as 0..1 components.
+     *
+     * For content-driven lighting: a screen needs to know roughly what colour it is throwing,
+     * per region of its surface. This reads the CPU-side frame the receiver already holds rather
+     * than reading back from the GL texture, because a {@code glGetTexImage} of even a 1x1 mip
+     * forces a pipeline sync, and this runs for every visible screen every few frames. Sparse by
+     * design — a fixed number of taps per rectangle whatever the frame size, so a 4K source costs
+     * the same as a 720p one.
+     *
+     * Averaged in linear light (gamma 2.0 approximation) rather than on the stored values, since
+     * averaging gamma-encoded numbers biases towards the darks and would leave every light dimmer
+     * than its picture looks.
+     *
+     * @param rects {@code count} rectangles, each u0,v0,u1,v1 in 0..1 texture space
+     * @param count how many rectangles to read from {@code rects}
+     * @param out   receives {@code count * 3} components; untouched when this returns false
+     * @return false until a frame has arrived
+     */
+    public boolean sampleRects(float[] rects, int count, float[] out) {
+        synchronized (frameLock) {
+            if (frameData == null || frameWidth <= 0 || frameHeight <= 0) {
+                return false;
+            }
+            int limit = frameData.limit();
+            for (int i = 0; i < count; i++) {
+                float u0 = rects[i * 4];
+                float v0 = rects[i * 4 + 1];
+                float u1 = rects[i * 4 + 2];
+                float v1 = rects[i * 4 + 3];
+                double sumR = 0.0;
+                double sumG = 0.0;
+                double sumB = 0.0;
+                int taps = 0;
+                for (int sy = 0; sy < TAPS_PER_AXIS; sy++) {
+                    float fv = v0 + (v1 - v0) * ((sy + 0.5F) / TAPS_PER_AXIS);
+                    int py = Math.max(0, Math.min((int) (fv * frameHeight), frameHeight - 1));
+                    for (int sx = 0; sx < TAPS_PER_AXIS; sx++) {
+                        float fu = u0 + (u1 - u0) * ((sx + 0.5F) / TAPS_PER_AXIS);
+                        int px = Math.max(0, Math.min((int) (fu * frameWidth), frameWidth - 1));
+                        long off = (long) py * frameStride + (long) px * 4L;
+                        if (off < 0L || off + 2L >= limit) {
+                            continue;
+                        }
+                        int base = (int) off;
+                        int b = frameData.get(base) & 0xFF;
+                        int g = frameData.get(base + 1) & 0xFF;
+                        int r = frameData.get(base + 2) & 0xFF;
+                        sumR += (double) r * r;
+                        sumG += (double) g * g;
+                        sumB += (double) b * b;
+                        taps++;
+                    }
+                }
+                int o = i * 3;
+                if (taps == 0) {
+                    out[o] = 0.0F;
+                    out[o + 1] = 0.0F;
+                    out[o + 2] = 0.0F;
+                } else {
+                    out[o] = (float) Math.sqrt(sumR / taps) / 255.0F;
+                    out[o + 1] = (float) Math.sqrt(sumG / taps) / 255.0F;
+                    out[o + 2] = (float) Math.sqrt(sumB / taps) / 255.0F;
+                }
+            }
+            return true;
+        }
+    }
+
     /** 0 until the first frame has been uploaded. */
     public int getTextureId() {
         return allocatedWidth > 0 ? glId : 0;

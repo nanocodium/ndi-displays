@@ -1,0 +1,140 @@
+{
+    "__comment": "Shoulder cine rig as it reads in hand and in the inventory: large-format body, PL zoom with scale ring and matte box, top handle on risers with a wireless tx and antennas, V-mount brick at the back, rods and handgrip below. The worn version is separate geometry in ShoulderRigModel, since armour renders from a baked model rather than a JSON one.",
+    "parent": "block/block",
+    "textures": {
+        "d": "ndidisplays:block/camera_dark",
+        "b": "ndidisplays:block/camera_base",
+        "particle": "ndidisplays:block/camera_dark"
+    },
+    "elements": [
+        {
+            "__comment": "camera body",
+            "from": [5, 6, 4],
+            "to": [12, 12, 12],
+            "faces": {
+                "north": { "texture": "#d" }, "south": { "texture": "#d" },
+                "east": { "texture": "#d" }, "west": { "texture": "#d" },
+                "up": { "texture": "#d" }, "down": { "texture": "#d" }
+            }
+        },
+        {
+            "__comment": "side monitor panel",
+            "from": [4.3, 8, 6],
+            "to": [5, 11, 10],
+            "faces": {
+                "north": { "texture": "#b" }, "south": { "texture": "#b" },
+                "east": { "texture": "#b" }, "west": { "texture": "#b" },
+                "up": { "texture": "#b" }, "down": { "texture": "#b" }
+            }
+        },
+        {
+            "__comment": "PL lens barrel",
+            "from": [6.5, 7.5, 1],
+            "to": [10.5, 11.5, 4],
+            "faces": {
+                "north": { "texture": "#b" }, "south": { "texture": "#b" },
+                "east": { "texture": "#b" }, "west": { "texture": "#b" },
+                "up": { "texture": "#b" }, "down": { "texture": "#b" }
+            }
+        },
+        {
+            "__comment": "matte box",
+            "from": [5.8, 6.8, 0],
+            "to": [11.2, 12.2, 1],
+            "faces": {
+                "north": { "texture": "#d" }, "south": { "texture": "#d" },
+                "east": { "texture": "#d" }, "west": { "texture": "#d" },
+                "up": { "texture": "#d" }, "down": { "texture": "#d" }
+            }
+        },
+        {
+            "__comment": "top handle",
+            "from": [7, 13, 3],
+            "to": [10, 14.2, 11],
+            "faces": {
+                "north": { "texture": "#b" }, "south": { "texture": "#b" },
+                "east": { "texture": "#b" }, "west": { "texture": "#b" },
+                "up": { "texture": "#b" }, "down": { "texture": "#b" }
+            }
+        },
+        {
+            "__comment": "handle riser, front",
+            "from": [7.6, 12, 3.4],
+            "to": [8.6, 13, 4.4],
+            "faces": {
+                "north": { "texture": "#b" }, "south": { "texture": "#b" },
+                "east": { "texture": "#b" }, "west": { "texture": "#b" }
+            }
+        },
+        {
+            "__comment": "handle riser, rear",
+            "from": [7.6, 12, 9.6],
+            "to": [8.6, 13, 10.6],
+            "faces": {
+                "north": { "texture": "#b" }, "south": { "texture": "#b" },
+                "east": { "texture": "#b" }, "west": { "texture": "#b" }
+            }
+        },
+        {
+            "__comment": "wireless video tx",
+            "from": [7.5, 14.2, 6],
+            "to": [10, 15.6, 8.5],
+            "faces": {
+                "north": { "texture": "#d" }, "south": { "texture": "#d" },
+                "east": { "texture": "#d" }, "west": { "texture": "#d" },
+                "up": { "texture": "#d" }, "down": { "texture": "#d" }
+            }
+        },
+        {
+            "__comment": "V-mount battery",
+            "from": [6, 7, 12],
+            "to": [11, 12, 15],
+            "faces": {
+                "north": { "texture": "#d" }, "south": { "texture": "#d" },
+                "east": { "texture": "#d" }, "west": { "texture": "#d" },
+                "up": { "texture": "#d" }, "down": { "texture": "#d" }
+            }
+        },
+        {
+            "__comment": "shoulder pad / baseplate",
+            "from": [5.5, 4.5, 5],
+            "to": [11.5, 6, 13],
+            "faces": {
+                "north": { "texture": "#b" }, "south": { "texture": "#b" },
+                "east": { "texture": "#b" }, "west": { "texture": "#b" },
+                "up": { "texture": "#b" }, "down": { "texture": "#b" }
+            }
+        },
+        {
+            "__comment": "handgrip under the lens",
+            "from": [7.5, 1.5, 3],
+            "to": [9.5, 4.5, 5],
+            "faces": {
+                "north": { "texture": "#d" }, "south": { "texture": "#d" },
+                "east": { "texture": "#d" }, "west": { "texture": "#d" },
+                "up": { "texture": "#d" }, "down": { "texture": "#d" }
+            }
+        }
+    ],
+    "display": {
+        "gui": {
+            "rotation": [30, 145, 0],
+            "translation": [0, -1, 0],
+            "scale": [0.62, 0.62, 0.62]
+        },
+        "thirdperson_righthand": {
+            "rotation": [0, 90, 0],
+            "translation": [0, 3, 1],
+            "scale": [0.5, 0.5, 0.5]
+        },
+        "firstperson_righthand": {
+            "rotation": [0, 135, 0],
+            "translation": [0, 4, 2],
+            "scale": [0.5, 0.5, 0.5]
+        },
+        "fixed": {
+            "rotation": [0, 180, 0],
+            "scale": [0.7, 0.7, 0.7]
+        }
+    }
+}

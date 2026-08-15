@@ -25,6 +25,13 @@ public final class TrackPath {
 
     /** Bound on a single run, so a pathological rail network cannot stall the client. */
     public static final int MAX_TRACK_BLOCKS = 256;
+    /**
+     * Height of the rail's running surface above its block's base, blocks. Matches the
+     * 2px collision slab in {@code CameraTrackBlock}, so the dolly rides the rail it is
+     * drawn on rather than a notional block top.
+     */
+    public static final double RAIL_SURFACE = 2.0 / 16.0;
+
     /** Spline samples per track block; enough that linear interpolation reads as a curve. */
     private static final int SAMPLES_PER_SEGMENT = 6;
 
@@ -157,8 +164,11 @@ public final class TrackPath {
         boolean loop = ordered.size() > 2 && areNeighbours(ordered.get(0), ordered.get(ordered.size() - 1));
         List<Vec3> centres = new ArrayList<>(ordered.size());
         for (BlockPos pos : ordered) {
-            // Rail surface sits at the top of the block.
-            centres.add(new Vec3(pos.getX() + 0.5, pos.getY() + 1.0, pos.getZ() + 0.5));
+            // The rail is a 2px slab at the *bottom* of its block (see CameraTrackBlock's
+            // collision box), so its running surface is 2/16 up — not a full block up. Using
+            // +1.0 here put the dolly almost a whole block above the visible rail, which is why
+            // the rig appeared to hover over the track it was supposed to be riding on.
+            centres.add(new Vec3(pos.getX() + 0.5, pos.getY() + RAIL_SURFACE, pos.getZ() + 0.5));
         }
         return new TrackPath(smooth(centres, loop), loop);
     }

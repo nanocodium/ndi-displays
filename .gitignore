@@ -9,3 +9,7 @@ eclipse/
 *.log
 # Keep the wrapper itself — only the downloaded distributions are transient.
 !gradle/wrapper/gradle-wrapper.jar
+
+# Dev-only third-party mod jars (MCEF for the web terminal). Not ours to redistribute —
+# see README for where to get them.
+libs/

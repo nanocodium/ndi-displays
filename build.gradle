@@ -58,6 +58,20 @@ minecraft {
     runs {
         configureEach {
             workingDirectory project.file('run')
+
+            // Let third-party mods' mixins apply in this dev runtime.
+            //
+            // A mod built for the launcher ships a refmap of SRG names (Minecraft.m_91152_ and
+            // friends). This runtime uses official names, so those @Shadow targets do not exist
+            // and the mixin fails hard — which is exactly how MCEF killed the dev client. fg.deobf
+            // rewrites bytecode but not refmaps; Mixin can remap them itself given the SRG to
+            // official table, which ForgeGradle has already generated for its own use.
+            def srgToOfficial = fileTree(dir: "${buildDir}/fg_cache", include: '**/srg_to_official_*.tsrg')
+                    .files.find { it.exists() }
+            if (srgToOfficial != null) {
+                property 'mixin.env.remapRefMap', 'true'
+                property 'mixin.env.refMapRemappingFile', srgToOfficial.absolutePath
+            }
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
             environment 'NDI_RUNTIME_DIR_V5', ndiRuntimeDir
@@ -145,6 +159,19 @@ dependencies {
         compileOnly fg.deobf(project.dependencies.create('dev.imabad:Theatrical-forge:1.0.0-alpha.28.120+mc1.20.1') { transitive = false })
     }
     compileOnly 'ch.bildspur:artnet4j:0.6.3'
+
+    // MCEF, for the web terminal's embedded browser. Dev-runtime only and deliberately not a
+    // compile dependency: WebBrowsers reaches it purely by reflection, so the mod builds and
+    // loads without it. It is only here so the dev client actually has a browser to talk to.
+    //
+    // fg.deobf because a production mod jar is mapped for the launcher, not for this runtime;
+    // dropping it in run/mods unremapped would fail to link against Minecraft's dev names.
+    // Read from libs/ rather than a Maven, because MCEF publishes to neither Maven Central nor
+    // a reachable repo — put the jar there (it is gitignored) or the block simply reports that
+    // no browser is available.
+    fileTree(dir: 'libs', include: 'mcef-forge-*.jar').each { mcefJar ->
+        runtimeOnly fg.deobf(files(mcefJar))
+    }
 }
 
 jar {

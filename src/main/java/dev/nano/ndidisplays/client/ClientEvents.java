@@ -51,6 +51,49 @@ public final class ClientEvents {
         }
     }
 
+    /**
+     * Hides the operator while their own shoulder rig is filming.
+     *
+     * The lens is mounted on them, so without this the frame is filled by the back of their own
+     * head and the camera body — which is what made the rig appear to clip into its own feed.
+     * Only the wearer is hidden, and only during that one capture, so everyone else stays in
+     * shot and the operator is still visible in every other camera.
+     */
+    @SubscribeEvent
+    public static void onRenderPlayer(
+            net.minecraftforge.client.event.RenderPlayerEvent.Pre event) {
+        // RenderPlayerEvent, not RenderLivingEvent: Forge fires the player-specific event for
+        // players, so a RenderLivingEvent handler never runs for them — which is why the
+        // operator's head still filled their own shot.
+        if (!dev.nano.ndidisplays.client.CameraFeedManager.isCapturingShoulderRig()) {
+            return;
+        }
+        if (event.getEntity() == net.minecraft.client.Minecraft.getInstance().player) {
+            event.setCanceled(true);
+        }
+    }
+
+    /**
+     * Operator mode: the lens angle replaces the player's field of view, so the screen frames
+     * exactly what the camera is sending. Movement is untouched — this changes what you see,
+     * not what you control, so the operator can still walk the shot.
+     */
+    @SubscribeEvent
+    public static void onComputeFov(net.minecraftforge.client.event.ViewportEvent.ComputeFov event) {
+        if (!ShoulderOperatorMode.active()) {
+            return;
+        }
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.player == null) {
+            return;
+        }
+        net.minecraft.world.item.ItemStack rig =
+                mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST);
+        if (rig.is(NdiDisplays.SHOULDER_CAMERA_ITEM.get())) {
+            event.setFOV(dev.nano.ndidisplays.item.ShoulderCameraItem.fov(rig));
+        }
+    }
+
     @SubscribeEvent
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         lastLevel = null;

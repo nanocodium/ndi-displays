@@ -27,6 +27,13 @@ public class NdiRouterBlockEntity extends BlockEntity {
     private String outputName = "";
     /** The source currently patched to the output; blank means the output goes idle. */
     private String sourceName = "";
+    /**
+     * Test pattern to generate instead of repatching, or
+     * {@link dev.nano.ndidisplays.client.ndi.TestPatternGenerator#PATTERN_OFF} to pass a real
+     * source through. A router that can generate is what lets an operator prove the network and
+     * the receivers before any camera exists.
+     */
+    private int pattern = dev.nano.ndidisplays.client.ndi.TestPatternGenerator.PATTERN_OFF;
 
     public NdiRouterBlockEntity(BlockPos pos, BlockState state) {
         super(NdiDisplays.ROUTER_BE.get(), pos, state);
@@ -53,6 +60,21 @@ public class NdiRouterBlockEntity extends BlockEntity {
                 + "," + worldPosition.getZ();
     }
 
+    public int getPattern() {
+        return pattern;
+    }
+
+    /** True when this router generates its own picture rather than forwarding one. */
+    public boolean isGenerating() {
+        return pattern != dev.nano.ndidisplays.client.ndi.TestPatternGenerator.PATTERN_OFF;
+    }
+
+    public void applyConfig(String outputName, String sourceName, int pattern) {
+        this.pattern = Clamps.i(pattern, 0,
+                dev.nano.ndidisplays.client.ndi.TestPatternGenerator.PATTERN_COUNT - 1);
+        applyConfig(outputName, sourceName);
+    }
+
     public void applyConfig(String outputName, String sourceName) {
         this.outputName = Clamps.name(outputName, MAX_NAME);
         this.sourceName = Clamps.name(sourceName, MAX_NAME);
@@ -64,6 +86,7 @@ public class NdiRouterBlockEntity extends BlockEntity {
         super.saveAdditional(tag);
         tag.putString("Output", outputName);
         tag.putString("Source", sourceName);
+        tag.putInt("Pattern", pattern);
     }
 
     /** Also handles the client sync packet, so both names are re-clamped rather than trusted. */
@@ -72,6 +95,8 @@ public class NdiRouterBlockEntity extends BlockEntity {
         super.load(tag);
         outputName = Clamps.name(tag.getString("Output"), MAX_NAME);
         sourceName = Clamps.name(tag.getString("Source"), MAX_NAME);
+        pattern = Clamps.i(tag.getInt("Pattern"), 0,
+                dev.nano.ndidisplays.client.ndi.TestPatternGenerator.PATTERN_COUNT - 1);
     }
 
     @Override

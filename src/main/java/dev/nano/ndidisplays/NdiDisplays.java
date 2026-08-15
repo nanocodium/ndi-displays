@@ -37,6 +37,8 @@ public class NdiDisplays {
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, MODID);
     public static final DeferredRegister<CreativeModeTab> CREATIVE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
+    public static final DeferredRegister<net.minecraft.world.entity.EntityType<?>> ENTITIES =
+            DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MODID);
 
     public static final RegistryObject<Block> LED_PANEL = BLOCKS.register("led_panel",
             () -> new LedPanelBlock(BlockBehaviour.Properties.of()
@@ -232,6 +234,15 @@ public class NdiDisplays {
             () -> new Item(new Item.Properties().stacksTo(1)));
 
     /**
+     * Shoulder-mounted cine rig, worn in the chest slot: broadcasts the operator's view as
+     * "MC Shoulder &lt;player&gt;" while worn, leaving both hands free — the difference between
+     * this and the handheld. Cosmetic only, no armour protection.
+     */
+    public static final RegistryObject<Item> SHOULDER_CAMERA_ITEM = ITEMS.register("shoulder_camera",
+            () -> new dev.nano.ndidisplays.item.ShoulderCameraItem(
+                    new Item.Properties().stacksTo(1)));
+
+    /**
      * NDI configuration card: pick a source on the card (right-click in the air), then
      * right-click screens to switch them to NDI video with that source — Theatrical's
      * configuration-card workflow, applied to video routing.
@@ -261,6 +272,28 @@ public class NdiDisplays {
             () -> BlockEntityType.Builder.of(NdiCameraBlockEntity::new,
                     BROADCAST_CAMERA.get(), PTZ_CAMERA.get(), JIB_CAMERA.get(), TRACK_CAMERA.get()).build(null));
 
+    /**
+     * Web terminal: a workstation that renders a page and publishes it as an NDI source, so a
+     * browser becomes just another source any screen in the world can select.
+     */
+    public static final RegistryObject<Block> WEB_TERMINAL = BLOCKS.register("web_terminal",
+            () -> new dev.nano.ndidisplays.block.WebTerminalBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.4F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 6)));
+
+    public static final RegistryObject<Item> WEB_TERMINAL_ITEM = ITEMS.register("web_terminal",
+            () -> new BlockItem(WEB_TERMINAL.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<
+            dev.nano.ndidisplays.block.WebTerminalBlockEntity>> WEB_TERMINAL_BE =
+            BLOCK_ENTITIES.register("web_terminal",
+                    () -> BlockEntityType.Builder.of(
+                            dev.nano.ndidisplays.block.WebTerminalBlockEntity::new,
+                            WEB_TERMINAL.get()).build(null));
+
     public static final RegistryObject<CreativeModeTab> TAB = CREATIVE_TABS.register("main",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup." + MODID))
@@ -280,10 +313,28 @@ public class NdiDisplays {
                         output.accept(TRACK_CAMERA_ITEM.get());
                         output.accept(CAMERA_TRACK_ITEM.get());
                         output.accept(HANDHELD_CAMERA_ITEM.get());
+                        output.accept(SHOULDER_CAMERA_ITEM.get());
                         output.accept(NDI_CONFIG_CARD_ITEM.get());
                         output.accept(NDI_ROUTER_ITEM.get());
+                        output.accept(WEB_TERMINAL_ITEM.get());
                     })
                     .build());
+
+    /**
+     * The jib operator's seat. Tiny, invisible and never saved — it exists only while somebody
+     * is riding, because riding is the only way Minecraft lets a block carry a player.
+     */
+    public static final RegistryObject<net.minecraft.world.entity.EntityType<
+            dev.nano.ndidisplays.entity.JibSeatEntity>> JIB_SEAT =
+            ENTITIES.register("jib_seat", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<dev.nano.ndidisplays.entity.JibSeatEntity>of(
+                            dev.nano.ndidisplays.entity.JibSeatEntity::new,
+                            net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(0.4F, 0.4F)
+                    .clientTrackingRange(10)
+                    .updateInterval(1)
+                    .noSummon()
+                    .build("jib_seat"));
 
     public NdiDisplays() {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -291,6 +342,7 @@ public class NdiDisplays {
         ITEMS.register(modBus);
         BLOCK_ENTITIES.register(modBus);
         CREATIVE_TABS.register(modBus);
+        ENTITIES.register(modBus);
         NetworkHandler.init();
         net.minecraftforge.fml.ModLoadingContext.get().registerConfig(
                 net.minecraftforge.fml.config.ModConfig.Type.CLIENT, ClientConfig.SPEC);

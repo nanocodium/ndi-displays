@@ -70,6 +70,7 @@ public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean 
                     Math.min(NdiConfigCardItem.WINCH_MODE_TWIN, msg.winchMode));
             stack.getOrCreateTag().putString(NdiConfigCardItem.TAG_SOURCE, source);
             stack.getOrCreateTag().putInt(NdiConfigCardItem.TAG_WINCH_MODE, winchMode);
+            stack.getOrCreateTag().putBoolean(NdiConfigCardItem.TAG_AUTOMAP, msg.autoMapCanvas);
 
             BlockPos pos1 = NdiConfigCardItem.selectionPos(stack, NdiConfigCardItem.TAG_POS1);
             BlockPos pos2 = NdiConfigCardItem.selectionPos(stack, NdiConfigCardItem.TAG_POS2);
@@ -135,8 +136,16 @@ public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean 
                     }
                 }
             }
-            if (msg.autoMapCanvas && !park.isEmpty()) {
-                dev.nano.ndidisplays.winch.WinchParkLayout.applyCanvasMap(park);
+            if (!park.isEmpty()) {
+                if (msg.autoMapCanvas) {
+                    dev.nano.ndidisplays.winch.WinchParkLayout.applyCanvasMap(park);
+                } else {
+                    // Stitch off: each motor shows the full source at its own tile,
+                    // undoing a previous park-wide canvas map.
+                    for (KineticWinchBlockEntity winch : park) {
+                        winch.applyCanvasMapping(1, 1, 0, 0);
+                    }
+                }
                 for (KineticWinchBlockEntity winch : park) {
                     BlockState state = level.getBlockState(winch.getBlockPos());
                     level.sendBlockUpdated(winch.getBlockPos(), state, state, 3);

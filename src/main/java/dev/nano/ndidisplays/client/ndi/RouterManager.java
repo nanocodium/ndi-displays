@@ -32,11 +32,41 @@ public final class RouterManager {
         boolean live;
         boolean dirty = true;
 
+        // Generating mode. A router either forwards someone else's stream (DevolayRouter, no
+        // pixels involved) or produces its own (a real sender). They are mutually exclusive, and
+        // switching modes tears the other one down — two things publishing the same name would
+        // fight over it on the network.
+        me.walkerknapp.devolay.DevolaySender sender;
+        java.nio.ByteBuffer frameBuffer;
+        int frameWidth;
+        int frameHeight;
+        long frameCount;
+        double nextFrameDue;
+        int generatedPattern = -1;
+
         Entry(NdiRouterBlockEntity be) {
             this.be = be;
         }
 
+        void closeSender() {
+            if (sender != null) {
+                try {
+                    sender.close();
+                } catch (Throwable ignored) {
+                }
+                sender = null;
+            }
+            if (frameBuffer != null) {
+                org.lwjgl.system.MemoryUtil.memFree(frameBuffer);
+                frameBuffer = null;
+            }
+            frameWidth = 0;
+            frameHeight = 0;
+            generatedPattern = -1;
+        }
+
         void close() {
+            closeSender();
             if (router != null) {
                 try {
                     router.close();
@@ -121,6 +151,71 @@ public final class RouterManager {
      * something changed (or every couple of seconds, so a source appearing late is picked
      * up) keeps this off the per-frame path.
      */
+    /** Frames per second for generated patterns. Only the motion pattern actually changes. */
+    private static final int PATTERN_FPS = 15;
+
+    /**
+     * Publishes one frame of the router's test pattern, creating the sender on demand.
+     *
+     * The pattern is built on the CPU by {@link TestPatternGenerator} and pushed straight out, so
+     * it works with no world rendered and shares nothing with the GPU capture path — which is the
+     * point of a test pattern: it has to be trustworthy when the thing you are testing is not.
+     */
+    private static void generate(Entry entry, String wantedName) {
+        NdiRouterBlockEntity be = entry.be;
+        double now = org.lwjgl.glfw.GLFW.glfwGetTime();
+        int width = 1280;
+        int height = 720;
+
+        if (entry.sender == null || !wantedName.equals(entry.publishedName)) {
+            entry.closeSender();
+            // Unclocked, like the camera senders: we pace frames ourselves rather than letting
+            // the sender block the calling thread to hit a declared rate.
+            entry.sender = new me.walkerknapp.devolay.DevolaySender(wantedName, null, false, false);
+            entry.publishedName = wantedName;
+            entry.patchedSource = null;
+            LOGGER.info("[ndidisplays] NDI router '{}' generating {}", wantedName,
+                    TestPatternGenerator.patternName(be.getPattern()));
+        }
+        if (now < entry.nextFrameDue) {
+            return;
+        }
+        double period = 1.0 / PATTERN_FPS;
+        entry.nextFrameDue += period;
+        if (entry.nextFrameDue < now - period) {
+            entry.nextFrameDue = now + period;
+        }
+
+        int size = width * height * 4;
+        if (entry.frameBuffer == null || entry.frameWidth != width || entry.frameHeight != height) {
+            if (entry.frameBuffer != null) {
+                org.lwjgl.system.MemoryUtil.memFree(entry.frameBuffer);
+            }
+            entry.frameBuffer = org.lwjgl.system.MemoryUtil.memAlloc(size);
+            entry.frameWidth = width;
+            entry.frameHeight = height;
+        }
+        if (entry.generatedPattern != be.getPattern()) {
+            entry.generatedPattern = be.getPattern();
+            LOGGER.info("[ndidisplays] router '{}' pattern is now {}", wantedName,
+                    TestPatternGenerator.patternName(be.getPattern()));
+        }
+
+        TestPatternGenerator.render(entry.frameBuffer, width, height, be.getPattern(),
+                wantedName, PATTERN_FPS, entry.frameCount++);
+
+        try (me.walkerknapp.devolay.DevolayVideoFrame frame =
+                     new me.walkerknapp.devolay.DevolayVideoFrame()) {
+            frame.setResolution(width, height);
+            frame.setFourCCType(me.walkerknapp.devolay.DevolayFrameFourCCType.BGRX);
+            frame.setLineStride(width * 4);
+            frame.setFrameRate(PATTERN_FPS, 1);
+            frame.setData(entry.frameBuffer);
+            entry.sender.sendVideoFrameAsync(frame);
+        }
+        entry.live = true;
+    }
+
     public static void tick() {
         if (ROUTERS.isEmpty() || !NdiManager.isAvailable()) {
             return;
@@ -139,6 +234,18 @@ public final class RouterManager {
             String wantedName = be.getEffectiveOutputName();
             String wantedSource = be.getSourceName();
             try {
+                if (be.isGenerating()) {
+                    // Generating: no DevolayRouter, because there is nothing to forward.
+                    if (entry.router != null) {
+                        entry.close();
+                    }
+                    generate(entry, wantedName);
+                    continue;
+                }
+                // Back to forwarding: drop the generator before the router claims the name.
+                if (entry.sender != null) {
+                    entry.closeSender();
+                }
                 if (entry.router == null || !wantedName.equals(entry.publishedName)) {
                     entry.close();
                     entry.router = new DevolayRouter(wantedName);

@@ -94,6 +94,13 @@ public class NdiSourcePicker {
     private void refreshNames() {
         List<String> cameras = CameraFeedManager.getLiveCameraNames();
         List<String> names = new ArrayList<>(cameras);
+        // Web terminals are local senders like the rigs, so they can appear before NDI
+        // discovery has caught up with them.
+        for (String web : dev.nano.ndidisplays.client.CameraFeedManager.getWebTerminalNames()) {
+            if (names.stream().noneMatch(web::contains)) {
+                names.add(web);
+            }
+        }
         for (String discovered : NdiManager.getSourceNames()) {
             boolean isCamera = cameras.stream().anyMatch(discovered::contains);
             if (!isCamera) {

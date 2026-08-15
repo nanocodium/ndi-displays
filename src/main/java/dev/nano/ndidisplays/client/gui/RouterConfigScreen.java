@@ -18,11 +18,13 @@ public class RouterConfigScreen extends NdiPickerScreen {
     private final NdiRouterBlockEntity router;
     private EditBox outputBox;
     private String outputName;
+    private int pattern;
 
     public RouterConfigScreen(NdiRouterBlockEntity router) {
         super(Component.translatable("gui.ndidisplays.router.title"));
         this.router = router;
         this.outputName = router.getOutputName();
+        this.pattern = router.getPattern();
         this.source = router.getSourceName();
     }
 
@@ -53,6 +55,16 @@ public class RouterConfigScreen extends NdiPickerScreen {
                 .bounds(left, y, 128, 20).build());
         y += 26;
 
+        // Generate instead of repatch: a router set to a pattern publishes its own picture, so a
+        // wall can be lit and checked with no camera and no external source involved.
+        addRenderableWidget(net.minecraft.client.gui.components.CycleButton.<Integer>builder(
+                        pt -> Component.literal(
+                                dev.nano.ndidisplays.client.ndi.TestPatternGenerator.patternName(pt)))
+                .withValues(0, 1, 2, 3, 4)
+                .withInitialValue(pattern)
+                .create(width / 2 - 132, height - 78, 264, 20,
+                        Component.translatable("gui.ndidisplays.router.pattern"),
+                        (b, v) -> pattern = v));
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.apply"), b -> apply())
                 .bounds(cx - 130, y, 128, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> onClose())
@@ -61,7 +73,7 @@ public class RouterConfigScreen extends NdiPickerScreen {
 
     private void apply() {
         NetworkHandler.CHANNEL.sendToServer(new UpdateRouterConfigPacket(
-                router.getBlockPos(), outputName.trim(), source.trim()));
+                router.getBlockPos(), outputName.trim(), source.trim(), pattern));
         onClose();
     }
 

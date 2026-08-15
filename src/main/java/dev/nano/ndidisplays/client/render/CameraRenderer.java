@@ -127,6 +127,15 @@ public class CameraRenderer implements BlockEntityRenderer<NdiCameraBlockEntity>
         pose.mulPose(Axis.XP.rotationDegrees(35.0F));
         box(pose, vc, light, -0.10F, 0.0F, 0.0F, 0.10F, 0.008F, 0.12F, CARBON);
         pose.popPose();
+        // side flags, swung out at the same rake as the top one
+        for (int sx = -1; sx <= 1; sx += 2) {
+            pose.pushPose();
+            pose.translate(0.10F * sx, 0.015, 0.43);
+            pose.mulPose(Axis.YP.rotationDegrees(35.0F * sx));
+            box(pose, vc, light, sx > 0 ? 0.0F : -0.008F, -0.095F, 0.0F,
+                    sx > 0 ? 0.008F : 0.0F, 0.095F, 0.11F, CARBON);
+            pose.popPose();
+        }
         // lens control cable
         box(pose, vc, light, 0.066F, 0.0F, 0.10F, 0.078F, 0.012F, 0.30F, CABLE);
         if (be.isActive()) {
@@ -247,7 +256,29 @@ public class CameraRenderer implements BlockEntityRenderer<NdiCameraBlockEntity>
         // counterweight stack with hazard stripes
         box(pose, vc, light, -0.17F, -0.22F, -1.10F, 0.17F, 0.17F, -1.045F, HAZARD);
         box(pose, vc, light, -0.155F, -0.205F, -1.045F, 0.155F, 0.155F, -0.945F, BLACK);
-        box(pose, vc, light, -0.125F, -0.17F, -0.945F, 0.125F, 0.12F, -0.875F, BODY);
+        box(pose, vc, light, -0.125F, -0.17F, -0.875F, 0.125F, 0.12F, -0.805F, BODY);
+        pose.popPose();
+
+        // --- operator's seat, behind the pivot on the counterweight side ---
+        //
+        // Drawn outside the boom's tilt so the seat stays level however the arm is flown — an
+        // operator's chair on a crane is gimballed, and a seat that pitched with the boom would
+        // read as broken. It follows the arm's yaw only, which is what makes it visibly the
+        // thing a player mounts.
+        pose.pushPose();
+        pose.translate(0.0, -0.35, -1.6);
+        // pan (seat pad), backrest and the post carrying them
+        box(pose, vc, light, -0.17F, 0.0F, -0.16F, 0.17F, 0.045F, 0.16F, GRIP);
+        box(pose, vc, light, -0.165F, 0.045F, -0.175F, 0.165F, 0.32F, -0.13F, GRIP);
+        box(pose, vc, light, -0.05F, -0.30F, -0.05F, 0.05F, 0.0F, 0.05F, SILVER);
+        box(pose, vc, light, -0.12F, -0.34F, -0.12F, 0.12F, -0.30F, 0.12F, BODY);
+        // armrest-mounted control panel: joystick box and a small readout
+        box(pose, vc, light, 0.10F, 0.045F, 0.02F, 0.20F, 0.12F, 0.16F, BODY);
+        box(pose, vc, light, 0.13F, 0.12F, 0.06F, 0.17F, 0.19F, 0.10F, SILVER);
+        box(pose, vc, light, -0.20F, 0.045F, 0.02F, -0.10F, 0.12F, 0.16F, BODY);
+        box(pose, vc, light, -0.185F, 0.121F, 0.05F, -0.115F, 0.125F, 0.13F, LCD);
+        // footplate, so the seat reads as somewhere a person sits rather than a floating box
+        box(pose, vc, light, -0.15F, -0.30F, 0.16F, 0.15F, -0.26F, 0.34F, CARBON);
         pose.popPose();
 
         // camera head hangs from the boom tip on a yoke with a pan motor
@@ -275,49 +306,107 @@ public class CameraRenderer implements BlockEntityRenderer<NdiCameraBlockEntity>
 
     // --- track dolly ------------------------------------------------------
 
+    /**
+     * Motion-control camera robot on rails, in the mould of a Mark Roberts MILO: a tracked
+     * dolly carrying a slewing pedestal, a boom raked back over it on hydraulic rams, and a
+     * cranked arm reaching forward to a pan/tilt head.
+     *
+     * The chassis follows the rail heading so the bogies stay square to the track through
+     * curves, while everything above the turntable slews with pan — that is what gives the rig
+     * its reach, and why {@link NdiCameraBlockEntity} derives the eye from the same offsets
+     * rather than a point above the deck.
+     */
+    /** Wheel radius, so the tyres sit on the rail instead of the chassis floor. */
+    private static final float WHEEL_DROP = 0.02F;
+
     private void renderTrack(NdiCameraBlockEntity be, float partialTick, PoseStack pose, VertexConsumer vc, int light) {
         Vec3 dolly = be.getDollyPos(partialTick).subtract(Vec3.atLowerCornerOf(be.getBlockPos()));
-        // The chassis follows the rail, so on a curve or a ring the dolly leans into the
-        // bend instead of sliding sideways with its wheels across the track.
         float baseYaw = be.getDollyYaw(partialTick);
         pose.pushPose();
-        pose.translate(dolly.x, dolly.y, dolly.z);
+        // The dolly position is the rail's top surface, so the rig is dropped by the wheel radius
+        // to put the tyres *on* the rail rather than resting the chassis floor on it. Without
+        // this the whole machine reads as hovering a few centimetres clear of the track.
+        pose.translate(dolly.x, dolly.y - WHEEL_DROP, dolly.z);
         pose.mulPose(Axis.YP.rotationDegrees(-baseYaw));
-        // platform: carbon deck, hazard edge trim
-        box(pose, vc, light, -0.27F, 0.05F, -0.21F, 0.27F, 0.105F, 0.21F, BODY);
-        box(pose, vc, light, -0.27F, 0.105F, -0.21F, 0.27F, 0.115F, 0.21F, CARBON);
-        box(pose, vc, light, -0.275F, 0.07F, -0.215F, 0.275F, 0.095F, -0.205F, HAZARD);
-        box(pose, vc, light, -0.275F, 0.07F, 0.205F, 0.275F, 0.095F, 0.215F, HAZARD);
-        // wheel bogies: silver side plates + rubber wheels
+
+        // --- tracked dolly: heavy chassis, bogies and rubber wheels on the rail ---
+        box(pose, vc, light, -0.30F, 0.045F, -0.30F, 0.30F, 0.10F, 0.30F, BODY);
+        box(pose, vc, light, -0.30F, 0.10F, -0.30F, 0.30F, 0.115F, 0.30F, CARBON);
+        box(pose, vc, light, -0.305F, 0.055F, -0.305F, 0.305F, 0.08F, -0.295F, HAZARD);
+        box(pose, vc, light, -0.305F, 0.055F, 0.295F, 0.305F, 0.08F, 0.305F, HAZARD);
         for (int sx = -1; sx <= 1; sx += 2) {
             for (int sz = -1; sz <= 1; sz += 2) {
-                float cx = 0.18F * sx;
-                float cz = 0.13F * sz;
-                box(pose, vc, light, cx - 0.055F, 0.0F, cz - 0.052F, cx + 0.055F, 0.05F, cz - 0.042F, SILVER);
-                box(pose, vc, light, cx - 0.055F, 0.0F, cz + 0.042F, cx + 0.055F, 0.05F, cz + 0.052F, SILVER);
-                box(pose, vc, light, cx - 0.045F, -0.015F, cz - 0.04F, cx + 0.045F, 0.055F, cz + 0.04F, GRIP);
+                float cx = 0.205F * sx;
+                float cz = 0.20F * sz;
+                box(pose, vc, light, cx - 0.06F, 0.0F, cz - 0.055F, cx + 0.06F, 0.05F, cz - 0.045F, SILVER);
+                box(pose, vc, light, cx - 0.06F, 0.0F, cz + 0.045F, cx + 0.06F, 0.05F, cz + 0.055F, SILVER);
+                box(pose, vc, light, cx - 0.05F, -0.02F, cz - 0.043F, cx + 0.05F, 0.055F, cz + 0.043F, GRIP);
             }
         }
-        // cable drag on the deck
-        box(pose, vc, light, -0.24F, 0.115F, 0.12F, -0.10F, 0.135F, 0.19F, CABLE);
-        // riser + pan/tilt remote head
+        // drive box and cable drum hanging off the side of the chassis
+        box(pose, vc, light, 0.30F, 0.06F, -0.09F, 0.375F, 0.15F, 0.09F, CONNECTOR);
+        box(pose, vc, light, -0.28F, 0.115F, 0.16F, -0.12F, 0.145F, 0.26F, CABLE);
+
+        // --- slewing ring, then everything above it turns with pan ---
         pose.translate(0.0, 0.115, 0.0);
-        box(pose, vc, light, -0.05F, 0.0F, -0.05F, 0.05F, 0.055F, 0.05F, SILVER);
-        pose.translate(0.0, 0.055, 0.0);
-        // Only pan here: the chassis already carries the rail heading, so pan is relative to
-        // the direction of travel — matching how getViewState aims the capture.
+        box(pose, vc, light, -0.20F, 0.0F, -0.20F, 0.20F, 0.035F, 0.20F, SILVER);
         pose.mulPose(Axis.YP.rotationDegrees(-be.getPan()));
+
+        // --- pedestal: wide skirt tapering into the tower, as on the real machine ---
+        box(pose, vc, light, -0.185F, 0.035F, -0.185F, 0.185F, 0.10F, 0.185F, BODY);
+        box(pose, vc, light, -0.155F, 0.10F, -0.155F, 0.155F, 0.26F, 0.155F, BODY);
+        box(pose, vc, light, -0.125F, 0.26F, -0.125F, 0.125F, 0.42F, 0.125F, BODY_LIGHT);
+        // service panels and the branding plate down one flank
+        box(pose, vc, light, 0.125F, 0.14F, -0.06F, 0.131F, 0.34F, 0.10F, LABEL);
+        box(pose, vc, light, -0.131F, 0.12F, -0.05F, -0.125F, 0.30F, 0.09F, VENT);
+        // electronics cabinet on the back of the pedestal
+        box(pose, vc, light, -0.11F, 0.09F, -0.29F, 0.11F, 0.30F, -0.155F, CONNECTOR);
+        box(pose, vc, light, -0.07F, 0.14F, -0.296F, 0.07F, 0.25F, -0.29F, LCD);
+
+        // --- boom: raked back over the pedestal, carried on two rams ---
+        pose.pushPose();
+        pose.translate(0.0, 0.42, 0.0);
+        pose.mulPose(Axis.XP.rotationDegrees(-34.0F));
+        box(pose, vc, light, -0.115F, -0.02F, -0.05F, 0.115F, 0.055F, 0.46F, BODY);
+        box(pose, vc, light, -0.10F, 0.055F, 0.02F, 0.10F, 0.068F, 0.42F, CARBON);
+        // rams either side, angled into the boom
+        for (int sx = -1; sx <= 1; sx += 2) {
+            float cx = 0.135F * sx;
+            box(pose, vc, light, cx - 0.018F, -0.14F, 0.05F, cx + 0.018F, -0.02F, 0.30F, SILVER);
+            box(pose, vc, light, cx - 0.012F, -0.20F, 0.02F, cx + 0.012F, -0.13F, 0.14F, BLACK);
+        }
+        pose.popPose();
+
+        // --- cranked arm: forward along the top, then down to the head ---
+        pose.translate(0.0, 0.80, 0.0);
+        box(pose, vc, light, -0.085F, -0.05F, -0.02F, 0.085F, 0.05F, 0.30F, BODY);
+        box(pose, vc, light, -0.075F, -0.045F, 0.30F, 0.075F, 0.045F, 0.62F, BODY_LIGHT);
+        box(pose, vc, light, -0.06F, 0.05F, 0.06F, 0.06F, 0.062F, 0.56F, CARBON);
+        // knuckle at the bend, and the drop to the head
+        box(pose, vc, light, -0.08F, -0.075F, 0.56F, 0.08F, 0.06F, 0.70F, BODY);
+        box(pose, vc, light, -0.05F, -0.20F, 0.60F, 0.05F, -0.07F, 0.68F, SILVER);
+        // cable run taped along the arm, the giveaway that it is a working machine
+        box(pose, vc, light, 0.085F, -0.02F, 0.04F, 0.10F, 0.005F, 0.58F, CABLE);
+
+        // --- pan/tilt head on the end of the arm ---
+        pose.translate(0.0, -0.22, 0.64);
+        box(pose, vc, light, -0.065F, -0.03F, -0.05F, 0.065F, 0.02F, 0.05F, SILVER);
         pose.mulPose(Axis.XP.rotationDegrees(-be.getTilt()));
-        box(pose, vc, light, -0.09F, 0.0F, -0.17F, 0.09F, 0.155F, 0.10F, BODY);
-        box(pose, vc, light, -0.095F, 0.02F, -0.10F, -0.089F, 0.135F, 0.02F, VENT);
-        box(pose, vc, light, 0.089F, 0.02F, -0.10F, 0.095F, 0.135F, 0.02F, VENT);
-        box(pose, vc, light, -0.06F, 0.02F, -0.176F, 0.06F, 0.135F, -0.17F, LCD);
-        // lens: grip ring, barrel, glass
-        box(pose, vc, light, -0.058F, 0.022F, 0.10F, 0.058F, 0.132F, 0.15F, GRIP);
-        box(pose, vc, light, -0.048F, 0.032F, 0.15F, 0.048F, 0.122F, 0.19F, BLACK);
-        box(pose, vc, light, -0.04F, 0.04F, 0.188F, 0.04F, 0.114F, 0.193F, LENS);
+        // camera body, side vents, rear display
+        box(pose, vc, light, -0.085F, -0.075F, -0.16F, 0.085F, 0.075F, 0.10F, BODY);
+        box(pose, vc, light, -0.091F, -0.05F, -0.10F, -0.085F, 0.05F, 0.02F, VENT);
+        box(pose, vc, light, 0.085F, -0.05F, -0.10F, 0.091F, 0.05F, 0.02F, VENT);
+        box(pose, vc, light, -0.055F, -0.045F, -0.166F, 0.055F, 0.055F, -0.16F, LCD);
+        // follow-focus motor: servo body on the barrel with an orange drive ring
+        box(pose, vc, light, 0.055F, -0.02F, 0.115F, 0.098F, 0.045F, 0.185F, SILVER);
+        box(pose, vc, light, 0.06F, -0.035F, 0.132F, 0.093F, -0.02F, 0.168F, ORANGE);
+        // matte box, lens barrel and glass
+        box(pose, vc, light, -0.07F, -0.06F, 0.10F, 0.07F, 0.06F, 0.15F, GRIP);
+        box(pose, vc, light, -0.055F, -0.05F, 0.15F, 0.055F, 0.05F, 0.20F, BLACK);
+        box(pose, vc, light, -0.075F, -0.07F, 0.20F, 0.075F, 0.07F, 0.225F, BLACK);
+        box(pose, vc, light, -0.045F, -0.04F, 0.223F, 0.045F, 0.04F, 0.228F, LENS);
         if (be.isActive()) {
-            box(pose, vc, LightTexture.FULL_BRIGHT, -0.02F, 0.155F, -0.10F, 0.02F, 0.168F, -0.05F, TALLY);
+            box(pose, vc, LightTexture.FULL_BRIGHT, -0.02F, 0.075F, -0.10F, 0.02F, 0.088F, -0.05F, TALLY);
         }
         pose.popPose();
     }

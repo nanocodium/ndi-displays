@@ -41,6 +41,14 @@ public final class ClientSetup {
     }
 
     @SubscribeEvent
+    public static void onRegisterEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        // The seat is a position, not a thing to look at: the jib's own model already shows the
+        // arm and the rider is drawn by their own renderer.
+        event.registerEntityRenderer(NdiDisplays.JIB_SEAT.get(),
+                dev.nano.ndidisplays.client.render.InvisibleEntityRenderer::new);
+    }
+
+    @SubscribeEvent
     public static void onRegisterLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
         event.registerLayerDefinition(SHOULDER_RIG_LAYER,
                 dev.nano.ndidisplays.client.render.ShoulderRigModel::createLayer);
@@ -67,6 +75,8 @@ public final class ClientSetup {
                 ctx -> new dev.nano.ndidisplays.client.render.CurvedScreenRenderer());
         event.registerBlockEntityRenderer(NdiDisplays.MULTIVIEW_BE.get(),
                 ctx -> new dev.nano.ndidisplays.client.render.MultiviewRenderer());
+        event.registerBlockEntityRenderer(NdiDisplays.WEB_TERMINAL_BE.get(),
+                ctx -> new dev.nano.ndidisplays.client.render.WebTerminalRenderer());
     }
 
     @SubscribeEvent

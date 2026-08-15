@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "__comment": "A workstation: a glass panel display over a redstone-and-iron chassis, with a comparator standing in for the logic board.",
+    "pattern": [
+        "IGI",
+        "RCR",
+        "III"
+    ],
+    "key": {
+        "I": { "item": "minecraft:iron_ingot" },
+        "G": { "item": "minecraft:glass_pane" },
+        "R": { "item": "minecraft:redstone" },
+        "C": { "item": "minecraft:comparator" }
+    },
+    "result": {
+        "item": "ndidisplays:web_terminal",
+        "count": 1
+    }
+}

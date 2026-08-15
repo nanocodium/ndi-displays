@@ -64,8 +64,88 @@ public class ShoulderCameraItem extends ArmorItem {
         }
     };
 
+    // --- rig aim, stored on the stack so it rides with the item and syncs for free ---
+
+    private static final String TAG_PAN = "RigPan";
+    private static final String TAG_TILT = "RigTilt";
+    private static final String TAG_FOV = "RigFov";
+
+    /** Pan limit either side of the operator's facing, degrees. */
+    public static final float MAX_PAN = 90.0F;
+    /** Tilt limit above and below level, degrees. */
+    public static final float MAX_TILT = 60.0F;
+    public static final float MIN_FOV = 15.0F;
+    public static final float MAX_FOV = 110.0F;
+    public static final float DEFAULT_FOV = 55.0F;
+
+    public static float pan(net.minecraft.world.item.ItemStack stack) {
+        return read(stack, TAG_PAN, 0.0F, -MAX_PAN, MAX_PAN);
+    }
+
+    public static float tilt(net.minecraft.world.item.ItemStack stack) {
+        return read(stack, TAG_TILT, 0.0F, -MAX_TILT, MAX_TILT);
+    }
+
+    public static float fov(net.minecraft.world.item.ItemStack stack) {
+        return read(stack, TAG_FOV, DEFAULT_FOV, MIN_FOV, MAX_FOV);
+    }
+
+    private static float read(net.minecraft.world.item.ItemStack stack, String key,
+                             float fallback, float min, float max) {
+        net.minecraft.nbt.CompoundTag tag = stack.getTag();
+        if (tag == null || !tag.contains(key)) {
+            return fallback;
+        }
+        return dev.nano.ndidisplays.block.Clamps.f(tag.getFloat(key), min, max, fallback);
+    }
+
+    /** Server-side: stores a new aim on the worn stack, re-clamped. */
+    public static void setAim(net.minecraft.world.item.ItemStack stack,
+                              float pan, float tilt, float fov) {
+        net.minecraft.nbt.CompoundTag tag = stack.getOrCreateTag();
+        tag.putFloat(TAG_PAN, dev.nano.ndidisplays.block.Clamps.f(pan, -MAX_PAN, MAX_PAN, 0.0F));
+        tag.putFloat(TAG_TILT, dev.nano.ndidisplays.block.Clamps.f(tilt, -MAX_TILT, MAX_TILT, 0.0F));
+        tag.putFloat(TAG_FOV, dev.nano.ndidisplays.block.Clamps.f(fov, MIN_FOV, MAX_FOV, DEFAULT_FOV));
+    }
+
     public ShoulderCameraItem(Properties properties) {
         super(CAMERA_RIG, ArmorItem.Type.CHESTPLATE, properties);
+    }
+
+    /**
+     * Sneak + right-click opens the rig's controls, so the camera can be aimed independently
+     * of where the operator is looking — which is the whole point of a shoulder mount.
+     *
+     * Works whether the rig is worn or in hand: aiming it while wearing it is the normal case,
+     * but being able to set it up before putting it on is convenient.
+     */
+    @Override
+    public net.minecraft.world.InteractionResultHolder<net.minecraft.world.item.ItemStack> use(
+            net.minecraft.world.level.Level level, net.minecraft.world.entity.player.Player player,
+            net.minecraft.world.InteractionHand hand) {
+        net.minecraft.world.item.ItemStack held = player.getItemInHand(hand);
+        if (!player.isShiftKeyDown()) {
+            return net.minecraft.world.InteractionResultHolder.pass(held);
+        }
+        if (level.isClientSide) {
+            net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
+                    net.minecraftforge.api.distmarker.Dist.CLIENT, () -> () ->
+                            dev.nano.ndidisplays.client.ClientHooks.openShoulderRigConfig());
+        }
+        return net.minecraft.world.InteractionResultHolder.sidedSuccess(held, level.isClientSide);
+    }
+
+    /**
+     * Custom armour texture. Vanilla derives the path from the material name as
+     * {@code minecraft:textures/models/armor/<name>_layer_1.png}, which can never resolve a
+     * texture shipped in this mod's namespace — that mismatch is what renders the rig as
+     * missing-texture magenta. Forge's hook is the supported way to point at our own file.
+     */
+    @Override
+    public String getArmorTexture(net.minecraft.world.item.ItemStack stack,
+                                  net.minecraft.world.entity.Entity entity,
+                                  net.minecraft.world.entity.EquipmentSlot slot, String type) {
+        return "ndidisplays:textures/models/armor/camera_rig_layer_1.png";
     }
 
     /**

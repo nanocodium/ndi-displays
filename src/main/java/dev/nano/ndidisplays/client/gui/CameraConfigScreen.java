@@ -107,7 +107,11 @@ public class CameraConfigScreen extends Screen {
                 y += 24;
             }
             case JIB -> {
-                addRenderableWidget(slider(left, y, 128, aux1, 2, 8,
+                // Upper bound comes from the block entity rather than a literal, so the slider
+                // can never again disagree with what applyConfig will accept — that mismatch is
+                // what kept the arm pinned at 8m after the limit was raised.
+                addRenderableWidget(slider(left, y, 128, aux1, 2,
+                        dev.nano.ndidisplays.block.NdiCameraBlockEntity.MAX_JIB_ARM,
                         v -> aux1 = (float) v, v -> String.format("Arm length: %.1f m", v)));
                 addRenderableWidget(slider(left + 132, y, 128, aux2, 10, 170,
                         v -> aux2 = (float) v, v -> String.format("Sweep: %.0f°", v)));

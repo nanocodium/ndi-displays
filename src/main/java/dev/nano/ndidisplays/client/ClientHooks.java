@@ -77,6 +77,40 @@ public final class ClientHooks {
         }
     }
 
+    /**
+     * Opens the worn shoulder rig's aim controls. Prefers the worn stack over a held one, since
+     * aiming it while wearing it is the normal case.
+     */
+    public static void openShoulderRigConfig() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) {
+            return;
+        }
+        net.minecraft.world.item.ItemStack rig =
+                mc.player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST);
+        if (!rig.is(dev.nano.ndidisplays.NdiDisplays.SHOULDER_CAMERA_ITEM.get())) {
+            rig = mc.player.getMainHandItem()
+                    .is(dev.nano.ndidisplays.NdiDisplays.SHOULDER_CAMERA_ITEM.get())
+                    ? mc.player.getMainHandItem()
+                    : mc.player.getOffhandItem();
+        }
+        if (rig.is(dev.nano.ndidisplays.NdiDisplays.SHOULDER_CAMERA_ITEM.get())) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.ShoulderRigScreen(rig));
+        }
+    }
+
+    /** Opens a web terminal: the page, a URL bar, and mouse/keyboard wired to the browser. */
+    public static void openWebTerminal(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level == null
+                || !(level.getBlockEntity(pos)
+                        instanceof dev.nano.ndidisplays.block.WebTerminalBlockEntity terminal)) {
+            return;
+        }
+        mc.setScreen(new dev.nano.ndidisplays.client.gui.WebTerminalScreen(terminal));
+    }
+
     public static void openCameraConfig(BlockPos pos) {
         Minecraft mc = Minecraft.getInstance();
         Level level = mc.level;

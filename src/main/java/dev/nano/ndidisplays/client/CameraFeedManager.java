@@ -24,6 +24,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.PostChain;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -358,6 +364,10 @@ public final class CameraFeedManager {
     public static void shutdownAll() {
         FEEDS.values().forEach(Feed::release);
         FEEDS.clear();
+        WEB_FEEDS.values().forEach(Feed::release);
+        WEB_FEEDS.clear();
+        WEB_TERMINALS.clear();
+        dev.nano.ndidisplays.client.web.WebBrowsers.closeAll();
         if (handheldFeed != null) {
             handheldFeed.release();
             handheldFeed = null;
@@ -467,6 +477,11 @@ public final class CameraFeedManager {
                         + " to {} fps total", (int) SHADER_CAPTURE_MAX_FPS);
             }
         }
+        // Web terminals first, and outside the rigs' budget. Publishing a page is a texture
+        // blit plus a readback — no nested world render — so it neither competes with the rigs
+        // for that budget nor is affected by a shader pack replacing the world pipeline.
+        tickWebTerminals(now);
+
         // The handheld camera keeps the one-capture-per-frame budget: when it captured
         // this frame, the block rigs wait for the next one. Under shaders the handheld
         // is served by the RenderGuiEvent screen copy instead.
@@ -758,16 +773,35 @@ public final class CameraFeedManager {
             captureTarget = CAPTURE_TARGETS.computeIfAbsent(
                     ((long) HANDHELD_WIDTH << 32) | HANDHELD_HEIGHT,
                     key -> new MainTarget(HANDHELD_WIDTH, HANDHELD_HEIGHT));
-            float yaw = player.getViewYRot(1.0F);
-            float pitch = player.getViewXRot(1.0F);
             // Operator wobble: two incommensurate sines per axis so it never loops visibly.
             float wobbleYaw = (float) (Math.sin(now * 1.7) * 0.5 + Math.sin(now * 4.3) * 0.2);
             float wobblePitch = (float) (Math.sin(now * 2.1 + 1.0) * 0.4 + Math.sin(now * 5.7) * 0.15);
-            Vec3 forward = Vec3.directionFromRotation(pitch, yaw);
-            NdiCameraBlockEntity.ViewState view = new NdiCameraBlockEntity.ViewState(
-                    player.getEyePosition(1.0F).add(forward.scale(HANDHELD_FORWARD)),
-                    yaw + wobbleYaw, pitch + wobblePitch);
-            renderView(mc, view, mc.options.fov().get());
+            NdiCameraBlockEntity.ViewState view;
+            float fov;
+            if (wearingShoulderRig(player)) {
+                view = shoulderLensView(player, wobbleYaw, wobblePitch);
+                fov = dev.nano.ndidisplays.item.ShoulderCameraItem.fov(
+                        player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST));
+            } else {
+                float yaw = player.getViewYRot(1.0F);
+                float pitch = player.getViewXRot(1.0F);
+                Vec3 forward = Vec3.directionFromRotation(pitch, yaw);
+                view = new NdiCameraBlockEntity.ViewState(
+                        player.getEyePosition(1.0F).add(forward.scale(HANDHELD_FORWARD)),
+                        yaw + wobbleYaw, pitch + wobblePitch);
+                fov = mc.options.fov().get();
+            }
+            capturingShoulderRig = wearingShoulderRig(player);
+            try {
+                renderView(mc, view, fov);
+            } finally {
+                capturingShoulderRig = false;
+            }
+            if (wearingShoulderRig(player) && captureTarget != null) {
+                shoulderCaptureTex = captureTarget.getColorTextureId();
+                shoulderCaptureW = captureTarget.viewWidth;
+                shoulderCaptureH = captureTarget.viewHeight;
+            }
             readAndSend(handheldFeed, operatorFeedName(player),
                     HANDHELD_FPS, false, captureTarget.viewWidth, captureTarget.viewHeight);
         } catch (Throwable t) {
@@ -776,6 +810,211 @@ public final class CameraFeedManager {
         }
         return true;
     }
+
+    // --- web terminals -------------------------------------------------------
+    //
+    // Each terminal renders a page into a Chromium-owned GL texture. To put that on the network
+    // the texture is blitted into a capture target and handed to the same readAndSend path the
+    // camera rigs use: PBO readback, honest frame-rate advertising, sender lifecycle. Reusing it
+    // rather than writing a second sender means browsers inherit every fix that path has had.
+
+    private static final Map<BlockPos, Feed> WEB_FEEDS = new java.util.HashMap<>();
+
+    private static final Map<BlockPos, dev.nano.ndidisplays.block.WebTerminalBlockEntity>
+            WEB_TERMINALS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Registers a terminal for publishing; its renderer calls this while it is in view. */
+    public static void noteWebTerminal(dev.nano.ndidisplays.block.WebTerminalBlockEntity be) {
+        WEB_TERMINALS.put(be.getBlockPos().immutable(), be);
+    }
+
+    /** Names of terminals currently on air, so they can be picked as sources in the GUIs. */
+    public static java.util.List<String> getWebTerminalNames() {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (dev.nano.ndidisplays.block.WebTerminalBlockEntity be : WEB_TERMINALS.values()) {
+            if (!be.isRemoved() && be.isBroadcasting()) {
+                names.add(be.getEffectiveSourceName());
+            }
+        }
+        names.sort(String::compareToIgnoreCase);
+        return names;
+    }
+
+    private static void tickWebTerminals(double now) {
+        if (WEB_TERMINALS.isEmpty()) {
+            return;
+        }
+        java.util.Iterator<Map.Entry<BlockPos,
+                dev.nano.ndidisplays.block.WebTerminalBlockEntity>> it =
+                WEB_TERMINALS.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<BlockPos, dev.nano.ndidisplays.block.WebTerminalBlockEntity> e = it.next();
+            dev.nano.ndidisplays.block.WebTerminalBlockEntity be = e.getValue();
+            if (be.isRemoved()) {
+                Feed dead = WEB_FEEDS.remove(e.getKey());
+                if (dead != null) {
+                    dead.release();
+                }
+                it.remove();
+                continue;
+            }
+            if (!be.isBroadcasting()) {
+                Feed off = WEB_FEEDS.remove(e.getKey());
+                if (off != null) {
+                    off.release();
+                }
+                continue;
+            }
+            dev.nano.ndidisplays.client.web.WebBrowsers.Session session =
+                    dev.nano.ndidisplays.client.web.WebBrowsers.peek(be.getBlockPos());
+            if (session == null || session.textureId() == 0) {
+                continue;   // nothing rendered yet, so nothing worth announcing
+            }
+            Feed feed = WEB_FEEDS.computeIfAbsent(e.getKey(), k -> new Feed(null));
+            if (now < feed.nextDue) {
+                continue;
+            }
+            double period = 1.0 / Math.max(1, be.getFps());
+            feed.nextDue += period;
+            if (feed.nextDue < now - period) {
+                feed.nextDue = now + period;
+            }
+            try {
+                publishWebFrame(feed, be, session);
+            } catch (Throwable t) {
+                LOGGER.warn("[ndidisplays] web terminal {} publish failed: {}",
+                        be.getEffectiveSourceName(), t.toString());
+                feed.nextDue = now + 2.0;
+            }
+        }
+    }
+
+    private static void publishWebFrame(Feed feed,
+            dev.nano.ndidisplays.block.WebTerminalBlockEntity be,
+            dev.nano.ndidisplays.client.web.WebBrowsers.Session session) {
+        completePendingReadback(feed);
+        int width = session.width();
+        int height = session.height();
+        captureTarget = CAPTURE_TARGETS.computeIfAbsent(((long) width << 32) | height,
+                key -> new MainTarget(width, height));
+
+        // Blit the page into the capture target. readAndSend flips rows on the way out (a
+        // framebuffer is bottom-up where NDI wants top-down) and CEF hands us a top-down image,
+        // so V is sampled inverted here to cancel that and keep the published feed upright.
+        captureTarget.bindWrite(true);
+        RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionTexShader);
+        RenderSystem.setShaderTexture(0, session.textureId());
+        RenderSystem.disableBlend();
+        RenderSystem.disableCull();
+        RenderSystem.depthMask(false);
+        BufferBuilder b = Tesselator.getInstance().getBuilder();
+        b.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+        b.vertex(-1.0F, -1.0F, 0.0F).uv(0.0F, 1.0F).endVertex();
+        b.vertex(1.0F, -1.0F, 0.0F).uv(1.0F, 1.0F).endVertex();
+        b.vertex(1.0F, 1.0F, 0.0F).uv(1.0F, 0.0F).endVertex();
+        b.vertex(-1.0F, 1.0F, 0.0F).uv(0.0F, 0.0F).endVertex();
+        BufferUploader.drawWithShader(b.end());
+        RenderSystem.depthMask(true);
+        RenderSystem.enableCull();
+        captureTarget.unbindWrite();
+        Minecraft.getInstance().getMainRenderTarget().bindWrite(true);
+
+        readAndSend(feed, be.getEffectiveSourceName(), be.getFps(), false,
+                captureTarget.viewWidth, captureTarget.viewHeight);
+    }
+
+    // --- shoulder rig optics -------------------------------------------------
+
+    // Where the lens actually is on the body. These offsets are what make the feed read as a
+    // camera on the operator's shoulder rather than a copy of their eye view: it sits lower than
+    // the eyes and clearly off to one side, so the parallax is visible.
+    //
+    // A player's eyes are at 1.62; the shoulder plate is a good 0.25 below that. The forward
+    // offset stays small on purpose — an earlier version pushed it 0.78 along the aim to keep the
+    // rig out of its own shot, which put the lens at the eye plane and made the feed
+    // indistinguishable from first person. Hiding the wearer during capture solves that properly,
+    // so the lens can sit where the hardware really is.
+
+    /** Lens height above the operator's feet, blocks — shoulder level, below the eyes. */
+    private static final double LENS_UP = 1.37;
+    /** Lens offset to the operator's right, where the rig is mounted. */
+    private static final double LENS_RIGHT = 0.44;
+    /** Small forward offset, clearing the operator's own chest. */
+    private static final double LENS_FORWARD = 0.24;
+
+    /**
+     * Where the shoulder rig's lens is and where it points.
+     *
+     * The operator aims it by looking: yaw and pitch come from the head, with the rig's own
+     * pan and tilt as trim on top, so a fixed offset can be dialled in and then the shot framed
+     * by turning. Aiming it off the body instead was more physically honest but made the camera
+     * feel unaimable, which is not a trade worth making.
+     *
+     * The mount stays on the body, so the rig still sits on the shoulder as the operator turns;
+     * only the aim tracks the head.
+     */
+    private static NdiCameraBlockEntity.ViewState shoulderLensView(LocalPlayer player,
+                                                                   float wobbleYaw,
+                                                                   float wobblePitch) {
+        net.minecraft.world.item.ItemStack rig =
+                player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST);
+        float yaw = player.getViewYRot(framePartialTick)
+                + dev.nano.ndidisplays.item.ShoulderCameraItem.pan(rig) + wobbleYaw;
+        float pitch = player.getViewXRot(framePartialTick)
+                + dev.nano.ndidisplays.item.ShoulderCameraItem.tilt(rig) + wobblePitch;
+
+        // Mount point rides the body; right and forward come from the body yaw so the rig stays
+        // bolted to the shoulder rather than sliding around as the head turns.
+        float bodyYaw = net.minecraft.util.Mth.rotLerp(
+                framePartialTick, player.yBodyRotO, player.yBodyRot);
+        double bodyRad = Math.toRadians(bodyYaw);
+        Vec3 forwardBody = new Vec3(-Math.sin(bodyRad), 0.0, Math.cos(bodyRad));
+        Vec3 rightBody = new Vec3(-forwardBody.z, 0.0, forwardBody.x);
+        Vec3 mount = player.getPosition(framePartialTick)
+                .add(0.0, LENS_UP, 0.0)
+                .add(rightBody.scale(LENS_RIGHT))
+                .add(forwardBody.scale(0.12));
+        Vec3 aim = Vec3.directionFromRotation(pitch, yaw);
+        return new NdiCameraBlockEntity.ViewState(mount.add(aim.scale(LENS_FORWARD)), yaw, pitch);
+    }
+
+    /**
+     * True while the shoulder rig's own feed is being captured.
+     *
+     * The lens sits on the operator's shoulder, so the operator — and the rig bolted to them —
+     * are directly in front of it and fill the frame. Pushing the lens further forward only
+     * trades one clipping artefact for another, so the wearer is hidden for the duration of
+     * their own capture instead, which is also what a real shoulder camera "sees".
+     */
+    public static boolean isCapturingShoulderRig() {
+        return capturingShoulderRig;
+    }
+
+    private static boolean capturingShoulderRig;
+
+    /**
+     * Colour texture of the most recent shoulder-rig capture, or 0 when there is none.
+     *
+     * Operator mode draws this to the screen, which is what makes it genuinely "through the
+     * lens": the picture shown is the exact frame that went out on NDI, not an approximation of
+     * the camera's angle. It costs nothing extra — the frame has already been rendered for the
+     * feed, so this is a blit of a texture that exists either way.
+     */
+    public static int shoulderCaptureTexture() {
+        return shoulderCaptureTex;
+    }
+
+    public static int shoulderCaptureWidth() {
+        return shoulderCaptureW;
+    }
+
+    public static int shoulderCaptureHeight() {
+        return shoulderCaptureH;
+    }
+
+    private static int shoulderCaptureTex;
+    private static int shoulderCaptureW;
+    private static int shoulderCaptureH;
 
     // --- NDI PTZ control ---------------------------------------------------
     //

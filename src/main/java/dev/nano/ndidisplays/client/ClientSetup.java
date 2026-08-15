@@ -46,6 +46,8 @@ public final class ClientSetup {
         // arm and the rider is drawn by their own renderer.
         event.registerEntityRenderer(NdiDisplays.JIB_SEAT.get(),
                 dev.nano.ndidisplays.client.render.InvisibleEntityRenderer::new);
+        event.registerEntityRenderer(NdiDisplays.DRONE.get(),
+                dev.nano.ndidisplays.client.render.DroneRenderer::new);
     }
 
     @SubscribeEvent

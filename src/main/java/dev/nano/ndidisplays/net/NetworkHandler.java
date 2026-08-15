@@ -31,6 +31,17 @@ public final class NetworkHandler {
      * player, or anyone with a modified client could retune walls and force cameras live
      * anywhere in the world — including inside spawn protection or another player's claim.
      */
+    /** Same rules as a block config, but the drone may already be far above the operator. */
+    public static boolean mayConfigureEntity(ServerPlayer player, net.minecraft.world.entity.Entity entity) {
+        if (player.isSpectator() || !player.getAbilities().mayBuild) {
+            return false;
+        }
+        if (player.getVehicle() == entity) {
+            return true;
+        }
+        return player.distanceToSqr(entity) <= MAX_CONFIG_DISTANCE_SQR;
+    }
+
     public static boolean mayConfigure(ServerPlayer player, BlockPos pos) {
         if (player.isSpectator() || !player.getAbilities().mayBuild) {
             return false;
@@ -108,5 +119,21 @@ public final class NetworkHandler {
                 BindParkMonitorPacket::encode,
                 BindParkMonitorPacket::decode,
                 BindParkMonitorPacket::handle);
+        CHANNEL.registerMessage(id++, DroneInputPacket.class,
+                DroneInputPacket::encode,
+                DroneInputPacket::decode,
+                DroneInputPacket::handle);
+        CHANNEL.registerMessage(id++, DroneActionPacket.class,
+                DroneActionPacket::encode,
+                DroneActionPacket::decode,
+                DroneActionPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateDroneConfigPacket.class,
+                UpdateDroneConfigPacket::encode,
+                UpdateDroneConfigPacket::decode,
+                UpdateDroneConfigPacket::handle);
+        CHANNEL.registerMessage(id++, DroneImportWaypointsPacket.class,
+                DroneImportWaypointsPacket::encode,
+                DroneImportWaypointsPacket::decode,
+                DroneImportWaypointsPacket::handle);
     }
 }

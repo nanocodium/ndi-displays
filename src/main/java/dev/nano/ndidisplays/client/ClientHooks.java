@@ -5,6 +5,7 @@ import dev.nano.ndidisplays.block.NdiCameraBlockEntity;
 import dev.nano.ndidisplays.block.WallScanner;
 import dev.nano.ndidisplays.client.gui.CameraConfigScreen;
 import dev.nano.ndidisplays.client.gui.PanelConfigScreen;
+import dev.nano.ndidisplays.entity.DroneEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -145,6 +146,34 @@ public final class ClientHooks {
         if (level != null && level.getBlockEntity(pos) instanceof NdiCameraBlockEntity camera) {
             mc.setScreen(new CameraConfigScreen(camera));
         }
+    }
+
+    public static void openDroneConfig(java.util.UUID droneId) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) {
+            return;
+        }
+        DroneEntity drone = findDrone(mc.level, droneId);
+        if (drone == null) {
+            if (mc.player != null) {
+                mc.player.displayClientMessage(net.minecraft.network.chat.Component.translatable(
+                        "gui.ndidisplays.drone.no_signal"), true);
+            }
+            return;
+        }
+        mc.setScreen(new dev.nano.ndidisplays.client.gui.DroneConfigScreen(drone));
+    }
+
+    public static DroneEntity findDrone(Level level, java.util.UUID id) {
+        if (id == null || !(level instanceof net.minecraft.client.multiplayer.ClientLevel client)) {
+            return null;
+        }
+        for (net.minecraft.world.entity.Entity entity : client.entitiesForRendering()) {
+            if (entity instanceof DroneEntity drone && drone.getUUID().equals(id)) {
+                return drone;
+            }
+        }
+        return null;
     }
 
     public static void openRouterConfig(BlockPos pos) {

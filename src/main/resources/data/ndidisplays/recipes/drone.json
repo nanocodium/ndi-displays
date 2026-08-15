@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "I I",
+    "IRI",
+    " G "
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "R": { "item": "minecraft:redstone" },
+    "G": { "item": "minecraft:glass_pane" }
+  },
+  "result": { "item": "ndidisplays:drone" }
+}

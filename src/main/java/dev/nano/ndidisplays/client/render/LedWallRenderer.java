@@ -12,8 +12,6 @@ import dev.nano.ndidisplays.block.LedPanelBlockEntity;
 import dev.nano.ndidisplays.block.PanelFacing;
 import dev.nano.ndidisplays.block.WallScanner;
 import dev.nano.ndidisplays.client.ClientSetup;
-import dev.nano.ndidisplays.client.ndi.NdiManager;
-import dev.nano.ndidisplays.client.ndi.NdiStream;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -82,17 +80,8 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
         int texId;
         ResourceLocation bloomTexture = null;
         if (mode == 0) {
-            NdiStream stream = NdiManager.acquire(be.getSourceName());
-            if (stream != null) {
-                stream.uploadIfNeeded();
-                texId = stream.getTextureId();
-                bloomTexture = stream.getTextureLocation();
-            } else {
-                texId = 0;
-            }
-            if (texId == 0) {
-                texId = FallbackTextures.black();
-            }
+            texId = ScreenVideo.textureId(be.getSourceName());
+            bloomTexture = ScreenVideo.textureLocation(be.getSourceName());
         } else {
             texId = FallbackTextures.white();
         }
@@ -121,8 +110,8 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
         Vec3 p11 = base.add(span).add(0, h, 0);   // top, viewer-right
         Vec3 p01 = base.add(0, h, 0);             // top, viewer-left
 
-        shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness());
-        shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode, (float) pxPerBlock, CALIBRATION_VARIANCE);
+        shader.safeGetUniform("LedParams").set(gridW, gridH, ScreenVideo.ledGap(PIXEL_GAP), be.getEffectiveBrightness());
+        shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode, (float) pxPerBlock, ScreenVideo.ledVariance(CALIBRATION_VARIANCE));
         // The wall's input window (video-processor crop). Must be set every draw:
         // kinetic tiles reuse this uniform for their canvas slice.
         dev.nano.ndidisplays.block.CropWindow crop = be.crop();
@@ -170,8 +159,8 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
             ResourceLocation shimmerTex = mode == 0 ? bloomTexture : FallbackTextures.whiteLocation();
             if (shimmerTex != null) {
                 ShimmerCompat.submitBloom(mat, p00, p10, p11, p01, shimmerTex, new float[]{
-                        gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness(),
-                        be.getGamma(), (float) mode, (float) pxPerBlock, CALIBRATION_VARIANCE,
+                        gridW, gridH, ScreenVideo.ledGap(PIXEL_GAP), be.getEffectiveBrightness(),
+                        be.getGamma(), (float) mode, (float) pxPerBlock, ScreenVideo.ledVariance(CALIBRATION_VARIANCE),
                         crop.u0(), crop.v0(), crop.du(), crop.dv()});
             }
         }
@@ -201,7 +190,7 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
         // Preferred: the baker pre-renders the full LED simulation into a texture outside
         // the pack's pipeline, so the wall keeps its real pixels under shaders. Brightness,
         // gamma and patterns are all baked in; the quad just displays it.
-        ResourceLocation baked = LedWallBaker.request(be);
+        ResourceLocation baked = ScreenVideo.suppressLive(be.getSourceName()) ? null : LedWallBaker.request(be);
         if (baked != null) {
             Matrix4f bakedMat = poseStack.last().pose();
             VertexConsumer bakedVc = buffers.getBuffer(RenderType.entityTranslucentEmissive(baked));
@@ -221,12 +210,7 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
         float cg = 1.0F;
         float cb = 1.0F;
         if (mode == 0) {
-            NdiStream stream = NdiManager.acquire(be.getSourceName());
-            ResourceLocation video = null;
-            if (stream != null) {
-                stream.uploadIfNeeded();
-                video = stream.getTextureLocation();
-            }
+            ResourceLocation video = ScreenVideo.textureLocation(be.getSourceName());
             if (video != null) {
                 tex = video;
             } else {

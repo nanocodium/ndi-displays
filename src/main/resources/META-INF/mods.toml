@@ -41,3 +41,17 @@ mandatory=false
 versionRange="[0,)"
 ordering="AFTER"
 side="BOTH"
+
+[[dependencies.ndidisplays]]
+modId="xaerominimap"
+mandatory=false
+versionRange="[0,)"
+ordering="AFTER"
+side="CLIENT"
+
+[[dependencies.ndidisplays]]
+modId="xaeroworldmap"
+mandatory=false
+versionRange="[0,)"
+ordering="AFTER"
+side="CLIENT"

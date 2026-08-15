@@ -250,6 +250,14 @@ public class NdiDisplays {
     public static final RegistryObject<Item> NDI_CONFIG_CARD_ITEM = ITEMS.register("ndi_config_card",
             () -> new dev.nano.ndidisplays.item.NdiConfigCardItem(new Item.Properties().stacksTo(1)));
 
+    /** Placeable NDI drone: right-click the ground, then fly it from a linked remote. */
+    public static final RegistryObject<Item> DRONE_ITEM = ITEMS.register("drone",
+            () -> new dev.nano.ndidisplays.item.DroneItem(new Item.Properties().stacksTo(1)));
+
+    /** Links to one drone and enters FPV, or opens the path / NDI GUI while sneaking. */
+    public static final RegistryObject<Item> DRONE_REMOTE_ITEM = ITEMS.register("drone_remote",
+            () -> new dev.nano.ndidisplays.item.DroneRemoteItem(new Item.Properties().stacksTo(1)));
+
     /**
      * NDI router: publishes a stable output name and forwards whichever source is patched
      * to it, using NDI's routing API — no decode or re-encode, so it costs nothing.
@@ -317,6 +325,8 @@ public class NdiDisplays {
                         output.accept(NDI_CONFIG_CARD_ITEM.get());
                         output.accept(NDI_ROUTER_ITEM.get());
                         output.accept(WEB_TERMINAL_ITEM.get());
+                        output.accept(DRONE_ITEM.get());
+                        output.accept(DRONE_REMOTE_ITEM.get());
                     })
                     .build());
 
@@ -335,6 +345,21 @@ public class NdiDisplays {
                     .updateInterval(1)
                     .noSummon()
                     .build("jib_seat"));
+
+    /**
+     * Persistent quadcopter. Saved with the world, ridden for FPV, and published as
+     * an NDI source from the same gimbal pose the pilot sees.
+     */
+    public static final RegistryObject<net.minecraft.world.entity.EntityType<
+            dev.nano.ndidisplays.entity.DroneEntity>> DRONE =
+            ENTITIES.register("drone", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<dev.nano.ndidisplays.entity.DroneEntity>of(
+                            dev.nano.ndidisplays.entity.DroneEntity::new,
+                            net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(0.75F, 0.28F)
+                    .clientTrackingRange(64)
+                    .updateInterval(1)
+                    .build("drone"));
 
     public NdiDisplays() {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();

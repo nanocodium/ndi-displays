@@ -12,8 +12,6 @@ import dev.nano.ndidisplays.block.CropWindow;
 import dev.nano.ndidisplays.block.FloorScanner;
 import dev.nano.ndidisplays.block.LedFloorBlockEntity;
 import dev.nano.ndidisplays.client.ClientSetup;
-import dev.nano.ndidisplays.client.ndi.NdiManager;
-import dev.nano.ndidisplays.client.ndi.NdiStream;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -65,17 +63,8 @@ public class LedFloorRenderer implements BlockEntityRenderer<LedFloorBlockEntity
         int texId;
         ResourceLocation bloomTexture = null;
         if (mode == 0) {
-            NdiStream stream = NdiManager.acquire(be.getSourceName());
-            if (stream != null) {
-                stream.uploadIfNeeded();
-                texId = stream.getTextureId();
-                bloomTexture = stream.getTextureLocation();
-            } else {
-                texId = 0;
-            }
-            if (texId == 0) {
-                texId = FallbackTextures.black();
-            }
+            texId = ScreenVideo.textureId(be.getSourceName());
+            bloomTexture = ScreenVideo.textureLocation(be.getSourceName());
         } else {
             texId = FallbackTextures.white();
         }
@@ -85,8 +74,8 @@ public class LedFloorRenderer implements BlockEntityRenderer<LedFloorBlockEntity
         float gridH = pxPerBlock * floor.depth();
         CropWindow crop = be.crop();
 
-        shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness());
-        shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode, (float) pxPerBlock, CALIBRATION_VARIANCE);
+        shader.safeGetUniform("LedParams").set(gridW, gridH, ScreenVideo.ledGap(PIXEL_GAP), be.getEffectiveBrightness());
+        shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode, (float) pxPerBlock, ScreenVideo.ledVariance(CALIBRATION_VARIANCE));
         shader.safeGetUniform("UvRegion").set(crop.u0(), crop.v0(), crop.du(), crop.dv());
 
         RenderSystem.setShader(() -> shader);
@@ -111,8 +100,8 @@ public class LedFloorRenderer implements BlockEntityRenderer<LedFloorBlockEntity
             ResourceLocation shimmerTex = mode == 0 ? bloomTexture : FallbackTextures.whiteLocation();
             if (shimmerTex != null) {
                 ShimmerCompat.submitBloom(mat, p00, p10, p11, p01, shimmerTex, new float[]{
-                        gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness(),
-                        be.getGamma(), (float) mode, (float) pxPerBlock, CALIBRATION_VARIANCE,
+                        gridW, gridH, ScreenVideo.ledGap(PIXEL_GAP), be.getEffectiveBrightness(),
+                        be.getGamma(), (float) mode, (float) pxPerBlock, ScreenVideo.ledVariance(CALIBRATION_VARIANCE),
                         crop.u0(), crop.v0(), crop.du(), crop.dv()});
             }
         }
@@ -147,12 +136,7 @@ public class LedFloorRenderer implements BlockEntityRenderer<LedFloorBlockEntity
         float cg = 1.0F;
         float cb = 1.0F;
         if (mode == 0) {
-            NdiStream stream = NdiManager.acquire(be.getSourceName());
-            ResourceLocation video = null;
-            if (stream != null) {
-                stream.uploadIfNeeded();
-                video = stream.getTextureLocation();
-            }
+            ResourceLocation video = ScreenVideo.textureLocation(be.getSourceName());
             if (video != null) {
                 tex = video;
             } else {

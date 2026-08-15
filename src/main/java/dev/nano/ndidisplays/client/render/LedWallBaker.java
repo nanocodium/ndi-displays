@@ -15,8 +15,6 @@ import dev.nano.ndidisplays.NdiDisplays;
 import dev.nano.ndidisplays.block.LedPanelBlockEntity;
 import dev.nano.ndidisplays.block.WallScanner;
 import dev.nano.ndidisplays.client.ClientSetup;
-import dev.nano.ndidisplays.client.ndi.NdiManager;
-import dev.nano.ndidisplays.client.ndi.NdiStream;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.core.BlockPos;
@@ -139,15 +137,7 @@ public final class LedWallBaker {
         int mode = be.getTestPattern();
         int sourceTex;
         if (mode == 0) {
-            NdiStream stream = NdiManager.acquire(be.getSourceName());
-            sourceTex = 0;
-            if (stream != null) {
-                stream.uploadIfNeeded();
-                sourceTex = stream.getTextureId();
-            }
-            if (sourceTex == 0) {
-                sourceTex = FallbackTextures.black();
-            }
+            sourceTex = ScreenVideo.textureId(be.getSourceName());
         } else {
             sourceTex = FallbackTextures.white();
         }

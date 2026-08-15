@@ -60,6 +60,14 @@ public final class NetworkHandler {
                 UpdateRouterConfigPacket::encode,
                 UpdateRouterConfigPacket::decode,
                 UpdateRouterConfigPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateShoulderRigPacket.class,
+                UpdateShoulderRigPacket::encode,
+                UpdateShoulderRigPacket::decode,
+                UpdateShoulderRigPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateWebTerminalPacket.class,
+                UpdateWebTerminalPacket::encode,
+                UpdateWebTerminalPacket::decode,
+                UpdateWebTerminalPacket::handle);
         CHANNEL.registerMessage(id++, UpdateWinchConfigPacket.class,
                 UpdateWinchConfigPacket::encode,
                 UpdateWinchConfigPacket::decode,

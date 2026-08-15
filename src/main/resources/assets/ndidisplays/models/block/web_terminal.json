@@ -1,0 +1,6 @@
+{
+    "__comment": "Particles only: the visible unit is drawn by the block entity renderer.",
+    "textures": {
+        "particle": "ndidisplays:block/camera_dark"
+    }
+}

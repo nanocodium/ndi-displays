@@ -1,0 +1,9 @@
+{
+    "__comment": "Geometry is drawn by WebTerminalRenderer (the chassis, the bezel and the live page), so the blockstate only needs a particle source for breaking effects.",
+    "variants": {
+        "facing=north": { "model": "ndidisplays:block/web_terminal" },
+        "facing=east": { "model": "ndidisplays:block/web_terminal", "y": 90 },
+        "facing=south": { "model": "ndidisplays:block/web_terminal", "y": 180 },
+        "facing=west": { "model": "ndidisplays:block/web_terminal", "y": 270 }
+    }
+}

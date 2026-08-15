@@ -76,6 +76,13 @@ public abstract class NdiPickerScreen extends Screen {
                 names.add(router);
             }
         }
+        // Web terminals are local senders like the rigs, so they can appear before NDI
+        // discovery has caught up with them.
+        for (String web : dev.nano.ndidisplays.client.CameraFeedManager.getWebTerminalNames()) {
+            if (names.stream().noneMatch(web::contains)) {
+                names.add(web);
+            }
+        }
         for (String discovered : NdiManager.getSourceNames()) {
             if (names.stream().noneMatch(discovered::contains)) {
                 names.add(discovered);

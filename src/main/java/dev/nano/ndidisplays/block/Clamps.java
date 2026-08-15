@@ -11,13 +11,13 @@ import net.minecraft.util.Mth;
  * into the camera view math. Config values arrive from clients and from NBT on
  * disk, so both paths are sanitised here.
  */
-final class Clamps {
+public final class Clamps {
 
     private Clamps() {
     }
 
     /** Clamps to [min, max], substituting {@code fallback} for NaN. */
-    static float f(float value, float min, float max, float fallback) {
+    public static float f(float value, float min, float max, float fallback) {
         if (Float.isNaN(value)) {
             return fallback;
         }
@@ -25,12 +25,12 @@ final class Clamps {
     }
 
     /** Clamps to [min, max]; integers cannot be non-finite. */
-    static int i(int value, int min, int max) {
+    public static int i(int value, int min, int max) {
         return Mth.clamp(value, min, max);
     }
 
     /** Trims a client-supplied name to a safe length. */
-    static String name(String value, int maxLength) {
+    public static String name(String value, int maxLength) {
         if (value == null) {
             return "";
         }

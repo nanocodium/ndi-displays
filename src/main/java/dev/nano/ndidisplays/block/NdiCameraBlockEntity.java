@@ -12,6 +12,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import javax.annotation.Nullable;
+
 /**
  * Shared block entity for all camera rigs. Stores the NDI/output config
  * (server-authoritative, synced to clients) and computes the camera's view
@@ -34,6 +36,26 @@ public class NdiCameraBlockEntity extends BlockEntity {
     private static final float DEFAULT_FOV = 60.0F;
     private static final float DEFAULT_PTZ_SPEED = 45.0F;   // deg/s slew
     private static final float DEFAULT_JIB_ARM = 5.0F;      // metres
+    /**
+     * Longest crane arm, metres. The arm is drawn as a few boxes and the tip is pure
+     * trigonometry, so length costs nothing to render — the old 8m ceiling was short of
+     * even a modest studio jib, let alone the big telescopic cranes this is imitating.
+     */
+    public static final float MAX_JIB_ARM = 24.0F;
+
+    /**
+     * Where the motion-control rig's head sits relative to its dolly, before the rig slews.
+     *
+     * These mirror the arm built in {@code CameraRenderer.renderTrack}: the boom lifts the arm
+     * and the arm reaches forward, so the camera is well above and ahead of the deck rather
+     * than perched on it. The eye has to come from the same place the head is drawn, or the
+     * feed does not match the machine.
+     */
+    public static final double MILO_HEAD_UP = 1.29;
+    public static final double MILO_HEAD_FORWARD = 0.75;
+    /** Elevation limits when an operator is flying the arm, degrees from level. */
+    private static final float JIB_MIN_ELEV = -35.0F;
+    private static final float JIB_MAX_ELEV = 80.0F;
     private static final float DEFAULT_JIB_SWEEP = 70.0F;   // total sweep, degrees
     private static final float DEFAULT_JIB_PERIOD = 14.0F;  // seconds per full oscillation
     private static final float DEFAULT_TRACK_SPEED = 1.0F;  // m/s
@@ -171,7 +193,7 @@ public class NdiCameraBlockEntity extends BlockEntity {
         switch (getKind()) {
             case PTZ -> ptzSpeed = Clamps.f(aux1, 5.0F, 180.0F, DEFAULT_PTZ_SPEED);
             case JIB -> {
-                jibArmLength = Clamps.f(aux1, 2.0F, 8.0F, DEFAULT_JIB_ARM);
+                jibArmLength = Clamps.f(aux1, 2.0F, MAX_JIB_ARM, DEFAULT_JIB_ARM);
                 jibSweep = Clamps.f(aux2, 10.0F, 170.0F, DEFAULT_JIB_SWEEP);
                 jibPeriod = Clamps.f(aux3, 4.0F, 40.0F, DEFAULT_JIB_PERIOD);
             }
@@ -220,10 +242,60 @@ public class NdiCameraBlockEntity extends BlockEntity {
         return new float[]{easedPan, easedTilt};
     }
 
+    /**
+     * This jib's occupied seat, or null when nobody is aboard.
+     *
+     * Found by search rather than stored on the block: the seat already knows which jib it
+     * belongs to and its state is synced to every client, so both sides can read the arm from it
+     * with no extra packets and no per-tick block updates. The search is over a small box and
+     * only matches this jib's own seat.
+     */
+    @Nullable
+    public dev.nano.ndidisplays.entity.JibSeatEntity jibSeat() {
+        if (level == null || getKind() != CameraKind.JIB) {
+            return null;
+        }
+        net.minecraft.world.phys.AABB near =
+                new net.minecraft.world.phys.AABB(worldPosition).inflate(MAX_JIB_ARM + 4.0);
+        for (dev.nano.ndidisplays.entity.JibSeatEntity seat : level.getEntitiesOfClass(
+                dev.nano.ndidisplays.entity.JibSeatEntity.class, near,
+                e -> e.jibPos().equals(worldPosition))) {
+            if (seat.getFirstPassenger() != null) {
+                return seat;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Where the operator sits: just behind the pivot on the counterweight side, swinging with
+     * the arm as a real crane seat does.
+     *
+     * Deliberately close to the pivot rather than out at the tip. The seat inherits the arm's
+     * yaw, and at full extension the tip travels fast enough that riding it would fling the
+     * operator around; near the pivot the motion reads as a crane seat instead.
+     */
+    public Vec3 getJibSeatPos(float partialTick) {
+        Vec3 pivot = Vec3.atCenterOf(worldPosition).add(0, 1.05, 0);
+        float[] arm = getJibArmAngles(partialTick);
+        double rad = Math.toRadians(arm[0]);
+        Vec3 forward = new Vec3(-Math.sin(rad), 0.0, Math.cos(rad));
+        // Behind the pivot, a little below the arm — the counterweight end.
+        return pivot.add(forward.scale(-1.6)).add(0.0, -0.35, 0.0);
+    }
+
     /** Jib arm state: [armYawDeg, armElevDeg]. The arm sweeps and gently breathes. */
     public float[] getJibArmAngles(float partialTick) {
         double s = motionSeconds(partialTick);
         double w = (Math.PI * 2.0) / jibPeriod;
+        dev.nano.ndidisplays.entity.JibSeatEntity seat = jibSeat();
+        if (seat != null) {
+            // Being flown: the seat owns the arm, integrated from the operator's WASD. Their look
+            // direction is deliberately not involved, so they can watch the shot while driving the
+            // crane. The automatic sweep is suspended entirely — a crane that kept oscillating
+            // under the operator would be unusable.
+            return seat.armAngles(partialTick);
+        }
         float armYaw = facingYaw(getFacing()) + (float) (Math.sin(s * w) * jibSweep * 0.5);
         float armElev = 20.0F + (float) (Math.sin(s * w * 0.5 + 0.8) * 10.0);
         return new float[]{armYaw, armElev};
@@ -312,7 +384,14 @@ public class NdiCameraBlockEntity extends BlockEntity {
                 Vec3 dolly = getDollyPos(partialTick);
                 float yaw = getDollyYaw(partialTick) + pan;
                 float pitch = -tilt;
-                return new ViewState(dolly.add(0, 0.62, 0), yaw, pitch);
+                // The head rides the end of the slewing arm, so pan moves the eye as well as
+                // aiming it — swinging the rig sweeps the camera through an arc, which is the
+                // whole point of a motion-control crane.
+                Vec3 reach = Vec3.directionFromRotation(0.0F, yaw).scale(MILO_HEAD_FORWARD);
+                Vec3 head = dolly.add(0.0, MILO_HEAD_UP, 0.0).add(reach);
+                Vec3 fwd = Vec3.directionFromRotation(pitch, yaw);
+                // Ahead of the lens glass, so the head's own body is never in its shot.
+                return new ViewState(head.add(fwd.scale(0.26)), yaw, pitch);
             }
         }
         return new ViewState(center.add(0, 1, 0), baseYaw, 0);
@@ -360,8 +439,11 @@ public class NdiCameraBlockEntity extends BlockEntity {
         }
         ptzSpeed = Clamps.f(tag.contains("PtzSpeed") ? tag.getFloat("PtzSpeed") : DEFAULT_PTZ_SPEED,
                 5.0F, 180.0F, DEFAULT_PTZ_SPEED);
+        // MAX_JIB_ARM, not a literal: this load clamp still said 8 after the limit was raised,
+        // so a longer arm survived the config packet and was then cut back the moment it
+        // round-tripped through NBT — the value appeared to save and then silently reverted.
         jibArmLength = Clamps.f(tag.contains("JibLen") ? tag.getFloat("JibLen") : DEFAULT_JIB_ARM,
-                2.0F, 8.0F, DEFAULT_JIB_ARM);
+                2.0F, MAX_JIB_ARM, DEFAULT_JIB_ARM);
         jibSweep = Clamps.f(tag.contains("JibSweep") ? tag.getFloat("JibSweep") : DEFAULT_JIB_SWEEP,
                 10.0F, 170.0F, DEFAULT_JIB_SWEEP);
         jibPeriod = Clamps.f(tag.contains("JibPeriod") ? tag.getFloat("JibPeriod") : DEFAULT_JIB_PERIOD,

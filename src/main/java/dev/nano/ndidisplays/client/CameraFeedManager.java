@@ -25,6 +25,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.PostChain;
 import com.mojang.blaze3d.systems.RenderSystem;
+import org.joml.Matrix4f;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -820,6 +821,9 @@ public final class CameraFeedManager {
 
     private static final Map<BlockPos, Feed> WEB_FEEDS = new java.util.HashMap<>();
 
+    /** One line the first time a page actually reaches the network. */
+    private static boolean loggedWebPublish;
+
     private static final Map<BlockPos, dev.nano.ndidisplays.block.WebTerminalBlockEntity>
             WEB_TERMINALS = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -898,26 +902,57 @@ public final class CameraFeedManager {
         captureTarget = CAPTURE_TARGETS.computeIfAbsent(((long) width << 32) | height,
                 key -> new MainTarget(width, height));
 
-        // Blit the page into the capture target. readAndSend flips rows on the way out (a
-        // framebuffer is bottom-up where NDI wants top-down) and CEF hands us a top-down image,
-        // so V is sampled inverted here to cancel that and keep the published feed upright.
+        // Blit the page into the capture target.
+        //
+        // Both matrices have to be set, and set to identity, because this runs on a render *tick*
+        // after the frame: whatever the GUI or world pass left behind is still current, and
+        // getPositionTexShader multiplies by it. An earlier version drew a clip-space quad while
+        // assuming identity, so under the leftover matrices it landed somewhere tiny and left the
+        // target cleared — a perfectly discoverable NDI source carrying solid black.
+        //
+        // Same identity-matrix, NDC-quad approach LedWallBaker already uses for its off-screen
+        // bake. The old projection is copied, not aliased, since the returned matrix is mutable.
+        //
+        // readAndSend reads the target bottom-up and flips it, and CEF's image is top-down, so V
+        // is sampled inverted (1 at the quad's bottom) to keep the published frame upright.
+        Matrix4f oldProjection = new Matrix4f(RenderSystem.getProjectionMatrix());
+        com.mojang.blaze3d.vertex.VertexSorting oldSorting = RenderSystem.getVertexSorting();
+        com.mojang.blaze3d.vertex.PoseStack modelView = RenderSystem.getModelViewStack();
+
         captureTarget.bindWrite(true);
-        RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderTexture(0, session.textureId());
+        RenderSystem.setProjectionMatrix(new Matrix4f(),
+                com.mojang.blaze3d.vertex.VertexSorting.ORTHOGRAPHIC_Z);
+        modelView.pushPose();
+        modelView.setIdentity();
+        RenderSystem.applyModelViewMatrix();
+        RenderSystem.disableDepthTest();
         RenderSystem.disableBlend();
         RenderSystem.disableCull();
-        RenderSystem.depthMask(false);
-        BufferBuilder b = Tesselator.getInstance().getBuilder();
-        b.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-        b.vertex(-1.0F, -1.0F, 0.0F).uv(0.0F, 1.0F).endVertex();
-        b.vertex(1.0F, -1.0F, 0.0F).uv(1.0F, 1.0F).endVertex();
-        b.vertex(1.0F, 1.0F, 0.0F).uv(1.0F, 0.0F).endVertex();
-        b.vertex(-1.0F, 1.0F, 0.0F).uv(0.0F, 0.0F).endVertex();
-        BufferUploader.drawWithShader(b.end());
-        RenderSystem.depthMask(true);
-        RenderSystem.enableCull();
-        captureTarget.unbindWrite();
-        Minecraft.getInstance().getMainRenderTarget().bindWrite(true);
+        try {
+            RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionTexShader);
+            RenderSystem.setShaderTexture(0, session.textureId());
+            BufferBuilder b = Tesselator.getInstance().getBuilder();
+            b.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+            b.vertex(-1.0F, -1.0F, 0.0F).uv(0.0F, 1.0F).endVertex();
+            b.vertex(1.0F, -1.0F, 0.0F).uv(1.0F, 1.0F).endVertex();
+            b.vertex(1.0F, 1.0F, 0.0F).uv(1.0F, 0.0F).endVertex();
+            b.vertex(-1.0F, 1.0F, 0.0F).uv(0.0F, 0.0F).endVertex();
+            BufferUploader.drawWithShader(b.end());
+        } finally {
+            RenderSystem.setProjectionMatrix(oldProjection, oldSorting);
+            modelView.popPose();
+            RenderSystem.applyModelViewMatrix();
+            RenderSystem.enableCull();
+            RenderSystem.enableDepthTest();
+            captureTarget.unbindWrite();
+            Minecraft.getInstance().getMainRenderTarget().bindWrite(true);
+        }
+
+        if (!loggedWebPublish) {
+            loggedWebPublish = true;
+            LOGGER.info("[ndidisplays] publishing '{}' at {}x{}", be.getEffectiveSourceName(),
+                    captureTarget.viewWidth, captureTarget.viewHeight);
+        }
 
         readAndSend(feed, be.getEffectiveSourceName(), be.getFps(), false,
                 captureTarget.viewWidth, captureTarget.viewHeight);

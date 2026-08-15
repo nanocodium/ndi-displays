@@ -1,0 +1,20 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "__comment": "A built-out rig: the handheld camera plus a harness, battery and optics.",
+    "pattern": [
+        "LCB",
+        "IHI",
+        "III"
+    ],
+    "key": {
+        "L": { "item": "minecraft:spyglass" },
+        "C": { "item": "ndidisplays:handheld_camera" },
+        "B": { "item": "minecraft:redstone_block" },
+        "H": { "item": "minecraft:leather_chestplate" },
+        "I": { "item": "minecraft:iron_ingot" }
+    },
+    "result": {
+        "item": "ndidisplays:shoulder_camera",
+        "count": 1
+    }
+}

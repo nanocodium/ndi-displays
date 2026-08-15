@@ -1,6 +1,8 @@
 package dev.nano.ndidisplays.net;
 
 import dev.nano.ndidisplays.block.CurvedScreenBlockEntity;
+import dev.nano.ndidisplays.block.FloorScanner;
+import dev.nano.ndidisplays.block.LedFloorBlockEntity;
 import dev.nano.ndidisplays.block.LedPanelBlockEntity;
 import dev.nano.ndidisplays.block.RoundScreenBlockEntity;
 import dev.nano.ndidisplays.block.WallScanner;
@@ -56,6 +58,8 @@ public record UpdateScreenCropPacket(BlockPos pos, float u0, float v0, float u1,
             } else if (be instanceof CurvedScreenBlockEntity curved) {
                 curved.crop().set(msg.u0, msg.v0, msg.u1, msg.v1);
                 sync(level, curved);
+            } else if (be instanceof LedFloorBlockEntity floor) {
+                applyToFloor(level, floor, msg);
             }
         });
         ctx.get().setPacketHandled(true);
@@ -76,6 +80,26 @@ public record UpdateScreenCropPacket(BlockPos pos, float u0, float v0, float u1,
                         .offset(right.getX() * w, right.getY() * w, right.getZ() * w)
                         .above(h);
                 if (level.getBlockEntity(p) instanceof LedPanelBlockEntity other) {
+                    other.crop().set(msg.u0, msg.v0, msg.u1, msg.v1);
+                    sync(level, other);
+                }
+            }
+        }
+    }
+
+    /** Every tile of the floor gets the same window. */
+    private static void applyToFloor(Level level, LedFloorBlockEntity tile, UpdateScreenCropPacket msg) {
+        FloorScanner.FloorInfo floor = tile.getFloorInfo();
+        if (floor == null) {
+            tile.crop().set(msg.u0, msg.v0, msg.u1, msg.v1);
+            sync(level, tile);
+            return;
+        }
+        net.minecraft.core.Direction right = FloorScanner.right(floor.facing());
+        for (int w = 0; w < floor.width(); w++) {
+            for (int d = 0; d < floor.depth(); d++) {
+                BlockPos p = floor.anchor().relative(right, w).relative(floor.facing(), d);
+                if (level.getBlockEntity(p) instanceof LedFloorBlockEntity other) {
                     other.crop().set(msg.u0, msg.v0, msg.u1, msg.v1);
                     sync(level, other);
                 }

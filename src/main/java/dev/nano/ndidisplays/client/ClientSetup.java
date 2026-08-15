@@ -66,6 +66,8 @@ public final class ClientSetup {
     @SubscribeEvent
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(NdiDisplays.LED_PANEL_BE.get(), ctx -> new LedWallRenderer());
+        event.registerBlockEntityRenderer(NdiDisplays.LED_FLOOR_BE.get(),
+                ctx -> new dev.nano.ndidisplays.client.render.LedFloorRenderer());
         event.registerBlockEntityRenderer(NdiDisplays.CAMERA_BE.get(), ctx -> new CameraRenderer());
         event.registerBlockEntityRenderer(NdiDisplays.KINETIC_WINCH_BE.get(),
                 ctx -> new dev.nano.ndidisplays.client.render.KineticPanelRenderer());
@@ -75,6 +77,8 @@ public final class ClientSetup {
                 ctx -> new dev.nano.ndidisplays.client.render.CurvedScreenRenderer());
         event.registerBlockEntityRenderer(NdiDisplays.MULTIVIEW_BE.get(),
                 ctx -> new dev.nano.ndidisplays.client.render.MultiviewRenderer());
+        event.registerBlockEntityRenderer(NdiDisplays.WINCH_PARK_MONITOR_BE.get(),
+                ctx -> new dev.nano.ndidisplays.client.render.WinchParkMonitorRenderer());
         event.registerBlockEntityRenderer(NdiDisplays.WEB_TERMINAL_BE.get(),
                 ctx -> new dev.nano.ndidisplays.client.render.WebTerminalRenderer());
     }

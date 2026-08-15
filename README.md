@@ -1,149 +1,541 @@
-# NDI Stage Displays (Forge 1.20.1)
+<div align="center">
 
-Realistic LED video walls for Minecraft, driven by **real NDI network video** — feed
-your in-game stage screens from OBS, Resolume, vMix, a media server, or any other
-NDI source on your LAN, exactly like a real touring LED wall.
+# NDI Stage Displays
 
-## What it does
+**Forge 1.20.1 · real NDI video in Minecraft**
 
-- **LED Wall Panel** block — a slim 1×1 m rental-style cabinet. Place panels in any
-  rectangle (walls hang free, no support needed — they're "rigged") and they
-  automatically merge into a single video wall.
-- **Real NDI input** — the mod embeds [Devolay](https://github.com/WalkerKnapp/devolay)
-  (Java bindings for NewTek's NDI SDK). Every client receives the stream itself over
-  the network, just like every processor on a real stage network.
-- **LED processor GUI** — right-click any panel to open the wall config: pick a
-  discovered NDI source (or type a name), pixel pitch, brightness, gamma, and test
-  patterns.
+Touring LED walls, kinetic parks, and broadcast cameras that speak the same
+protocol as OBS, Resolume, vMix, and a hardware LED processor.
 
-## Realism simulation (custom core shader)
+<br/>
 
-The wall is not just a texture on a quad. A dedicated fragment shader models how a
-real LED wall behaves:
+<a href="https://www.minecraft.net/"><img src="https://img.shields.io/badge/Minecraft-1.20.1-2d6a4f?style=for-the-badge" alt="Minecraft 1.20.1"></a>
+<a href="https://files.minecraftforge.net/"><img src="https://img.shields.io/badge/Forge-47.x-c2410c?style=for-the-badge" alt="Forge 47"></a>
+<a href="https://ndi.video/"><img src="https://img.shields.io/badge/NDI-SDK%20v5%20%2F%20v6-0ea5e9?style=for-the-badge" alt="NDI"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-64748b?style=for-the-badge" alt="MIT"></a>
 
-| Real-world behaviour | Simulation |
-|---|---|
-| Each LED shows one sample of the scaled feed | Per-LED point sampling; mipmap LOD chosen like a hardware scaler |
-| Pixel pitch (P2.0 – P31) | Selectable px/m; a 10×5 m wall at P3.9 is a true 2560×1280 px canvas |
-| RGB subpixel structure | Vertical R\|G\|B emitter stripes inside each LED cell |
-| Black bezel between pixels | Configurable gap with tiny intense emitters + energy compensation |
-| Uncalibrated module variance | Subtle per-LED random brightness offset |
-| Panel gamma / drive brightness | Gamma 1.8–2.8, brightness in % (≈nits) applied in linear light |
-| Wall resolves smooth at distance, no moiré | Pixel structure anti-aliases and fades out below ~1 LED per screen pixel |
-| Emissive surface | Screen ignores world lighting and emits block light |
-| Test patterns | Colour bars + grey ramp, per-cabinet alignment grid with diagonals, R/G/B/white, pixel checker |
-| Light spill / camera bloom | Optional [Shimmer](https://www.curseforge.com/minecraft/mc-mods/shimmer) integration: live video is fed into Shimmer's bloom pipeline so bright content glows |
+<br/>
 
-## NDI cameras (world → network)
+[Screens](#screens) · [Cameras](#cameras) · [Kinetics](#kinetics) · [Control room](#control-room) · [Requirements](#requirements) · [Usage](#usage) · [Build](#build)
 
-The mod also works in the other direction: camera rigs film the world and
-broadcast it as **real NDI sources** — pick them up in OBS/vMix, or feed them
-straight back onto an in-game LED wall (DJ cam on the big screen).
+</div>
 
-- **Broadcast Camera** — tripod ENG camera. Fixed shot with pan/tilt trim and zoom.
-- **PTZ Camera** — compact dome. Pan/tilt changes ease in at a configurable slew
-  rate, like a real motorized head.
-- **Jib Camera** — boom arm on a pedestal that auto-sweeps over the stage;
-  configurable arm length, sweep range and period.
-- **Track Dolly Camera** — lay a straight run of **Camera Track**, place the
-  dolly camera on top of a rail; it ping-pongs along the run at a set speed.
+---
 
-Right-click any rig for its config: NDI source name, live on/off, 540p/720p/1080p,
-frame rate, zoom, pan/tilt and rig-specific motion settings. A red tally lamp
-shows when a rig is live. Feeds render on the client (one capture per frame,
-round-robin), so keep the number of simultaneously live rigs sensible.
+Every client pulls NDI itself — no server transcode, no shared texture upload.
+Walls look like rental cabinets (pitch, subpixels, bezels, gamma). Cameras
+publish the world back onto the same network, so a jib can land on the IMAG
+wall in the same world.
 
-Camera rigs must be within ~96 blocks of the viewer, and they can only see
-terrain the viewer's client has built (fine for stage/venue shots).
+<table>
+<tr>
+<td width="33%" valign="top">
 
-## Requirements
+**In**
+Live NDI from OBS, a media server, or another machine on the LAN.
 
-1. **Minecraft 1.20.1 + Forge 47.x**
-2. **NDI runtime** installed on each client machine that should see video:
-   - Windows/macOS: install [NDI Tools](https://ndi.video/tools/)
-   - Linux: install the NDI SDK / runtime (`libndi`)
-   - Without it the mod still works — walls show test patterns, and the GUI reports
-     that the runtime is missing.
-3. An NDI source on your network. Easiest: OBS Studio with the
-   [DistroAV / obs-ndi](https://distroav.org/) plugin → *Tools → NDI Output Settings*.
+</td>
+<td width="33%" valign="top">
 
-## Usage
+**Through**
+Walls, floors, curves, kinetic tiles, routers, and a processor GUI.
 
-1. Build a rectangle of **LED Wall Panels** (all facing the same way). New panels
-   show colour bars so you can see the wall is alive.
-2. Right-click the wall → the **LED Wall Processor** opens.
-3. Pick your NDI source from the discovered list (or type part of its name),
-   choose pitch/brightness/gamma, set pattern to **NDI Video**, hit **Apply to Wall**.
-4. The whole wall now plays your live feed.
+</td>
+<td width="33%" valign="top">
 
-Settings are per-wall and saved with the world. Video reception is client-side;
-each viewer needs the NDI runtime and network access to the source.
+**Out**
+Broadcast, PTZ, jib, dolly, and handheld rigs as real NDI sources.
 
-Tip: set the source to a short distinctive fragment (`Arena - Composition`)
-rather than the full machine-prefixed name. Matching is exact first, then
-case-insensitive substring, so the short form keeps working on machines where
-the source carries a different prefix.
+</td>
+</tr>
+</table>
 
-### Angled walls
+---
 
-Panels have eight orientations. Facing roughly north/east/south/west gives a
-square panel; facing between them gives a 45° one, so stand square to the
-angle you want and place on the ground. Clicking a block's side still snaps
-flush to that face. Build a 45° wall as a staircase — one block diagonally
-each time — and the cabinets meet corner to corner into one continuous
-angled surface.
+<h2 id="screens">Screens</h2>
 
-A wall is one flat rectangle, so a straight section and a 45° wing are two
-separate walls with their own sources, meeting at a corner.
+<table>
+<tr>
+<td width="50%" valign="top">
 
-### Multiplayer
+### LED Wall Panel
+Slim 1×1 m rental cabinet. Place a rectangle of same-facing panels and they
+merge into one wall — no support blocks, they hang as if they were rigged.
 
-Install the mod on the server too — it registers the blocks, and Forge
-requires it on both sides. The server never touches NDI: no runtime, no
+Right-click any cabinet for the **LED Wall Processor**: source, pitch,
+brightness, gamma, test patterns.
+
+</td>
+<td width="50%" valign="top">
+
+### Blow-Through Panel
+Mesh / see-through cabinet for flying in front of a lighting rig. Dimmer
+than a solid module (less emitter area) and it does not block light or sight.
+
+Same processor, same NDI feed, same merge rules as the solid wall.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### LED Floor Tile
+Walkable module on the XZ plane. Adjacent same-facing tiles stitch into one
+floor canvas — colour bars, grids, or live video underfoot.
+
+</td>
+<td width="50%" valign="top">
+
+### Round LED Screen
+A single mount that draws a video disc of configurable radius. Same processor
+workflow as the walls, without building a circle out of cabinets.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### Curved LED Screen
+Cylindrical arc: radius, opening angle, height. 360° closes it into a full
+video column. Concave (audience inside) or convex (audience outside), with
+optional video repeat around the barrel.
+
+</td>
+<td width="50%" valign="top">
+
+### Video Processor
+Every screen can crop an **input window** out of the incoming frame — full
+frame or a sub-rectangle — so one NDI source can feed several walls with
+different cuts.
+
+</td>
+</tr>
+</table>
+
+<h3>What the shader actually simulates</h3>
+
+The wall is not a quad with a video texture. A dedicated core shader models a
+real LED processor:
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+- Per-LED point sampling, LOD like a hardware scaler
+- Pixel pitch P2.0–P31 (a 10×5 m wall at P3.9 is 2560×1280)
+- Vertical R&nbsp;|&nbsp;G&nbsp;|&nbsp;B subpixel stripes
+- Black bezel + energy compensation
+- Per-LED brightness variance (uncalibrated modules)
+
+</td>
+<td width="50%" valign="top">
+
+- Gamma 1.8–2.8, brightness in % (≈ nits), linear light
+- Structure fades out below ~1 LED per screen pixel (no moiré)
+- Emissive surface, ignores world lighting, emits block light
+- Colour bars, alignment grid, RGB/white, pixel checker
+- Optional <a href="https://www.curseforge.com/minecraft/mc-mods/shimmer">Shimmer</a> bloom from the live feed
+
+</td>
+</tr>
+</table>
+
+<details>
+<summary><strong>Angled walls</strong></summary>
+
+<br/>
+
+Panels have eight orientations. Facing a cardinal gives a square cabinet;
+facing between them gives a 45° one. Stand square to the angle you want and
+place on the ground. Clicking a block face still snaps flush to that face.
+
+Build a 45° wall as a staircase — one block diagonally each time — and the
+cabinets meet corner to corner. A straight run and a 45° wing are **two**
+walls with their own sources, meeting at a corner.
+
+</details>
+
+---
+
+<h2 id="cameras">Cameras</h2>
+
+Rigs film the world and publish **real NDI sources**. Pick them up in OBS or
+vMix, or route them back onto an in-game wall (DJ cam on the IMAG).
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### Broadcast Camera
+Tripod ENG body: fluid head, pan bar, matte box, viewfinder. Fixed shot with
+pan / tilt trim and zoom.
+
+</td>
+<td width="50%" valign="top">
+
+### PTZ Camera
+Single-arm broadcast PTZ. Pan and tilt ease to target at a configurable slew
+rate. Piano-black stepped base, live tally on the head.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### Jib Camera
+Boom on a pedestal. The arm auto-sweeps; length, sweep range and period are
+configurable. The head hangs on the tip.
+
+</td>
+<td width="50%" valign="top">
+
+### Track Dolly
+Lay **Camera Track** (straight or curved, including closed rings). The dolly
+follows the rail and leans into bends. Open runs ping-pong; rings loop.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### Handheld Camera
+Item, not a block. While held, the client publishes the player's view as
+<code>MC Handheld &lt;player&gt;</code>. Several players can each carry one.
+
+</td>
+<td width="50%" valign="top">
+
+### Rig config
+Right-click any block rig: source name, live on/off, 540p / 720p / 1080p,
+frame rate, FOV, pan / tilt, and motion extras. A red tally means the rig
+is live.
+
+</td>
+</tr>
+</table>
+
+Capture is client-side and budgeted (round-robin). Keep the number of
+**simultaneously live** rigs sensible. A rig only sees terrain the viewer's
+client has built — fine for a stage, not for filming unloaded chunks.
+
+---
+
+<h2 id="kinetics">Kinetics</h2>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### Kinetic LED Winch
+A ceiling motor that flies a payload on rendered cables — Freedom Stage
+“floating sky”, not a teleport. Motion is trapezoidal: accelerate, cruise,
+decelerate.
+
+**Payloads:** LED tile · LED slat · kinetic RGB sphere · mirror ball · a
+Theatrical / Extra Lights fixture hung on the hook.
+
+**Orientation:** vertical tile or flat (sky-facing). Mesh tiles are
+blow-through.
+
+</td>
+<td width="50%" valign="top">
+
+### Parks and stitch
+Each winch knows its cell in a canvas (`Canvas W×H`, `My Col/Row`). The
+shader's `UvRegion` samples only that slice, so a flown grid stays one
+picture as motors move.
+
+The **NDI Configuration Card** can select a park (sneak + click two
+corners) and either **stitch** it into one image or give every motor the
+full source.
+
+**Winch Park Monitor** binds to that selection and plots the motors.
+
+</td>
+</tr>
+</table>
+
+<h3>DMX (optional Theatrical)</h3>
+
+When <a href="https://github.com/theatricalmod/Theatrical">Theatrical</a> is installed,
+winches register as patchable fixtures.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**Linked — 4 ch**
+Height coarse / fine (16-bit), speed, dimmer.
+
+</td>
+<td width="50%" valign="top">
+
+**Twin — 6 ch**
+Two independent 16-bit heights + shared speed and dimmer.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Flown fixture — 4 / 7 / 10 ch**
+Position only, plus colour, or full (focus, pan, tilt). Beams can go
+through Extra Lights' volumetric pipeline.
+
+</td>
+<td width="50%" valign="top">
+
+**Screens — 2 ch**
+Dimmer + source select (slot every 32 DMX values). Patch with Theatrical's
+configuration card.
+
+</td>
+</tr>
+</table>
+
+---
+
+<h2 id="control-room">Control room</h2>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### NDI Router
+Publishes a **stable output name** and forwards whichever source is patched
+to it. Uses NDI routing — no decode, no re-encode, no extra GPU cost.
+
+Rename the output once in OBS; re-patch the router when the show changes.
+
+</td>
+<td width="50%" valign="top">
+
+### Multiview Monitor
+2×2 or 3×3 mosaic of NDI sources for the video engineer. Direct video, no
+LED simulation. Click a cell, then pick its source.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### NDI Configuration Card
+Sneak + right-click in the air to pick a source. Right-click a screen to
+apply it. Sneak + click two winches to bound a park, then apply source,
+winch mode (linked / twin), and stitch on/off to the whole selection.
+
+</td>
+<td width="50%" valign="top">
+
+### Winch Park Monitor
+Control-room plot of a bound park: motor grid, selection size, live
+layout. Bind it with the card the same way you select a region.
+
+</td>
+</tr>
+</table>
+
+---
+
+<h2 id="requirements">Requirements</h2>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### Required
+1. **Minecraft 1.20.1** + **Forge 47.x**
+2. The mod on **every client** that should see video, and on the **server**
+   (blocks must be registered; the server never talks NDI)
+
+</td>
+<td width="50%" valign="top">
+
+### For live video
+3. **NDI runtime** on each viewing machine
+   - Windows / macOS: <a href="https://ndi.video/tools/">NDI Tools</a>
+   - Linux: NDI SDK / <code>libndi</code>
+4. An NDI source on the LAN — easiest is OBS +
+   <a href="https://distroav.org/">DistroAV / obs-ndi</a>
+   → *Tools → NDI Output Settings*
+
+</td>
+</tr>
+</table>
+
+Without the runtime the mod still loads. Walls show test patterns and the
+GUI reports that NDI is missing.
+
+### Optional integrations
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**Shimmer** — live wall content is fed into the bloom pipeline so bright
+video spills into the room.
+
+</td>
+<td width="50%" valign="top">
+
+**Theatrical** — winches and screens become DMX consumers on a Theatrical
+network. Extra Lights fixtures can be hung on a winch hook.
+
+</td>
+</tr>
+</table>
+
+---
+
+<h2 id="usage">Usage</h2>
+
+<table>
+<tr>
+<td valign="top" width="8%"><strong>1</strong></td>
+<td>
+
+Build a rectangle of **LED Wall Panels**, all facing the same way. New
+cabinets show colour bars so you can see the wall is alive.
+
+</td>
+</tr>
+<tr>
+<td valign="top"><strong>2</strong></td>
+<td>
+
+Right-click the wall. The **LED Wall Processor** opens.
+
+</td>
+</tr>
+<tr>
+<td valign="top"><strong>3</strong></td>
+<td>
+
+Pick a discovered NDI source (or type a fragment of the name). Set pitch,
+brightness, gamma. Pattern → **NDI Video**. **Apply to Wall**.
+
+</td>
+</tr>
+<tr>
+<td valign="top"><strong>4</strong></td>
+<td>
+
+The whole rectangle plays the feed. Settings are per-wall and saved with
+the world.
+
+</td>
+</tr>
+</table>
+
+Prefer a short distinctive fragment (`Arena - Composition`) over the full
+machine-prefixed name. Matching is exact first, then case-insensitive
+substring, so the short form survives a hostname change.
+
+---
+
+<h2 id="multiplayer">Multiplayer</h2>
+
+Install the mod on the server. The server never opens NDI: no runtime, no
 config, no ports.
 
-Receiving works for everyone. Broadcasting must come from **one** machine, or
-every client publishes a duplicate copy of every camera and renders it again.
-In `config/ndidisplays-client.toml`:
+**Receiving** works for every client with the runtime and LAN access.
 
-    [broadcast]
-        mode = "ALWAYS"   # on the operator's machine only
+**Broadcasting** must come from **one** machine. Otherwise every client
+publishes a duplicate of every camera and renders it again.
 
-`AUTO` (the default) broadcasts only in singleplayer or when hosting a LAN
-world, so on a server nothing is published until one machine opts in. The
-handheld camera is named per player and has its own switch, so several
-players can each carry one.
+```toml
+# config/ndidisplays-client.toml
+[broadcast]
+    mode = "ALWAYS"   # operator machine only
+    handheld = true
+```
 
-## Building from source
+`AUTO` (default) broadcasts only in singleplayer or when hosting a LAN
+world. On a dedicated server nothing is published until one machine sets
+`ALWAYS`. `NEVER` is receive-only.
 
-Linux / macOS:
+The handheld camera is named per player and has its own switch, so several
+operators can each carry one.
+
+---
+
+<h2 id="build">Build</h2>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### Linux / macOS
 
 ```bash
 ./gradlew build
 ```
 
-Windows (cmd or PowerShell):
+</td>
+<td width="50%" valign="top">
 
-```
+### Windows
+
+```bat
 gradlew.bat build
 ```
 
-The compile JDK is provisioned automatically (Java 17 toolchain), so `JAVA_HOME` only
-needs to point at a JDK that Gradle 8.1.1 itself can run on — anything from 8 to 19.
+</td>
+</tr>
+</table>
 
-Two jars land in `build/libs/`. The one to ship is
-`ndidisplays-1.20.1-1.0.0-all.jar` — it has Devolay bundled via jarJar. The plain
-`ndidisplays-1.20.1-1.0.0.jar` does **not** contain the NDI bindings and will fail to load
-Devolay at runtime.
+Java 17 is the compile target. Gradle 8.1.1 needs a JDK it can *run* on
+(8–19). The toolchain provisions 17 for `compileJava`.
 
-### Running the dev client
+Two jars land in `build/libs/`:
 
-```
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**Ship this**
+`ndidisplays-1.20.1-1.0.0-all.jar`
+
+Devolay is bundled via jarJar.
+
+</td>
+<td width="50%" valign="top">
+
+**Do not ship**
+`ndidisplays-1.20.1-1.0.0.jar`
+
+No NDI bindings. Devolay will fail at runtime.
+
+</td>
+</tr>
+</table>
+
+### Dev client
+
+```bat
 gradlew.bat runClient
 ```
 
-The run configs locate your NDI runtime automatically: they honour an existing
-`NDI_RUNTIME_DIR_V6`/`NDI_RUNTIME_DIR_V5`, otherwise they probe the standard install
-paths for the platform. Override it explicitly with
-`-PndiRuntimeDir="C:/Program Files/NDI/NDI 6 Runtime/v6"`. Gradle prints the directory it
-picked at configuration time, and says so when it does not exist.
+Optional:
+
+```bat
+gradlew.bat runClient -PquickPlay="NDI TEST"
+gradlew.bat runClient -PdebugCapture
+gradlew.bat runClient -PperfLog
+```
+
+Run configs honour `NDI_RUNTIME_DIR_V6` / `V5`, then probe the usual
+install paths. Override with
+`-PndiRuntimeDir="C:/Program Files/NDI/NDI 6 Runtime/v6"`.
+Gradle prints the directory it picked.
+
+---
+
+<div align="center">
+
+NDI® is a registered trademark of Vizrt NDI AB. This project is not
+affiliated with Vizrt.
+
+[MIT License](LICENSE) · [Issues](https://github.com/nanocodium/ndi-displays/issues) · [Source](https://github.com/nanocodium/ndi-displays)
+
+</div>

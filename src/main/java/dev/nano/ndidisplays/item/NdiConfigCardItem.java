@@ -40,6 +40,8 @@ public class NdiConfigCardItem extends Item {
     public static final String TAG_DIM = "selDim";
     /** Winch motor mode the card imposes: 0 leave unchanged, 1 linked, 2 twin. */
     public static final String TAG_WINCH_MODE = "winchMode";
+    /** When true, region apply stitches the park into one canvas; false = full source per motor. */
+    public static final String TAG_AUTOMAP = "autoMapCanvas";
 
     public static final int WINCH_MODE_KEEP = 0;
     public static final int WINCH_MODE_LINKED = 1;
@@ -59,6 +61,12 @@ public class NdiConfigCardItem extends Item {
         CompoundTag tag = stack.getTag();
         int mode = tag == null ? WINCH_MODE_KEEP : tag.getInt(TAG_WINCH_MODE);
         return mode >= WINCH_MODE_KEEP && mode <= WINCH_MODE_TWIN ? mode : WINCH_MODE_KEEP;
+    }
+
+    /** True when region apply should stitch motors into one shared canvas. */
+    public static boolean storedAutoMap(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        return tag != null && tag.getBoolean(TAG_AUTOMAP);
     }
 
     @Nullable
@@ -152,6 +160,10 @@ public class NdiConfigCardItem extends Item {
                             ? "item.ndidisplays.ndi_config_card.mode_twin"
                             : "item.ndidisplays.ndi_config_card.mode_linked")
                     .withStyle(ChatFormatting.LIGHT_PURPLE));
+        }
+        if (storedAutoMap(stack)) {
+            tooltip.add(Component.translatable("item.ndidisplays.ndi_config_card.automap")
+                    .withStyle(ChatFormatting.AQUA));
         }
         BlockPos pos1 = selectionPos(stack, TAG_POS1);
         BlockPos pos2 = selectionPos(stack, TAG_POS2);

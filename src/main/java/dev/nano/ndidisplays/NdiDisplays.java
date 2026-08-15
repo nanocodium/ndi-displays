@@ -74,6 +74,26 @@ public class NdiDisplays {
                     LED_PANEL.get(), BLOW_THROUGH_PANEL.get()).build(null));
 
     /**
+     * Walkable LED floor tile. Adjacent same-facing tiles merge into one video
+     * rectangle, like the walls, but drawn on the XZ plane so you can walk on it.
+     */
+    public static final RegistryObject<Block> LED_FLOOR = BLOCKS.register("led_floor",
+            () -> new dev.nano.ndidisplays.block.LedFloorBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 10)));
+
+    public static final RegistryObject<Item> LED_FLOOR_ITEM = ITEMS.register("led_floor",
+            () -> new BlockItem(LED_FLOOR.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.LedFloorBlockEntity>> LED_FLOOR_BE =
+            BLOCK_ENTITIES.register("led_floor",
+                    () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.LedFloorBlockEntity::new,
+                            LED_FLOOR.get()).build(null));
+
+    /**
      * Kinetic winch: flies an LED video tile below itself on rendered cables — the
      * "floating sky" element (Tomorrowland Freedom Stage style). Height, speed and
      * dimmer are DMX-controllable through Theatrical when it is installed.
@@ -151,6 +171,25 @@ public class NdiDisplays {
             BLOCK_ENTITIES.register("multiview",
                     () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.MultiviewBlockEntity::new,
                             MULTIVIEW.get()).build(null));
+
+    /**
+     * Control-room monitor bound to a kinetic winch park via the NDI card selection.
+     */
+    public static final RegistryObject<Block> WINCH_PARK_MONITOR = BLOCKS.register("winch_park_monitor",
+            () -> new dev.nano.ndidisplays.block.WinchParkMonitorBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 8)));
+
+    public static final RegistryObject<Item> WINCH_PARK_MONITOR_ITEM = ITEMS.register("winch_park_monitor",
+            () -> new BlockItem(WINCH_PARK_MONITOR.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.WinchParkMonitorBlockEntity>> WINCH_PARK_MONITOR_BE =
+            BLOCK_ENTITIES.register("winch_park_monitor",
+                    () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.WinchParkMonitorBlockEntity::new,
+                            WINCH_PARK_MONITOR.get()).build(null));
 
     private static BlockBehaviour.Properties cameraProps() {
         return BlockBehaviour.Properties.of()
@@ -262,10 +301,12 @@ public class NdiDisplays {
                     .displayItems((params, output) -> {
                         output.accept(LED_PANEL_ITEM.get());
                         output.accept(BLOW_THROUGH_PANEL_ITEM.get());
+                        output.accept(LED_FLOOR_ITEM.get());
                         output.accept(KINETIC_WINCH_ITEM.get());
                         output.accept(ROUND_SCREEN_ITEM.get());
                         output.accept(CURVED_SCREEN_ITEM.get());
                         output.accept(MULTIVIEW_ITEM.get());
+                        output.accept(WINCH_PARK_MONITOR_ITEM.get());
                         output.accept(BROADCAST_CAMERA_ITEM.get());
                         output.accept(PTZ_CAMERA_ITEM.get());
                         output.accept(JIB_CAMERA_ITEM.get());

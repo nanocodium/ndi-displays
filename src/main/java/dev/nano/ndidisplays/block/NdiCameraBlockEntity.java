@@ -90,7 +90,7 @@ public class NdiCameraBlockEntity extends BlockEntity {
     }
 
     /**
-     * Resting tilt per rig type. A jib boom and a PTZ dome sit above the action and are
+     * Resting tilt per rig type. A jib boom and a PTZ sit above the action and are
      * aimed down at it; a shoulder camera and a dolly start level.
      */
     private float defaultTilt() {
@@ -363,7 +363,9 @@ public class NdiCameraBlockEntity extends BlockEntity {
                 float yaw = baseYaw + pt[0];
                 float pitch = -pt[1];
                 Vec3 fwd = Vec3.directionFromRotation(pitch, yaw);
-                return new ViewState(center.add(0, 0.42, 0).add(fwd.scale(0.2)), yaw, pitch);
+                // Eye sits just in front of the lens (tilt pivot at y=0.50,
+                // glass at local +Z 0.24) so the feed is not the inside of the barrel.
+                return new ViewState(center.add(0, 0.50, 0).add(fwd.scale(0.26)), yaw, pitch);
             }
             case JIB -> {
                 float[] arm = getJibArmAngles(partialTick);

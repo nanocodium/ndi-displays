@@ -1,0 +1,16 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "GGG",
+        "GKG",
+        "GGG"
+    ],
+    "key": {
+        "G": { "item": "minecraft:glass_pane" },
+        "K": { "item": "ndidisplays:kinetic_winch" }
+    },
+    "result": {
+        "item": "ndidisplays:winch_park_monitor",
+        "count": 1
+    }
+}

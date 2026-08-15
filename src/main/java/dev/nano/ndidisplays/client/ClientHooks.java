@@ -15,6 +15,23 @@ public final class ClientHooks {
     private ClientHooks() {
     }
 
+    public static void openFloorConfig(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level == null || !(level.getBlockEntity(pos)
+                instanceof dev.nano.ndidisplays.block.LedFloorBlockEntity clicked)) {
+            return;
+        }
+        net.minecraft.core.Direction facing = clicked.getFacing();
+        BlockPos anchorPos = dev.nano.ndidisplays.block.FloorScanner.findAnchor(
+                level, pos, facing, clicked.getPanelKind());
+        if (!(level.getBlockEntity(anchorPos)
+                instanceof dev.nano.ndidisplays.block.LedFloorBlockEntity anchor)) {
+            return;
+        }
+        mc.setScreen(new dev.nano.ndidisplays.client.gui.FloorConfigScreen(anchor));
+    }
+
     public static void openPanelConfig(BlockPos pos) {
         Minecraft mc = Minecraft.getInstance();
         Level level = mc.level;
@@ -74,6 +91,17 @@ public final class ClientHooks {
         if (level != null && level.getBlockEntity(pos)
                 instanceof dev.nano.ndidisplays.block.MultiviewBlockEntity monitor) {
             mc.setScreen(new dev.nano.ndidisplays.client.gui.MultiviewConfigScreen(monitor));
+        }
+    }
+
+    public static void openWinchParkMonitor(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level != null && level.getBlockEntity(pos)
+                instanceof dev.nano.ndidisplays.block.WinchParkMonitorBlockEntity monitor
+                && monitor.isBoundIn(level)) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.WinchParkScreen(null,
+                    monitor.getParkPos1(), monitor.getParkPos2()));
         }
     }
 

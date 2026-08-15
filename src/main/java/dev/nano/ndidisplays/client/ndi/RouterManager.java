@@ -151,9 +151,6 @@ public final class RouterManager {
      * something changed (or every couple of seconds, so a source appearing late is picked
      * up) keeps this off the per-frame path.
      */
-    /** Frames per second for generated patterns. Only the motion pattern actually changes. */
-    private static final int PATTERN_FPS = 15;
-
     /**
      * Publishes one frame of the router's test pattern, creating the sender on demand.
      *
@@ -164,10 +161,14 @@ public final class RouterManager {
     private static void generate(Entry entry, String wantedName) {
         NdiRouterBlockEntity be = entry.be;
         double now = org.lwjgl.glfw.GLFW.glfwGetTime();
-        int width = 1280;
-        int height = 720;
+        // Format comes from the block, so a generated pattern matches the wall it is testing
+        // rather than being fixed at whatever the generator was first written against.
+        int width = be.getPatternWidth();
+        int height = be.getPatternHeight();
+        int fps = be.getPatternFps();
 
-        if (entry.sender == null || !wantedName.equals(entry.publishedName)) {
+        if (entry.sender == null || !wantedName.equals(entry.publishedName)
+                || entry.frameWidth != width || entry.frameHeight != height) {
             entry.closeSender();
             // Unclocked, like the camera senders: we pace frames ourselves rather than letting
             // the sender block the calling thread to hit a declared rate.
@@ -180,7 +181,7 @@ public final class RouterManager {
         if (now < entry.nextFrameDue) {
             return;
         }
-        double period = 1.0 / PATTERN_FPS;
+        double period = 1.0 / Math.max(1, fps);
         entry.nextFrameDue += period;
         if (entry.nextFrameDue < now - period) {
             entry.nextFrameDue = now + period;
@@ -202,14 +203,14 @@ public final class RouterManager {
         }
 
         TestPatternGenerator.render(entry.frameBuffer, width, height, be.getPattern(),
-                wantedName, PATTERN_FPS, entry.frameCount++);
+                wantedName, fps, entry.frameCount++);
 
         try (me.walkerknapp.devolay.DevolayVideoFrame frame =
                      new me.walkerknapp.devolay.DevolayVideoFrame()) {
             frame.setResolution(width, height);
             frame.setFourCCType(me.walkerknapp.devolay.DevolayFrameFourCCType.BGRX);
             frame.setLineStride(width * 4);
-            frame.setFrameRate(PATTERN_FPS, 1);
+            frame.setFrameRate(fps, 1);
             frame.setData(entry.frameBuffer);
             entry.sender.sendVideoFrameAsync(frame);
         }

@@ -19,12 +19,16 @@ public class RouterConfigScreen extends NdiPickerScreen {
     private EditBox outputBox;
     private String outputName;
     private int pattern;
+    private int patternResolution;
+    private int patternFps;
 
     public RouterConfigScreen(NdiRouterBlockEntity router) {
         super(Component.translatable("gui.ndidisplays.router.title"));
         this.router = router;
         this.outputName = router.getOutputName();
         this.pattern = router.getPattern();
+        this.patternResolution = router.getPatternResolution();
+        this.patternFps = router.getPatternFps();
         this.source = router.getSourceName();
     }
 
@@ -65,6 +69,23 @@ public class RouterConfigScreen extends NdiPickerScreen {
                 .create(width / 2 - 132, height - 78, 264, 20,
                         Component.translatable("gui.ndidisplays.router.pattern"),
                         (b, v) -> pattern = v));
+        // Format of the generated picture. Only applies while a pattern is selected: forwarding
+        // passes the upstream source through untouched, at whatever it happens to be.
+        addRenderableWidget(net.minecraft.client.gui.components.CycleButton.<Integer>builder(
+                        r -> Component.literal(NdiRouterBlockEntity.RES_W[r] + "x"
+                                + NdiRouterBlockEntity.RES_H[r]))
+                .withValues(0, 1, 2)
+                .withInitialValue(patternResolution)
+                .create(width / 2 - 132, height - 54, 130, 20,
+                        Component.translatable("gui.ndidisplays.router.pattern_res"),
+                        (b, v) -> patternResolution = v));
+        addRenderableWidget(net.minecraft.client.gui.components.CycleButton.<Integer>builder(
+                        f -> Component.literal(f + " fps"))
+                .withValues(15, 24, 30, 60)
+                .withInitialValue(patternFps)
+                .create(width / 2 + 2, height - 54, 130, 20,
+                        Component.translatable("gui.ndidisplays.router.pattern_fps"),
+                        (b, v) -> patternFps = v));
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.apply"), b -> apply())
                 .bounds(cx - 130, y, 128, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> onClose())
@@ -73,7 +94,8 @@ public class RouterConfigScreen extends NdiPickerScreen {
 
     private void apply() {
         NetworkHandler.CHANNEL.sendToServer(new UpdateRouterConfigPacket(
-                router.getBlockPos(), outputName.trim(), source.trim(), pattern));
+                router.getBlockPos(), outputName.trim(), source.trim(), pattern,
+                patternResolution, patternFps));
         onClose();
     }
 

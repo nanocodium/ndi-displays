@@ -40,6 +40,8 @@
  "gui.ndidisplays.router.source": "Patched Source",
  "gui.ndidisplays.router.clear": "Clear Patch",
  "gui.ndidisplays.router.pattern": "Generate",
+ "gui.ndidisplays.router.pattern_res": "Pattern Output",
+ "gui.ndidisplays.router.pattern_fps": "Pattern Rate",
  "gui.ndidisplays.camera.title.broadcast": "Broadcast Camera",
  "gui.ndidisplays.camera.title.ptz": "PTZ Camera",
  "gui.ndidisplays.camera.title.jib": "Jib Camera",

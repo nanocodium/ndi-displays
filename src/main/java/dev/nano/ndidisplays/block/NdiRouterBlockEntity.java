@@ -35,6 +35,23 @@ public class NdiRouterBlockEntity extends BlockEntity {
      */
     private int pattern = dev.nano.ndidisplays.client.ndi.TestPatternGenerator.PATTERN_OFF;
 
+    /**
+     * Format of generated frames. Only meaningful while a pattern is selected — a router that is
+     * forwarding has no format of its own, it passes on whatever the upstream source is.
+     *
+     * These were hardcoded at 1280x720/15 when patterns were added, which made a generated feed
+     * silently different from everything else on the network and impossible to match to the wall
+     * it was testing.
+     */
+    private int patternResolution = DEFAULT_PATTERN_RESOLUTION;
+    private int patternFps = DEFAULT_PATTERN_FPS;
+
+    /** Output formats for generated patterns, shared with the cameras' familiar set. */
+    public static final int[] RES_W = {1280, 1920, 2560};
+    public static final int[] RES_H = {720, 1080, 1440};
+    private static final int DEFAULT_PATTERN_RESOLUTION = 1;   // 1920x1080
+    private static final int DEFAULT_PATTERN_FPS = 30;
+
     public NdiRouterBlockEntity(BlockPos pos, BlockState state) {
         super(NdiDisplays.ROUTER_BE.get(), pos, state);
     }
@@ -69,6 +86,29 @@ public class NdiRouterBlockEntity extends BlockEntity {
         return pattern != dev.nano.ndidisplays.client.ndi.TestPatternGenerator.PATTERN_OFF;
     }
 
+    public int getPatternResolution() {
+        return patternResolution;
+    }
+
+    public int getPatternWidth() {
+        return RES_W[Math.floorMod(patternResolution, RES_W.length)];
+    }
+
+    public int getPatternHeight() {
+        return RES_H[Math.floorMod(patternResolution, RES_H.length)];
+    }
+
+    public int getPatternFps() {
+        return patternFps;
+    }
+
+    public void applyConfig(String outputName, String sourceName, int pattern,
+                            int patternResolution, int patternFps) {
+        this.patternResolution = Clamps.i(patternResolution, 0, RES_W.length - 1);
+        this.patternFps = Clamps.i(patternFps, 1, 60);
+        applyConfig(outputName, sourceName, pattern);
+    }
+
     public void applyConfig(String outputName, String sourceName, int pattern) {
         this.pattern = Clamps.i(pattern, 0,
                 dev.nano.ndidisplays.client.ndi.TestPatternGenerator.PATTERN_COUNT - 1);
@@ -87,6 +127,8 @@ public class NdiRouterBlockEntity extends BlockEntity {
         tag.putString("Output", outputName);
         tag.putString("Source", sourceName);
         tag.putInt("Pattern", pattern);
+        tag.putInt("PatternRes", patternResolution);
+        tag.putInt("PatternFps", patternFps);
     }
 
     /** Also handles the client sync packet, so both names are re-clamped rather than trusted. */
@@ -97,6 +139,11 @@ public class NdiRouterBlockEntity extends BlockEntity {
         sourceName = Clamps.name(tag.getString("Source"), MAX_NAME);
         pattern = Clamps.i(tag.getInt("Pattern"), 0,
                 dev.nano.ndidisplays.client.ndi.TestPatternGenerator.PATTERN_COUNT - 1);
+        patternResolution = Clamps.i(tag.contains("PatternRes")
+                ? tag.getInt("PatternRes") : DEFAULT_PATTERN_RESOLUTION,
+                0, RES_W.length - 1);
+        patternFps = Clamps.i(tag.contains("PatternFps")
+                ? tag.getInt("PatternFps") : DEFAULT_PATTERN_FPS, 1, 60);
     }
 
     @Override

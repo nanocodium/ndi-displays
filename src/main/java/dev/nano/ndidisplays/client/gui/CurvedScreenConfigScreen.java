@@ -186,6 +186,9 @@ public class CurvedScreenConfigScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
+        drawNativeResolution(graphics,
+                dev.nano.ndidisplays.block.NativeResolution.of(screen),
+                sourceBox == null ? source : sourceBox.getValue(), height - 44);
         super.render(graphics, mouseX, mouseY, partialTick);
         int left = width / 2 - 132;
         graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
@@ -275,6 +278,55 @@ public class CurvedScreenConfigScreen extends Screen {
         @Override
         protected void applyValue() {
             out.accept(actual());
+        }
+    }
+
+    /**
+     * Reports the screen's native resolution, the resolution to actually feed it, and how the
+     * stream that is arriving compares.
+     *
+     * A native size is only useful if a source can produce it, so when the screen is finer than
+     * one NDI feed can carry this also names the pitch that brings it back in range — the number
+     * the operator would otherwise have to work out by hand.
+     */
+    private void drawNativeResolution(GuiGraphics graphics,
+            dev.nano.ndidisplays.block.NativeResolution.Native res, String sourceName, int y) {
+        int x = width / 2 - 132;
+        boolean fits = res.fitsOneFeed();
+        graphics.drawString(font, "Native: " + res.describe(), x, y,
+                fits ? 0xFFD8DEE4 : 0xFFE0A050, false);
+
+        String line;
+        int colour;
+        if (fits && !res.cropped()) {
+            line = "Feed it: " + res.recommendedSource() + "  (1:1)";
+            colour = 0xFF7ED08A;
+        } else if (fits) {
+            line = "Feed it: " + res.recommendedSource() + "  (1:1 through the crop)";
+            colour = 0xFF7ED08A;
+        } else {
+            // Too fine for one feed: name both halves of the fix, since the resolution only
+            // becomes correct once the pitch matches it.
+            line = "Too large — feed it " + res.recommendedSource()
+                    + " at pitch " + res.suggestedPitch();
+            colour = 0xFFE0A050;
+        }
+        graphics.drawString(font, line, x, y + 10, colour, false);
+
+        String verdict = null;
+        if (sourceName != null && !sourceName.isBlank()) {
+            dev.nano.ndidisplays.client.ndi.NdiStream stream =
+                    dev.nano.ndidisplays.client.ndi.NdiManager.acquire(sourceName);
+            if (stream != null) {
+                verdict = dev.nano.ndidisplays.block.NativeResolution.compare(
+                        res, stream.getVideoWidth(), stream.getVideoHeight());
+            }
+        }
+        if (verdict != null) {
+            graphics.drawString(font, "Incoming: " + verdict, x, y + 20,
+                    verdict.startsWith("1:1") ? 0xFF7ED08A : 0xFFE0A050, false);
+        } else {
+            graphics.drawString(font, "Incoming: no signal", x, y + 20, 0xFF808A90, false);
         }
     }
 }

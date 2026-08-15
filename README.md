@@ -257,7 +257,7 @@ full source.
 
 <h3>DMX (optional Theatrical)</h3>
 
-When <a href="https://github.com/imabad/Theatrical">Theatrical</a> is installed,
+When <a href="https://github.com/theatricalmod/Theatrical">Theatrical</a> is installed,
 winches register as patchable fixtures.
 
 <table>

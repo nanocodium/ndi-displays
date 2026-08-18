@@ -525,9 +525,53 @@ gradlew.bat runClient -PperfLog
 ```
 
 Run configs honour `NDI_RUNTIME_DIR_V6` / `V5`, then probe the usual
-install paths. Override with
+install paths for a directory that actually contains an NDI library.
+Override with
 `-PndiRuntimeDir="C:/Program Files/NDI/NDI 6 Runtime/v6"`.
-Gradle prints the directory it picked.
+Gradle prints the directory it picked, and says so when it holds no NDI.
+
+The dev client needs **JDK 17**. Gradle 8.1.1 cannot run on Java 21 and
+fails during configuration with `Unsupported class file major version 65`
+— the toolchain in `build.gradle` governs compilation, not Gradle's own
+JVM. If your default JDK is newer, either launch with `JAVA_HOME` set to a
+17 install, or set `org.gradle.java.home` in `~/.gradle/gradle.properties`
+(machine-local; deliberately not committed, since the path differs per OS).
+
+#### Linux notes
+
+Two things bite on Linux only, and both fail *silently* — screens stay
+black and nothing is logged:
+
+1. **Devolay wants `libndi.so.5`.** Its natives `dlopen` that exact
+   soname, so an NDI 6 install (`libndi.so.6`) never resolves. The build
+   now links `build/ndi-shim/libndi.so.5` to whatever major version it
+   finds and points the run config there; NDI 6 still exports
+   `NDIlib_v3_load`, the entry point Devolay calls, so the runtime is
+   ABI-compatible and only the filename was wrong. Windows and macOS
+   need no bridge — their runtime filenames carry no major version.
+
+2. **NDI discovery needs a working mDNS responder.** NDI's mDNS has to
+   bind UDP 5353; if another process holds it exclusively (browsers are
+   common offenders) and `avahi-daemon` is not running, the source finder
+   returns an empty list forever, so a screen set to an NDI source just
+   renders black. Either run `avahi-daemon`, or bypass mDNS with
+   `~/.ndi/ndi-config.v1.json`:
+
+   ```json
+   { "ndi": { "networks": { "ips": "127.0.0.1" } } }
+   ```
+
+   That covers in-game cameras feeding in-game screens. Add the IP of any
+   other machine whose sources you want (`"192.168.0.50,127.0.0.1"`), or
+   run `ndi-discovery-server` from the SDK and use
+   `"discovery": "<ip>"` instead. NDI reads this file only when the
+   library loads, so restart the client after editing it.
+
+A healthy client logs `NDI runtime initialised`, one
+`NDI sender '<name>' online` per camera, and an `NDI-Receive-<name>`
+thread per screen that is pulling a feed. `Unknown frame type id: 101` is
+an NDI 6 control frame that Devolay 2.1.0 cannot name; it is ignored and
+harmless.
 
 ---
 

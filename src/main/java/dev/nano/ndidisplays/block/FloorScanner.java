@@ -23,7 +23,7 @@ import java.util.Set;
  */
 public final class FloorScanner {
 
-    public static final int MAX_SPAN = 64;
+    public static final int MAX_SPAN = 256;
 
     /**
      * @param width  tiles along viewer-right (clockwise of facing)

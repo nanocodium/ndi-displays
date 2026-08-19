@@ -10,8 +10,6 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.nano.ndidisplays.block.CurvedScreenBlockEntity;
 import dev.nano.ndidisplays.client.ClientSetup;
-import dev.nano.ndidisplays.client.ndi.NdiManager;
-import dev.nano.ndidisplays.client.ndi.NdiStream;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -133,23 +131,14 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
 
         int texId;
         if (mode == 0) {
-            NdiStream stream = NdiManager.acquire(be.getSourceName());
-            if (stream != null) {
-                stream.uploadIfNeeded();
-                texId = stream.getTextureId();
-            } else {
-                texId = 0;
-            }
-            if (texId == 0) {
-                texId = FallbackTextures.black();
-            }
+            texId = ScreenVideo.textureId(be.getSourceName());
         } else {
             texId = FallbackTextures.white();
         }
 
-        shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness());
+        shader.safeGetUniform("LedParams").set(gridW, gridH, ScreenVideo.ledGap(PIXEL_GAP), be.getEffectiveBrightness());
         shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode,
-                (float) be.getPixelsPerBlock(), CALIBRATION_VARIANCE);
+                (float) be.getPixelsPerBlock(), ScreenVideo.ledVariance(CALIBRATION_VARIANCE));
         // Input window (video-processor crop): vertex uv is 0..1 per tiled copy, and the
         // shader remaps it into this region — so every copy shows the cropped window.
         dev.nano.ndidisplays.block.CropWindow crop = be.crop();
@@ -222,12 +211,7 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
         float cg = 1.0F;
         float cb = 1.0F;
         if (mode == 0) {
-            NdiStream stream = NdiManager.acquire(be.getSourceName());
-            ResourceLocation video = null;
-            if (stream != null) {
-                stream.uploadIfNeeded();
-                video = stream.getTextureLocation();
-            }
+            ResourceLocation video = ScreenVideo.textureLocation(be.getSourceName());
             if (video != null) {
                 tex = video;
             } else {

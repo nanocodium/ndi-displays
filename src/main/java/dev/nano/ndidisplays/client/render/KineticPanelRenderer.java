@@ -11,8 +11,6 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import dev.nano.ndidisplays.NdiDisplays;
 import dev.nano.ndidisplays.block.KineticWinchBlockEntity;
 import dev.nano.ndidisplays.client.ClientSetup;
-import dev.nano.ndidisplays.client.ndi.NdiManager;
-import dev.nano.ndidisplays.client.ndi.NdiStream;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -242,23 +240,14 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
 
         int texId;
         if (mode == 0) {
-            NdiStream stream = NdiManager.acquire(be.getSourceName());
-            if (stream != null) {
-                stream.uploadIfNeeded();
-                texId = stream.getTextureId();
-            } else {
-                texId = 0;
-            }
-            if (texId == 0) {
-                texId = FallbackTextures.black();
-            }
+            texId = ScreenVideo.textureId(be.getSourceName());
         } else {
             texId = FallbackTextures.white();
         }
 
-        shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness());
+        shader.safeGetUniform("LedParams").set(gridW, gridH, ScreenVideo.ledGap(PIXEL_GAP), be.getEffectiveBrightness());
         shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode,
-                (float) be.getPixelsPerBlock(), CALIBRATION_VARIANCE);
+                (float) be.getPixelsPerBlock(), ScreenVideo.ledVariance(CALIBRATION_VARIANCE));
         shader.safeGetUniform("UvRegion").set(uOff, vOff, uScale, vScale);
 
         RenderSystem.setShader(() -> shader);
@@ -357,22 +346,14 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
         }
         int texId;
         if (mode == 0) {
-            NdiStream stream = NdiManager.acquire(be.getSourceName());
-            texId = 0;
-            if (stream != null) {
-                stream.uploadIfNeeded();
-                texId = stream.getTextureId();
-            }
-            if (texId == 0) {
-                texId = FallbackTextures.black();
-            }
+            texId = ScreenVideo.textureId(be.getSourceName());
         } else {
             texId = FallbackTextures.white();
         }
 
-        shader.safeGetUniform("LedParams").set(gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness());
+        shader.safeGetUniform("LedParams").set(gridW, gridH, ScreenVideo.ledGap(PIXEL_GAP), be.getEffectiveBrightness());
         shader.safeGetUniform("LedParams2").set(be.getGamma(), (float) mode,
-                (float) be.getPixelsPerBlock(), CALIBRATION_VARIANCE);
+                (float) be.getPixelsPerBlock(), ScreenVideo.ledVariance(CALIBRATION_VARIANCE));
         shader.safeGetUniform("UvRegion").set(uOff, vOff, uScale, vScale);
         RenderSystem.setShader(() -> shader);
         RenderSystem.setShaderTexture(0, texId);
@@ -610,12 +591,7 @@ public class KineticPanelRenderer implements BlockEntityRenderer<KineticWinchBlo
         float cg = 1.0F;
         float cb = 1.0F;
         if (mode == 0) {
-            NdiStream stream = NdiManager.acquire(be.getSourceName());
-            ResourceLocation video = null;
-            if (stream != null) {
-                stream.uploadIfNeeded();
-                video = stream.getTextureLocation();
-            }
+            ResourceLocation video = ScreenVideo.textureLocation(be.getSourceName());
             if (video != null) {
                 tex = video;
             } else {

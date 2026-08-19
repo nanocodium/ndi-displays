@@ -26,7 +26,7 @@ import java.util.Set;
  */
 public final class WallScanner {
 
-    public static final int MAX_SPAN = 64;
+    public static final int MAX_SPAN = 256;
 
     public record WallInfo(BlockPos anchor, PanelFacing facing, int width, int height) {
     }

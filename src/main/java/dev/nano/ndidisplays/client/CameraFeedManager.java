@@ -8,6 +8,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.logging.LogUtils;
 import dev.nano.ndidisplays.NdiDisplays;
 import dev.nano.ndidisplays.block.NdiCameraBlockEntity;
+import dev.nano.ndidisplays.entity.DroneEntity;
 import dev.nano.ndidisplays.client.ndi.NdiManager;
 import dev.nano.ndidisplays.block.CameraKind;
 import dev.nano.ndidisplays.net.NetworkHandler;
@@ -141,6 +142,7 @@ public final class CameraFeedManager {
     private static double perfWindowStart;
 
     private static final Map<BlockPos, Feed> FEEDS = new ConcurrentHashMap<>();
+    private static final Map<java.util.UUID, Feed> DRONE_FEEDS = new ConcurrentHashMap<>();
 
     /**
      * One capture target per output resolution, keyed by packed width/height. Rigs can run
@@ -237,6 +239,9 @@ public final class CameraFeedManager {
         /** Frames actually delivered in the current perf window (telemetry only). */
         int delivered;
 
+        /** Set when this feed is a flying drone rather than a block rig. */
+        DroneEntity drone;
+
         Feed(NdiCameraBlockEntity be) {
             this.be = be;
         }
@@ -304,6 +309,25 @@ public final class CameraFeedManager {
     private CameraFeedManager() {
     }
 
+    public static void registerDrone(DroneEntity drone) {
+        DRONE_FEEDS.compute(drone.getUUID(), (id, old) -> {
+            if (old != null) {
+                old.drone = drone;
+                return old;
+            }
+            Feed feed = new Feed(null);
+            feed.drone = drone;
+            return feed;
+        });
+    }
+
+    public static void unregisterDrone(DroneEntity drone) {
+        Feed feed = DRONE_FEEDS.remove(drone.getUUID());
+        if (feed != null) {
+            feed.release();
+        }
+    }
+
     public static void register(NdiCameraBlockEntity be) {
         FEEDS.compute(be.getBlockPos(), (pos, old) -> {
             if (old != null) {
@@ -326,6 +350,35 @@ public final class CameraFeedManager {
         return capturing;
     }
 
+    /**
+     * NDI name of the rig currently being rendered into a capture target, or null.
+     * Screens that display this source must not sample the live texture: that is
+     * the video-feedback loop that paints black hatch across a wall fed by a drone.
+     */
+    private static String capturingSourceName;
+
+    public static boolean isCapturingOwnSource(String sourceName) {
+        if (capturingSourceName == null || sourceName == null || sourceName.isBlank()) {
+            return false;
+        }
+        String wall = sourceName.trim();
+        String live = capturingSourceName.trim();
+        if (wall.equalsIgnoreCase(live)) {
+            return true;
+        }
+        String wallKey = wall.toLowerCase(java.util.Locale.ROOT);
+        String liveKey = live.toLowerCase(java.util.Locale.ROOT);
+        return wallKey.contains(liveKey) || liveKey.contains(wallKey);
+    }
+
+    private static void beginCapturingSource(String sourceName) {
+        capturingSourceName = sourceName;
+    }
+
+    private static void endCapturingSource() {
+        capturingSourceName = null;
+    }
+
     /** Source names of all live in-game camera rigs, for direct selection in GUIs. */
     public static java.util.List<String> getLiveCameraNames() {
         java.util.List<String> names = new java.util.ArrayList<>();
@@ -333,6 +386,12 @@ public final class CameraFeedManager {
             NdiCameraBlockEntity be = feed.be;
             if (!be.isRemoved() && be.isActive()) {
                 names.add(be.getEffectiveSourceName());
+            }
+        }
+        for (Feed feed : DRONE_FEEDS.values()) {
+            DroneEntity drone = feed.drone;
+            if (drone != null && drone.isAlive() && drone.isLive()) {
+                names.add(drone.getEffectiveSourceName());
             }
         }
         names.sort(String::compareToIgnoreCase);
@@ -350,6 +409,14 @@ public final class CameraFeedManager {
         FEEDS.entrySet().removeIf(entry -> {
             NdiCameraBlockEntity be = entry.getValue().be;
             if (be.isRemoved() || be.getLevel() != level) {
+                entry.getValue().release();
+                return true;
+            }
+            return false;
+        });
+        DRONE_FEEDS.entrySet().removeIf(entry -> {
+            DroneEntity drone = entry.getValue().drone;
+            if (drone == null || drone.isRemoved() || drone.level() != level) {
                 entry.getValue().release();
                 return true;
             }
@@ -373,6 +440,8 @@ public final class CameraFeedManager {
             handheldFeed.release();
             handheldFeed = null;
         }
+        DRONE_FEEDS.values().forEach(Feed::release);
+        DRONE_FEEDS.clear();
         CAPTURE_TARGETS.values().forEach(RenderTarget::destroyBuffers);
         CAPTURE_TARGETS.clear();
         captureTarget = null;
@@ -448,6 +517,10 @@ public final class CameraFeedManager {
                 // their names keep appearing as pickable sources that no longer exist.
                 FEEDS.clear();
             }
+            if (!DRONE_FEEDS.isEmpty()) {
+                DRONE_FEEDS.values().forEach(Feed::release);
+                DRONE_FEEDS.clear();
+            }
             return;
         }
 
@@ -487,6 +560,9 @@ public final class CameraFeedManager {
         // this frame, the block rigs wait for the next one. Under shaders the handheld
         // is served by the RenderGuiEvent screen copy instead.
         if (!shaders && tickHandheld(mc, player, now)) {
+            return;
+        }
+        if (!shaders && tickDrones(mc, player, now)) {
             return;
         }
         if (FEEDS.isEmpty()) {
@@ -793,9 +869,11 @@ public final class CameraFeedManager {
                 fov = mc.options.fov().get();
             }
             capturingShoulderRig = wearingShoulderRig(player);
+            beginCapturingSource(operatorFeedName(player));
             try {
                 renderView(mc, view, fov);
             } finally {
+                endCapturingSource();
                 capturingShoulderRig = false;
             }
             if (wearingShoulderRig(player) && captureTarget != null) {
@@ -808,6 +886,59 @@ public final class CameraFeedManager {
         } catch (Throwable t) {
             LOGGER.warn("[ndidisplays] handheld capture failed: {}", t.toString());
             handheldDue = now + 2.0; // back off, then retry
+        }
+        return true;
+    }
+
+    // --- drones --------------------------------------------------------------
+    //
+    // Same handheld-style feed (no block entity): one capture per frame, ViewState from
+    // the gimbal so the NDI picture matches the FPV the pilot is looking through.
+
+    private static boolean tickDrones(Minecraft mc, LocalPlayer player, double now) {
+        Feed due = null;
+        double bestDue = Double.MAX_VALUE;
+        for (Feed feed : DRONE_FEEDS.values()) {
+            DroneEntity drone = feed.drone;
+            if (drone == null || drone.isRemoved() || !drone.isLive()) {
+                feed.closeSender();
+                continue;
+            }
+            if (drone.distanceToSqr(player) > MAX_CAMERA_DISTANCE * MAX_CAMERA_DISTANCE) {
+                continue;
+            }
+            double interval = 1.0 / Math.max(1, drone.getFps());
+            double next = feed.viewersCheckedAt + interval;
+            if (now >= next && next < bestDue) {
+                bestDue = next;
+                due = feed;
+            }
+        }
+        if (due == null) {
+            return false;
+        }
+        DroneEntity drone = due.drone;
+        due.viewersCheckedAt = now;
+        try {
+            completePendingReadback(due);
+            int width = drone.getWidth();
+            int height = drone.getHeight();
+            captureTarget = CAPTURE_TARGETS.computeIfAbsent(
+                    ((long) width << 32) | height,
+                    key -> new MainTarget(width, height));
+            capturingDrone = drone;
+            beginCapturingSource(drone.getEffectiveSourceName());
+            try {
+                renderView(mc, drone.viewState(1.0F), drone.getFov());
+            } finally {
+                endCapturingSource();
+                capturingDrone = null;
+            }
+            readAndSend(due, drone.getEffectiveSourceName(), drone.getFps(), false,
+                    captureTarget.viewWidth, captureTarget.viewHeight);
+        } catch (Throwable t) {
+            LOGGER.warn("[ndidisplays] drone capture failed: {}", t.toString());
+            due.viewersCheckedAt = now + 2.0;
         }
         return true;
     }
@@ -1026,6 +1157,15 @@ public final class CameraFeedManager {
     }
 
     private static boolean capturingShoulderRig;
+    private static DroneEntity capturingDrone;
+
+    public static boolean isCapturingDrone(DroneEntity drone) {
+        return capturingDrone != null && capturingDrone == drone;
+    }
+
+    public static boolean isHidingDroneRider(net.minecraft.world.entity.player.Player player) {
+        return capturingDrone != null && player.getVehicle() == capturingDrone;
+    }
 
     /**
      * Colour texture of the most recent shoulder-rig capture, or 0 when there is none.
@@ -1273,7 +1413,12 @@ public final class CameraFeedManager {
         NdiCameraBlockEntity be = feed.be;
         completePendingReadback(feed);
         NdiCameraBlockEntity.ViewState view = be.getViewState(framePartialTick);
-        renderViewShaderMode(mc, view, be.getFov());
+        beginCapturingSource(be.getEffectiveSourceName());
+        try {
+            renderViewShaderMode(mc, view, be.getFov());
+        } finally {
+            endCapturingSource();
+        }
         RenderTarget main = mc.getMainRenderTarget();
         captureTarget = main;
         // Declare the rate we can actually deliver under the shader-mode throttle:
@@ -1386,7 +1531,12 @@ public final class CameraFeedManager {
                     String.format("%.3f", mc.player.getZ()),
                     String.format("%.3f", mc.player.getEyeY()));
         }
-        renderView(mc, view, be.getFov());
+        beginCapturingSource(be.getEffectiveSourceName());
+        try {
+            renderView(mc, view, be.getFov());
+        } finally {
+            endCapturingSource();
+        }
         probeViewport = false;
         // Read back the region that was actually rendered. MainTarget.allocateAttachments
         // walks Dimension.listWithFallback and keeps the first size that allocates, so the

@@ -66,10 +66,18 @@ public final class ClientEvents {
         // RenderPlayerEvent, not RenderLivingEvent: Forge fires the player-specific event for
         // players, so a RenderLivingEvent handler never runs for them — which is why the
         // operator's head still filled their own shot.
-        if (!dev.nano.ndidisplays.client.CameraFeedManager.isCapturingShoulderRig()) {
+        var player = event.getEntity();
+        var self = net.minecraft.client.Minecraft.getInstance().player;
+        if (dev.nano.ndidisplays.client.CameraFeedManager.isCapturingShoulderRig()
+                && player == self) {
+            event.setCanceled(true);
             return;
         }
-        if (event.getEntity() == net.minecraft.client.Minecraft.getInstance().player) {
+        if (dev.nano.ndidisplays.client.CameraFeedManager.isHidingDroneRider(player)) {
+            event.setCanceled(true);
+            return;
+        }
+        if (player == self && player.getVehicle() instanceof dev.nano.ndidisplays.entity.DroneEntity) {
             event.setCanceled(true);
         }
     }

@@ -44,7 +44,7 @@ Walls, floors, curves, kinetic tiles, routers, and a processor GUI.
 <td width="33%" valign="top">
 
 **Out**
-Broadcast, PTZ, jib, dolly, and handheld rigs as real NDI sources.
+Broadcast, PTZ, jib, dolly, handheld, and drone rigs as real NDI sources.
 
 </td>
 </tr>
@@ -203,6 +203,17 @@ Item, not a block. While held, the client publishes the player's view as
 <code>MC Handheld &lt;player&gt;</code>. Several players can each carry one.
 
 </td>
+<td width="50%" valign="top">
+
+### NDI Drone
+Place the drone, link a remote, then fly it in FPV — you are in the gimbal.
+WASD strafes, space / sneak climb, mouse aims. The NDI source
+<code>MC Drone &lt;id&gt;</code> is the same view. Sneak-click the remote for
+waypoints (once / loop / ping-pong). Optional Xaero import.
+
+</td>
+</tr>
+<tr>
 <td width="50%" valign="top">
 
 ### Rig config
@@ -383,6 +394,18 @@ network. Extra Lights fixtures can be hung on a winch hook.
 
 </td>
 </tr>
+<tr>
+<td width="50%" valign="top">
+
+**Xaero Minimap / World Map** — the drone path GUI can import the current
+world's waypoints. Soft dependency; the button only appears when Xaero is
+loaded.
+
+</td>
+<td width="50%" valign="top">
+
+</td>
+</tr>
 </table>
 
 ---
@@ -455,7 +478,8 @@ world. On a dedicated server nothing is published until one machine sets
 `ALWAYS`. `NEVER` is receive-only.
 
 The handheld camera is named per player and has its own switch, so several
-operators can each carry one.
+operators can each carry one. Drones publish as <code>MC Drone &lt;id&gt;</code>
+from the same client that broadcasts the other rigs.
 
 ---
 

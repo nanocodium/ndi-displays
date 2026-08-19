@@ -3,8 +3,6 @@ package dev.nano.ndidisplays.client.render;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import dev.nano.ndidisplays.block.MultiviewBlockEntity;
-import dev.nano.ndidisplays.client.ndi.NdiManager;
-import dev.nano.ndidisplays.client.ndi.NdiStream;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.LightTexture;
@@ -113,11 +111,7 @@ public class MultiviewRenderer implements BlockEntityRenderer<MultiviewBlockEnti
         ResourceLocation tex = null;
         float shade = 1.0F;
         if (!source.isEmpty()) {
-            NdiStream stream = NdiManager.acquire(source);
-            if (stream != null) {
-                stream.uploadIfNeeded();
-                tex = stream.getTextureLocation();
-            }
+            tex = ScreenVideo.textureLocation(source);
         }
         if (tex == null) {
             // No feed: near-black cell so the grid stays readable.

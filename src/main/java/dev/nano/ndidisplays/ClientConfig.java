@@ -25,6 +25,17 @@ public final class ClientConfig {
     public static final ForgeConfigSpec SPEC;
     public static final ForgeConfigSpec.EnumValue<BroadcastMode> BROADCAST_MODE;
     public static final ForgeConfigSpec.BooleanValue HANDHELD_BROADCAST;
+    public static final ForgeConfigSpec.ConfigValue<String> DRONE_PAD_CLIMB;
+    public static final ForgeConfigSpec.ConfigValue<String> DRONE_PAD_DESCEND;
+    public static final ForgeConfigSpec.ConfigValue<String> DRONE_PAD_EXIT;
+    public static final ForgeConfigSpec.ConfigValue<String> DRONE_PAD_WAYPOINT;
+    public static final ForgeConfigSpec.ConfigValue<String> DRONE_PAD_MENU;
+    public static final ForgeConfigSpec.ConfigValue<String> DRONE_PAD_PATH_PLAY;
+    public static final ForgeConfigSpec.ConfigValue<String> DRONE_PAD_PATH_STOP;
+    public static final ForgeConfigSpec.ConfigValue<String> DRONE_PAD_MOVE_STICK;
+    public static final ForgeConfigSpec.ConfigValue<String> DRONE_PAD_LOOK_STICK;
+    public static final ForgeConfigSpec.ConfigValue<String> DRONE_PAD_GUID;
+    public static final ForgeConfigSpec.BooleanValue DRONE_PAD_INVERT_LOOK_Y;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -42,6 +53,22 @@ public final class ClientConfig {
                         "Unlike rigs this is named per player, so several players can each carry",
                         "one without clashing — handy for roving operators.")
                 .define("handheld", true);
+        builder.pop();
+
+        builder.comment("Drone gamepad bindings. Values are button:N, axis:N, or unbound.",
+                        "Sticks are raw axis pairs (x,y) from the calibration wizard, or left/right.")
+                .push("drone_pad");
+        DRONE_PAD_CLIMB = builder.define("climb", "button:0+axis:5");
+        DRONE_PAD_DESCEND = builder.define("descend", "axis:4");
+        DRONE_PAD_EXIT = builder.define("exit", "button:1+button:6");
+        DRONE_PAD_WAYPOINT = builder.define("waypoint", "button:3");
+        DRONE_PAD_MENU = builder.define("menu", "button:7");
+        DRONE_PAD_PATH_PLAY = builder.define("pathPlay", "unbound");
+        DRONE_PAD_PATH_STOP = builder.define("pathStop", "unbound");
+        DRONE_PAD_MOVE_STICK = builder.define("moveStick", "left");
+        DRONE_PAD_LOOK_STICK = builder.define("lookStick", "right");
+        DRONE_PAD_GUID = builder.define("joystickGuid", "");
+        DRONE_PAD_INVERT_LOOK_Y = builder.define("invertLookY", false);
         builder.pop();
         SPEC = builder.build();
     }

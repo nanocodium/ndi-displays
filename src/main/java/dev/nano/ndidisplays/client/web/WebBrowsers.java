@@ -207,6 +207,7 @@ public final class WebBrowsers {
         Session s = SESSIONS.remove(pos.immutable());
         if (s != null) {
             invoke(mClose, s.browser);
+            restoreMouseGrab();
         }
     }
 
@@ -217,6 +218,27 @@ public final class WebBrowsers {
             invoke(mClose, it.next().getValue().browser);
             it.remove();
         }
+        restoreMouseGrab();
+    }
+
+    /**
+     * Undoes MCEF's cursor damage after a browser closes.
+     *
+     * MCEF applies Chromium cursor changes by calling glfwSetInputMode directly on Minecraft's
+     * window, and tearing a page down fires one last cursor change — so breaking a web terminal
+     * left the player's mouse visibly ungrabbed mid-game. Vanilla's MouseHandler still believes
+     * the mouse is grabbed, so grabMouse() alone is a no-op; it has to be released first. Queued
+     * through Minecraft.tell so it runs after MCEF's own deferred close work, and only re-grabs
+     * when no screen is open — closing a terminal from a GUI must not steal the cursor.
+     */
+    private static void restoreMouseGrab() {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        mc.tell(() -> {
+            if (mc.screen == null && mc.isWindowActive() && mc.player != null) {
+                mc.mouseHandler.releaseMouse();
+                mc.mouseHandler.grabMouse();
+            }
+        });
     }
 
     private static void retireOldest() {

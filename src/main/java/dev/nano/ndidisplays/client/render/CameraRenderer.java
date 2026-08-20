@@ -390,6 +390,22 @@ public class CameraRenderer implements BlockEntityRenderer<NdiCameraBlockEntity>
         box(pose, vc, light, -0.11F, 0.09F, -0.29F, 0.11F, 0.30F, -0.155F, CONNECTOR);
         box(pose, vc, light, -0.07F, 0.14F, -0.296F, 0.07F, 0.25F, -0.29F, LCD);
 
+        // --- telescoping column: fills the gap when the rig is raised off its stock stance.
+        // Nested square sections, each thinner than the one below, so it reads as a real
+        // telescope rather than a stretched pedestal. Everything above rides up with it.
+        float ext = be.getTrackColumn();
+        if (ext > 0.01F) {
+            float seg = ext / 3.0F;
+            float base = 0.42F;
+            box(pose, vc, light, -0.115F, base, -0.115F, 0.115F, base + seg + 0.02F, 0.115F, BODY);
+            box(pose, vc, light, -0.098F, base + seg, -0.098F, 0.098F, base + 2 * seg + 0.02F, 0.098F, BODY_LIGHT);
+            box(pose, vc, light, -0.082F, base + 2 * seg, -0.082F, 0.082F, base + ext, 0.082F, SILVER);
+            // collar clamps at each overlap, like the locking rings on a real column
+            box(pose, vc, light, -0.105F, base + seg - 0.015F, -0.105F, 0.105F, base + seg + 0.015F, 0.105F, BLACK);
+            box(pose, vc, light, -0.090F, base + 2 * seg - 0.015F, -0.090F, 0.090F, base + 2 * seg + 0.015F, 0.090F, BLACK);
+        }
+        pose.translate(0.0, ext, 0.0);
+
         // --- boom: raked back over the pedestal, carried on two rams ---
         pose.pushPose();
         pose.translate(0.0, 0.42, 0.0);

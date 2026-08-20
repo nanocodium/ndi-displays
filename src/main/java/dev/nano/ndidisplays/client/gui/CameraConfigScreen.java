@@ -55,7 +55,10 @@ public class CameraConfigScreen extends Screen {
                 aux2 = camera.getJibSweep();
                 aux3 = camera.getJibPeriod();
             }
-            case TRACK -> aux1 = camera.getTrackSpeed();
+            case TRACK -> {
+                aux1 = camera.getTrackSpeed();
+                aux2 = camera.getTrackColumn();
+            }
             default -> {
             }
         }
@@ -121,8 +124,11 @@ public class CameraConfigScreen extends Screen {
                 y += 24;
             }
             case TRACK -> {
-                addRenderableWidget(slider(left, y, 260, aux1, 0.1, 4,
+                addRenderableWidget(slider(left, y, 128, aux1, 0.1, 4,
                         v -> aux1 = (float) v, v -> String.format("Dolly speed: %.2f m/s", v)));
+                addRenderableWidget(slider(left + 132, y, 128, aux2, 0,
+                        dev.nano.ndidisplays.block.NdiCameraBlockEntity.MAX_TRACK_COLUMN,
+                        v -> aux2 = (float) v, v -> String.format("Column: %.1f m", v)));
                 y += 24;
             }
             default -> {

@@ -21,6 +21,8 @@ import javax.annotation.Nullable;
  */
 public class NdiCameraBlockEntity extends BlockEntity {
 
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
+
     /** Immutable view state: where the camera eye is and where it points. */
     public record ViewState(Vec3 pos, float yaw, float pitch) {
     }
@@ -59,6 +61,9 @@ public class NdiCameraBlockEntity extends BlockEntity {
     private static final float DEFAULT_JIB_SWEEP = 70.0F;   // total sweep, degrees
     private static final float DEFAULT_JIB_PERIOD = 14.0F;  // seconds per full oscillation
     private static final float DEFAULT_TRACK_SPEED = 1.0F;  // m/s
+    /** Telescoping column, metres above the stock pedestal. 0 = the classic low MILO stance. */
+    private static final float DEFAULT_TRACK_COLUMN = 0.0F;
+    public static final float MAX_TRACK_COLUMN = 3.0F;
 
     private String sourceName = "";
     private boolean active = true;
@@ -73,6 +78,7 @@ public class NdiCameraBlockEntity extends BlockEntity {
     private float jibSweep = DEFAULT_JIB_SWEEP;
     private float jibPeriod = DEFAULT_JIB_PERIOD;
     private float trackSpeed = DEFAULT_TRACK_SPEED;
+    private float trackColumn = DEFAULT_TRACK_COLUMN;
 
     // Client-side PTZ easing state (not saved/synced)
     private float easedPan;
@@ -177,6 +183,10 @@ public class NdiCameraBlockEntity extends BlockEntity {
         return jibPeriod;
     }
 
+    public float getTrackColumn() {
+        return trackColumn;
+    }
+
     public float getTrackSpeed() {
         return trackSpeed;
     }
@@ -197,7 +207,10 @@ public class NdiCameraBlockEntity extends BlockEntity {
                 jibSweep = Clamps.f(aux2, 10.0F, 170.0F, DEFAULT_JIB_SWEEP);
                 jibPeriod = Clamps.f(aux3, 4.0F, 40.0F, DEFAULT_JIB_PERIOD);
             }
-            case TRACK -> trackSpeed = Clamps.f(aux1, 0.1F, 4.0F, DEFAULT_TRACK_SPEED);
+            case TRACK -> {
+                trackSpeed = Clamps.f(aux1, 0.1F, 4.0F, DEFAULT_TRACK_SPEED);
+                trackColumn = Clamps.f(aux2, 0.0F, MAX_TRACK_COLUMN, DEFAULT_TRACK_COLUMN);
+            }
             default -> {
             }
         }
@@ -222,8 +235,55 @@ public class NdiCameraBlockEntity extends BlockEntity {
 
     private double motionSeconds(float partialTick) {
         long t = level != null ? level.getGameTime() : 0L;
-        return (t % MOTION_WRAP_TICKS + partialTick) / 20.0;
+        double target = (t % MOTION_WRAP_TICKS + partialTick) / 20.0;
+        // The game-time ramp is only as smooth as the client's tick clock, and on a server that
+        // clock is corrected by time-sync packets and jitters with server load — every correction
+        // was a visible hitch in the dolly run and the jib sweep, on screen and in every feed at
+        // once. So the phase advances on real time, gently pulled toward the game-time target
+        // (~0.5 s time constant): motion stays glassy through tick jitter, clients agree to within
+        // milliseconds, and a hard desync (login, dimension change, /time set) snaps rather than
+        // slewing for minutes.
+        long now = System.nanoTime();
+        if (!motionInit) {
+            motionInit = true;
+            smoothMotionSeconds = target;
+            lastMotionNanos = now;
+            return target;
+        }
+        double dt = Math.min((now - lastMotionNanos) / 1.0E9, 0.25);
+        lastMotionNanos = now;
+        smoothMotionSeconds += dt;
+        double err = target - smoothMotionSeconds;
+        // A server under load corrects the client's game time by whole chunks of a second, so a
+        // small snap threshold turns every correction into a visible teleport along the rail. Only
+        // a genuinely broken clock (login race, /time set) snaps; anything under ten seconds is
+        // slewed away smoothly — worst case the rig briefly runs a few percent fast or slow, which
+        // reads as nothing at all.
+        if (Math.abs(err) > 10.0) {
+            LOGGER.info("[ndidisplays] motion clock snapped {}s (server time correction)",
+                    String.format("%.2f", err));
+            smoothMotionSeconds = target;
+        } else {
+            // Correction is capped at 5% of playback speed. Measured on a live server the synced
+            // game time oscillates by a third of a second and lurches by a whole one — a pull
+            // stiff enough to track that faithfully reproduces the surge-stall on the rail. The
+            // rigs only need a continuous phase that viewers roughly share; a second of
+            // cross-client skew on a looping dolly is invisible, a 5% speed trim even more so.
+            smoothMotionSeconds += Math.max(-0.05, Math.min(0.05, err * 0.2)) * dt;
+            if (Math.abs(err) > 1.5 && now - lastDriftLogNanos > 10_000_000_000L) {
+                lastDriftLogNanos = now;
+                LOGGER.info("[ndidisplays] motion clock {}s from game time (server tick jitter);"
+                        + " trimming gently", String.format("%.2f", err));
+            }
+        }
+        return smoothMotionSeconds;
     }
+
+    private long lastDriftLogNanos;
+
+    private boolean motionInit;
+    private double smoothMotionSeconds;
+    private long lastMotionNanos;
 
     /** Advances the PTZ head toward its target at the configured slew rate. Client only. */
     public float[] getEasedPanTilt() {
@@ -390,7 +450,9 @@ public class NdiCameraBlockEntity extends BlockEntity {
                 // aiming it — swinging the rig sweeps the camera through an arc, which is the
                 // whole point of a motion-control crane.
                 Vec3 reach = Vec3.directionFromRotation(0.0F, yaw).scale(MILO_HEAD_FORWARD);
-                Vec3 head = dolly.add(0.0, MILO_HEAD_UP, 0.0).add(reach);
+                // The column raises the whole upper works, head included, so the shot height
+                // tracks the model exactly.
+                Vec3 head = dolly.add(0.0, MILO_HEAD_UP + trackColumn, 0.0).add(reach);
                 Vec3 fwd = Vec3.directionFromRotation(pitch, yaw);
                 // Ahead of the lens glass, so the head's own body is never in its shot.
                 return new ViewState(head.add(fwd.scale(0.26)), yaw, pitch);
@@ -416,6 +478,7 @@ public class NdiCameraBlockEntity extends BlockEntity {
         tag.putFloat("JibSweep", jibSweep);
         tag.putFloat("JibPeriod", jibPeriod);
         tag.putFloat("TrackSpeed", trackSpeed);
+        tag.putFloat("TrackColumn", trackColumn);
     }
 
     /**
@@ -452,6 +515,8 @@ public class NdiCameraBlockEntity extends BlockEntity {
                 4.0F, 40.0F, DEFAULT_JIB_PERIOD);
         trackSpeed = Clamps.f(tag.contains("TrackSpeed") ? tag.getFloat("TrackSpeed") : DEFAULT_TRACK_SPEED,
                 0.1F, 4.0F, DEFAULT_TRACK_SPEED);
+        trackColumn = Clamps.f(tag.contains("TrackColumn") ? tag.getFloat("TrackColumn") : DEFAULT_TRACK_COLUMN,
+                0.0F, MAX_TRACK_COLUMN, DEFAULT_TRACK_COLUMN);
     }
 
     @Override

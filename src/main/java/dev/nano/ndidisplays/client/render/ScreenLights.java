@@ -63,6 +63,15 @@ public final class ScreenLights {
     private static final float DARK_CUTOFF = 0.02F;
 
     /**
+     * How much light a screen throws relative to its own picture brightness.
+     *
+     * A wall is a large, diffuse, fairly dim emitter — nothing like the point lamp a Shimmer light
+     * models. Driving one at full picture value floods a room: a white screen would light the
+     * street like a floodlight. Well under 1 by intent.
+     */
+    private static final float AREA_GAIN = 0.45F;
+
+    /**
      * Mean colour of each built-in test pattern, so a screen on bars or a colour field lights the
      * room correctly without a video signal. Indexed by the shader's mode: 0 video (sampled, never
      * read from here), 1 bars, 2 alignment grid, 3 white, 4 red, 5 green, 6 blue, 7 checker.
@@ -261,12 +270,27 @@ public final class ScreenLights {
             sample(screen, source, mode, count);
         }
 
-        double radiusBase = Math.max(4.0, Math.min(16.0, extent * 0.9 + 2.0));
+        double radiusBase = Math.max(4.0, Math.min(10.0, extent * 0.9 + 2.0));
+
+        // Splitting a screen into a grid buys local colour, NOT extra output — the picture emits
+        // what it emits however finely it is sampled. Without this an eight-light wall threw eight
+        // times the light of a one-light wall showing the same frame, which flooded whole venues
+        // magenta and blew out anyone standing near a screen.
+        //
+        // Divided by sqrt(count) rather than count: these are incoherent sources and Shimmer's
+        // falloff means only the nearest few contribute at any given point, so strict 1/N leaves a
+        // large wall dimmer than a small one showing the same thing.
+        float spread = AREA_GAIN / (float) Math.sqrt(count);
         for (int i = 0; i < count; i++) {
-            float r = Math.min(1.0F, screen.colour[i * 3] * brightness);
-            float g = Math.min(1.0F, screen.colour[i * 3 + 1] * brightness);
-            float b = Math.min(1.0F, screen.colour[i * 3 + 2] * brightness);
-            float lum = Math.max(r, Math.max(g, b));
+            float r = Math.min(1.0F, screen.colour[i * 3] * brightness * spread);
+            float g = Math.min(1.0F, screen.colour[i * 3 + 1] * brightness * spread);
+            float b = Math.min(1.0F, screen.colour[i * 3 + 2] * brightness * spread);
+            // Reach and the on/off decision follow the PICTURE's brightness, not the per-light
+            // share of it: how far a screen throws depends on what it is showing, not on how
+            // finely this code chose to sample it. Using the divided value would shrink a large
+            // wall's reach purely for having more sample points, and would switch dim content off.
+            float lum = Math.min(1.0F, Math.max(screen.colour[i * 3],
+                    Math.max(screen.colour[i * 3 + 1], screen.colour[i * 3 + 2])) * brightness);
             Vec3 pos = centres[i];
 
             ColorPointLight light = screen.lights[i];

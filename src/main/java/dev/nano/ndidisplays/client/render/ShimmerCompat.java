@@ -26,6 +26,8 @@ import org.joml.Matrix4f;
  */
 public final class ShimmerCompat {
 
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
+
     private static java.lang.reflect.Field loadFailedField;
 
     private ShimmerCompat() {
@@ -81,6 +83,119 @@ public final class ShimmerCompat {
      *                  pxPerBlock, variance, cropU0, cropV0, cropDu, cropDv —
      *                  the same values as the direct pass.
      */
+    /**
+     * Turns Shimmer's bloom off outright for the duration of a capture.
+     *
+     * Suppressing the post chains stops the capture from PROCESSING bloom, and clearing the queues
+     * stops its draw callbacks leaking — but Shimmer's post targets are {@code CopyDepthColorTarget}s
+     * that copy from {@code Minecraft.getMainRenderTarget()}, and during a capture that is the
+     * camera's target. Stale camera contents left in a post target get composited in the player's
+     * frame afterwards: a screen-locked, alpha-blended image of the camera view. This flips
+     * Shimmer's own global switch so none of that machinery runs at all while we capture.
+     *
+     * @return the previous value, for {@link #restoreBloomFilter}, or null if unavailable
+     */
+    public static Boolean suppressBloomFilter() {
+        try {
+            java.util.concurrent.atomic.AtomicBoolean flag = PostProcessing.enableBloomFilter;
+            if (flag == null) {
+                return null;
+            }
+            boolean was = flag.get();
+            flag.set(false);
+            return was;
+        } catch (Throwable t) {
+            LOGGER.warn("[ndidisplays] cannot suppress Shimmer bloom during captures ({})",
+                    t.toString());
+            return null;
+        }
+    }
+
+    /** Restores whatever {@link #suppressBloomFilter} saved. */
+    public static void restoreBloomFilter(Boolean was) {
+        if (was == null) {
+            return;
+        }
+        try {
+            PostProcessing.enableBloomFilter.set(was);
+        } catch (Throwable t) {
+            LOGGER.warn("[ndidisplays] could not restore Shimmer bloom flag ({})", t.toString());
+        }
+    }
+
+    /**
+     * Empties Shimmer's deferred bloom queues and hands back their contents.
+     *
+     * {@code postEntityDrawFilter} and {@code postEntityDrawForce} are lists of draw callbacks,
+     * drained when the post chain runs. Anything that queues bloom during an off-screen capture —
+     * Shimmer's own bloom blockstates, a fixture's emissive face — bakes the RIG camera's matrices
+     * into a closure that is then drawn in the player's frame, which paints the camera's emissive
+     * geometry across the sky as a translucent ghost. Suppressing the chain is not enough: that
+     * stops the capture from processing bloom, not from queueing it.
+     *
+     * @return opaque saved state for {@link #restoreBloomQueues}, or null if unavailable
+     */
+    public static Object isolateBloomQueues() {
+        try {
+            java.util.Map<PostProcessing, java.util.List<java.util.List<Object>>> saved =
+                    new java.util.IdentityHashMap<>();
+            for (PostProcessing post : PostProcessing.values()) {
+                java.util.List<java.util.List<Object>> pair = new java.util.ArrayList<>(2);
+                for (java.lang.reflect.Field field : bloomQueueFields()) {
+                    @SuppressWarnings("unchecked")
+                    java.util.List<Object> live = (java.util.List<Object>) field.get(post);
+                    pair.add(new java.util.ArrayList<>(live));
+                    live.clear();
+                }
+                saved.put(post, pair);
+            }
+            return saved;
+        } catch (Throwable t) {
+            LOGGER.warn("[ndidisplays] cannot isolate Shimmer's bloom queues across captures ({});"
+                    + " camera bloom may ghost onto the screen", t.toString());
+            return null;
+        }
+    }
+
+    /** Discards whatever the capture queued and restores the player's own bloom draws. */
+    public static void restoreBloomQueues(Object savedState) {
+        if (savedState == null) {
+            return;
+        }
+        try {
+            @SuppressWarnings("unchecked")
+            java.util.Map<PostProcessing, java.util.List<java.util.List<Object>>> saved =
+                    (java.util.Map<PostProcessing, java.util.List<java.util.List<Object>>>) savedState;
+            for (java.util.Map.Entry<PostProcessing, java.util.List<java.util.List<Object>>> e
+                    : saved.entrySet()) {
+                java.lang.reflect.Field[] fields = bloomQueueFields();
+                for (int i = 0; i < fields.length; i++) {
+                    @SuppressWarnings("unchecked")
+                    java.util.List<Object> live = (java.util.List<Object>) fields[i].get(e.getKey());
+                    live.clear();
+                    live.addAll(e.getValue().get(i));
+                }
+            }
+        } catch (Throwable t) {
+            LOGGER.warn("[ndidisplays] could not restore Shimmer's bloom queues ({})", t.toString());
+        }
+    }
+
+    private static java.lang.reflect.Field[] bloomQueueFields() throws NoSuchFieldException {
+        if (bloomQueues == null) {
+            java.lang.reflect.Field filter =
+                    PostProcessing.class.getDeclaredField("postEntityDrawFilter");
+            java.lang.reflect.Field force =
+                    PostProcessing.class.getDeclaredField("postEntityDrawForce");
+            filter.setAccessible(true);
+            force.setAccessible(true);
+            bloomQueues = new java.lang.reflect.Field[]{filter, force};
+        }
+        return bloomQueues;
+    }
+
+    private static java.lang.reflect.Field[] bloomQueues;
+
     public static void submitBloom(Matrix4f pose, Vec3 p00, Vec3 p10, Vec3 p11, Vec3 p01,
                                    ResourceLocation texture, float[] ledParams) {
         if (ClientSetup.ledWallBloomShader == null) {

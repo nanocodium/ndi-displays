@@ -95,6 +95,17 @@ public final class CameraFeedManager {
     private static final boolean PERF_LOG = Boolean.getBoolean("ndidisplays.perfLog");
 
     /**
+     * -Dndidisplays.noCapture=true stops every rig capture while leaving NDI reception, screens and
+     * senders alone. A bisection tool: if an artefact on the player's screen survives this, then no
+     * capture is drawing it and the cause is elsewhere entirely.
+     */
+    private static final boolean NO_CAPTURE = Boolean.getBoolean("ndidisplays.noCapture");
+
+    /** Stages already reported by the capture rebind below, so each logs once per session. */
+    private static final java.util.Set<String> ESCAPED_STAGES =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /**
      * Fraction of wall-clock time captures may consume in total. This is the game-fps vs
      * feed-fps dial: 0.5 means captures get at most half of real time, leaving the rest for
      * the player's own frames. Raise with -Dndidisplays.captureLoad if feeds matter more.
@@ -466,7 +477,40 @@ public final class CameraFeedManager {
      */
     @SubscribeEvent
     public static void onRenderStage(net.minecraftforge.client.event.RenderLevelStageEvent event) {
-        if (!capturing || !probeViewport) {
+        if (!capturing) {
+            return;
+        }
+        // Keep the nested render inside its own framebuffer. Post-processing mods hook these same
+        // stage checkpoints and bind their own targets — Shimmer's post target copies from "main",
+        // which during a capture IS the camera's buffer, and it does not restore the binding. Left
+        // alone, everything from that point on (entities, block entities, particles) lands in the
+        // stranger's buffer instead of the feed, and is composited over the player's frame later.
+        // Vanilla rebinds main at these same checkpoints after its own target work; this is the
+        // off-screen equivalent. The once-per-stage log stays: community modpacks will pair this
+        // with post pipelines we have never seen, and the stage name is the first thing a bug
+        // report needs.
+        RenderTarget expected = captureTarget;
+        if (expected != null
+                && GL11C.glGetInteger(GL30C.GL_DRAW_FRAMEBUFFER_BINDING) != expected.frameBufferId) {
+            if (ESCAPED_STAGES.size() < 8 && ESCAPED_STAGES.add(String.valueOf(event.getStage()))) {
+                LOGGER.info("[ndidisplays] a mod re-bound the framebuffer during a camera capture"
+                        + " (stage {}); rebinding the capture target", event.getStage());
+            }
+            expected.bindWrite(true);
+        }
+        // Fixture beams, drawn into the capture at the point Theatrical would have drawn them.
+        // Its own drain sits behind a mixin after the tripwire layer that an off-screen pass never
+        // reaches (see TheatricalLazyQueue.drain), so without this a feed shows moving lights with
+        // no beams at all — and the queue then spills into the player's frame.
+        if (event.getStage() == net.minecraftforge.client.event.RenderLevelStageEvent.Stage.AFTER_TRIPWIRE_BLOCKS
+                && dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.LOADED) {
+            dev.nano.ndidisplays.compat.theatrical.TheatricalLazyQueue.drain(
+                    Minecraft.getInstance().gameRenderer.getMainCamera(),
+                    event.getPoseStack(),
+                    Minecraft.getInstance().renderBuffers().bufferSource(),
+                    event.getPartialTick());
+        }
+        if (!probeViewport) {
             return;
         }
         int[] vp = new int[4];
@@ -503,13 +547,28 @@ public final class CameraFeedManager {
         // renders over it. The player never sees the capture; the feed gets the pack's
         // full visuals.
         boolean shaders = dev.nano.ndidisplays.client.render.ShaderPackCompat.shaderPackActive();
-        if (shaders != (event.phase == TickEvent.Phase.START)) {
+        // ALL captures run at Phase.START, before the frame's clear — not just shader mode.
+        //
+        // They used to run at Phase.END, which sits after the player's finished frame is in the
+        // main target and just before Minecraft blits it to the window. Some pass in the modded
+        // pipeline (unidentified: framebuffer restore, Theatrical's queue, Shimmer's queues,
+        // chain AND bloom copies were each isolated with no effect) can smear the capture's
+        // image onto that finished frame, which the blit then faithfully shows: an intermittent,
+        // screen-locked, alpha-ghosted copy of the camera view. Running before the clear makes
+        // the entire class of leak harmless — whatever a capture scribbles is erased before the
+        // player's frame renders. The feed still shows the same tick's world; the only cost is
+        // that a feed frame is produced at the top of the next render frame instead of the tail
+        // of this one.
+        if (event.phase != TickEvent.Phase.START) {
             return;
         }
 
         // Only the broadcast host publishes rigs. Everyone else's walls still receive, so a
         // server full of players sees the same feeds without each machine rendering its own
         // duplicate copy of every camera.
+        if (NO_CAPTURE) {
+            return;
+        }
         if (!dev.nano.ndidisplays.client.ndi.NdiHost.shouldBroadcast()) {
             if (!FEEDS.isEmpty()) {
                 FEEDS.values().forEach(Feed::release);
@@ -1480,10 +1539,30 @@ public final class CameraFeedManager {
         mc.cameraEntity = cameraEntity;
         capturing = true;
         captureFov = fov;
+        // Theatrical's beam queue is one static list drained per world render. This nested render
+        // fills it, and anything left over would be drawn during the player's own frame carrying
+        // capture-time state — the route by which a camera's framebuffer gets composited over the
+        // player's screen while its beams vanish from the feed.
+        java.util.List<Object> beamsSaved =
+                dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.LOADED
+                        ? dev.nano.ndidisplays.compat.theatrical.TheatricalLazyQueue.isolate()
+                        : null;
         mc.getMainRenderTarget().bindWrite(true);
         try {
             mc.gameRenderer.renderLevel(1.0F, 0L, new PoseStack());
+            // Flush every batched vertex INTO the capture before teardown. The buffer source is
+            // one shared global; renderLevel does not always drain it fully when our target/chain
+            // surgery has taken it down a different branch, and any straggler left here — a name
+            // tag's text, an entity's quads — is drawn later in the PLAYER's frame with whatever
+            // matrices happen to be current: giant screen-locked ghost geometry. The pixel-side
+            // twins of this bug (Theatrical's beam queue, Shimmer's bloom queues) are isolated
+            // above; this is the vertex side.
+            mc.renderBuffers().bufferSource().endBatch();
+            mc.renderBuffers().crumblingBufferSource().endBatch();
         } finally {
+            if (beamsSaved != null) {
+                dev.nano.ndidisplays.compat.theatrical.TheatricalLazyQueue.restore(beamsSaved);
+            }
             capturing = false;
             mc.cameraEntity = oldCameraEntity;
             cameraEntity.discard();
@@ -1619,6 +1698,8 @@ public final class CameraFeedManager {
         RenderTarget oldTranslucent = lr.translucentTarget;
         RenderTarget oldItemEntity = lr.itemEntityTarget;
         RenderTarget oldWeather = lr.weatherTarget;
+        RenderTarget oldParticles = lr.particlesTarget;
+        RenderTarget oldClouds = lr.cloudsTarget;
         PostChain oldTransparency = lr.transparencyChain;
         int oldLastChunkX = lr.lastCameraChunkX;
         int oldLastChunkY = lr.lastCameraChunkY;
@@ -1668,6 +1749,14 @@ public final class CameraFeedManager {
         lr.translucentTarget = null; // Fabulous targets break off-screen capture
         lr.itemEntityTarget = null;
         lr.weatherTarget = null;
+        // ALL six Fabulous targets, not four. particlesTarget and cloudsTarget were missed: on
+        // Fabulous graphics their output shards bind these shared window-sized buffers mid-render,
+        // so a capture's particles and clouds were drawn into the PLAYER's compositing buffers
+        // with the rig camera's matrices — lost from the feed, then composited over the player's
+        // frame by their own transparency chain. Intermittent because it depends on what content
+        // routes through those targets on a given frame.
+        lr.particlesTarget = null;
+        lr.cloudsTarget = null;
         lr.transparencyChain = null;
         // Do NOT touch lastCameraChunk* here. setupRender compares those against
         // minecraft.player's position, not the camera's, so writing the camera's section
@@ -1696,12 +1785,37 @@ public final class CameraFeedManager {
         boolean[] shimmerSaved = dev.nano.ndidisplays.client.render.LedWallRenderer.SHIMMER_LOADED
                 ? dev.nano.ndidisplays.client.render.ShimmerCompat.suppressPostChains()
                 : null;
+        // Shimmer queues bloom draws the way Theatrical queues beams: a list of callbacks drained
+        // when the post chain runs. Emissive geometry queued during this capture would be drawn in
+        // the player's frame with the RIG camera's matrices baked in — the camera's lights and lit
+        // windows painted across the player's sky as a translucent ghost. Suppressing the chain
+        // stops the capture PROCESSING bloom, not queueing it, so the queue must be isolated too.
+        Object bloomSaved = dev.nano.ndidisplays.client.render.ShimmerCompat.isolateBloomQueues();
+        // And Shimmer's bloom off entirely: its post targets copy from the main render target,
+        // which during this capture is the camera's, so stale camera pixels could otherwise be
+        // composited into the player's frame afterwards.
+        Boolean bloomFlag = dev.nano.ndidisplays.client.render.ShimmerCompat.suppressBloomFilter();
+        // Same hazard, different mod: see TheatricalLazyQueue. A beam queued inside this capture
+        // and drawn in the player's frame samples whatever target was current when it was queued.
+        java.util.List<Object> beamsSaved =
+                dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.LOADED
+                        ? dev.nano.ndidisplays.compat.theatrical.TheatricalLazyQueue.isolate()
+                        : null;
         // Embeddium's equivalent of the chunk-graph pin above: without it, every capture
         // triggers two full synchronous occlusion re-culls (rig view, then player again).
         dev.nano.ndidisplays.client.render.EmbeddiumCompat.pinCamera(view.pos(), view.pitch(), view.yaw());
 
         try {
             mc.gameRenderer.renderLevel(1.0F, 0L, new PoseStack());
+            // Flush every batched vertex INTO the capture before teardown. The buffer source is
+            // one shared global; renderLevel does not always drain it fully when our target/chain
+            // surgery has taken it down a different branch, and any straggler left here — a name
+            // tag's text, an entity's quads — is drawn later in the PLAYER's frame with whatever
+            // matrices happen to be current: giant screen-locked ghost geometry. The pixel-side
+            // twins of this bug (Theatrical's beam queue, Shimmer's bloom queues) are isolated
+            // above; this is the vertex side.
+            mc.renderBuffers().bufferSource().endBatch();
+            mc.renderBuffers().crumblingBufferSource().endBatch();
             if (DEBUG_GEOMETRY && probeViewport) {
                 // The Camera object still holds whatever pose the capture actually rendered
                 // with — comparing it against the requested view catches any drift injected
@@ -1719,6 +1833,13 @@ public final class CameraFeedManager {
             dev.nano.ndidisplays.client.render.EmbeddiumCompat.restoreCamera();
             if (shimmerSaved != null) {
                 dev.nano.ndidisplays.client.render.ShimmerCompat.restorePostChains(shimmerSaved);
+            }
+            if (bloomSaved != null) {
+                dev.nano.ndidisplays.client.render.ShimmerCompat.restoreBloomQueues(bloomSaved);
+            }
+            dev.nano.ndidisplays.client.render.ShimmerCompat.restoreBloomFilter(bloomFlag);
+            if (beamsSaved != null) {
+                dev.nano.ndidisplays.compat.theatrical.TheatricalLazyQueue.restore(beamsSaved);
             }
             capturing = false;
             captureTarget.unbindWrite();
@@ -1738,6 +1859,8 @@ public final class CameraFeedManager {
             lr.translucentTarget = oldTranslucent;
             lr.itemEntityTarget = oldItemEntity;
             lr.weatherTarget = oldWeather;
+            lr.particlesTarget = oldParticles;
+            lr.cloudsTarget = oldClouds;
             lr.transparencyChain = oldTransparency;
             lr.lastCameraChunkX = oldLastChunkX;
             lr.lastCameraChunkY = oldLastChunkY;
@@ -1754,6 +1877,7 @@ public final class CameraFeedManager {
             camera.setup(level, restored, !mc.options.getCameraType().isFirstPerson(),
                     mc.options.getCameraType().isMirrored(), 1.0F);
             mc.getMainRenderTarget().bindWrite(true);
+
         }
     }
 

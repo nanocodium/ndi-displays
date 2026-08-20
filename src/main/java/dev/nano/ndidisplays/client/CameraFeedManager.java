@@ -621,10 +621,9 @@ public final class CameraFeedManager {
         if (!shaders && tickHandheld(mc, player, now)) {
             return;
         }
-        if (!shaders && tickDrones(mc, player, now)) {
-            return;
-        }
-        if (FEEDS.isEmpty()) {
+        // Drones are scheduled inside the budget loop below, against the rigs, so a live
+        // 60 fps drone shares the frame's capture slots instead of taking every one of them.
+        if (FEEDS.isEmpty() && DRONE_FEEDS.isEmpty()) {
             return;
         }
 
@@ -694,6 +693,17 @@ public final class CameraFeedManager {
             // Capture capacity is shared between watched feeds, so the per-feed rate cap
             // depends on how many there are.
             watchedCount = Math.max(1, watched);
+
+            // Drones compete for the same slot: the most-overdue of either population wins, so
+            // one fast drone shares the budget with the rigs instead of starving them.
+            Feed dueDrone = findDueDrone(player, now);
+            if (dueDrone != null && (due == null || droneDueAt(dueDrone) <= due.nextDue)) {
+                long droneT0 = System.nanoTime();
+                captureDrone(mc, dueDrone, now);
+                capturesThisSecond++;
+                captureMsAvg += ((System.nanoTime() - droneT0) / 1_000_000.0 - captureMsAvg) * 0.1;
+                continue;
+            }
             if (due == null) {
                 break;
             }
@@ -954,7 +964,14 @@ public final class CameraFeedManager {
     // Same handheld-style feed (no block entity): one capture per frame, ViewState from
     // the gimbal so the NDI picture matches the FPV the pilot is looking through.
 
-    private static boolean tickDrones(Minecraft mc, LocalPlayer player, double now) {
+    /**
+     * The most-overdue live drone, or null when none is due. Selection only — the budget loop in
+     * {@link #onRenderTick} decides whether the slot goes to this drone or to a block rig, by
+     * whichever has waited longer. Drones used to capture ahead of the loop and consume the whole
+     * frame, which starved every rig the moment one 60 fps drone went live: jib and dolly feeds
+     * fell to a few frames per second and their motion visibly stepped.
+     */
+    private static Feed findDueDrone(LocalPlayer player, double now) {
         Feed due = null;
         double bestDue = Double.MAX_VALUE;
         for (Feed feed : DRONE_FEEDS.values()) {
@@ -966,16 +983,21 @@ public final class CameraFeedManager {
             if (drone.distanceToSqr(player) > MAX_CAMERA_DISTANCE * MAX_CAMERA_DISTANCE) {
                 continue;
             }
-            double interval = 1.0 / Math.max(1, drone.getFps());
-            double next = feed.viewersCheckedAt + interval;
+            double next = droneDueAt(feed);
             if (now >= next && next < bestDue) {
                 bestDue = next;
                 due = feed;
             }
         }
-        if (due == null) {
-            return false;
-        }
+        return due;
+    }
+
+    /** When this drone's next frame is owed; comparable with a rig feed's {@code nextDue}. */
+    private static double droneDueAt(Feed feed) {
+        return feed.viewersCheckedAt + 1.0 / Math.max(1, feed.drone == null ? 30 : feed.drone.getFps());
+    }
+
+    private static void captureDrone(Minecraft mc, Feed due, double now) {
         DroneEntity drone = due.drone;
         due.viewersCheckedAt = now;
         try {
@@ -988,7 +1010,10 @@ public final class CameraFeedManager {
             capturingDrone = drone;
             beginCapturingSource(drone.getEffectiveSourceName());
             try {
-                renderView(mc, drone.viewState(1.0F), drone.getFov());
+                // The real partial tick, not 1.0F: a fixed value pins the gimbal pose to whole
+                // game ticks, so a flying drone's feed steps at 20 Hz however fast it captures —
+                // the same judder the block rigs had before framePartialTick existed.
+                renderView(mc, drone.viewState(framePartialTick), drone.getFov());
             } finally {
                 endCapturingSource();
                 capturingDrone = null;
@@ -999,7 +1024,6 @@ public final class CameraFeedManager {
             LOGGER.warn("[ndidisplays] drone capture failed: {}", t.toString());
             due.viewersCheckedAt = now + 2.0;
         }
-        return true;
     }
 
     // --- web terminals -------------------------------------------------------
@@ -1549,7 +1573,11 @@ public final class CameraFeedManager {
                         : null;
         mc.getMainRenderTarget().bindWrite(true);
         try {
-            mc.gameRenderer.renderLevel(1.0F, 0L, new PoseStack());
+            // The frame's real partial tick, not 1.0F: the eye already moved smoothly, but the
+            // WORLD in the shot — a jib arm mid-sweep, a dolly rolling, entities — was
+            // interpolated to whole game ticks, so everything animated in a feed stepped
+            // at 20 Hz however fast the feed captured.
+            mc.gameRenderer.renderLevel(framePartialTick, 0L, new PoseStack());
             // Flush every batched vertex INTO the capture before teardown. The buffer source is
             // one shared global; renderLevel does not always drain it fully when our target/chain
             // surgery has taken it down a different branch, and any straggler left here — a name
@@ -1806,7 +1834,11 @@ public final class CameraFeedManager {
         dev.nano.ndidisplays.client.render.EmbeddiumCompat.pinCamera(view.pos(), view.pitch(), view.yaw());
 
         try {
-            mc.gameRenderer.renderLevel(1.0F, 0L, new PoseStack());
+            // The frame's real partial tick, not 1.0F: the eye already moved smoothly, but the
+            // WORLD in the shot — a jib arm mid-sweep, a dolly rolling, entities — was
+            // interpolated to whole game ticks, so everything animated in a feed stepped
+            // at 20 Hz however fast the feed captured.
+            mc.gameRenderer.renderLevel(framePartialTick, 0L, new PoseStack());
             // Flush every batched vertex INTO the capture before teardown. The buffer source is
             // one shared global; renderLevel does not always drain it fully when our target/chain
             // surgery has taken it down a different branch, and any straggler left here — a name

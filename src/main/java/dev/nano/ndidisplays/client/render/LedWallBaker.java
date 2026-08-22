@@ -187,7 +187,13 @@ public final class LedWallBaker {
     }
 
     private static void allocate(Baked baked, int width, int height) {
-        if (baked.texId != 0) {
+        // On a re-allocate the OLD texture must outlive glGenTextures below: re-registering the
+        // location makes TextureManager close the previous ExternalGlTexture wrapper, and that
+        // close deletes the old GL id. Deleting it here first freed the id for glGenTextures to
+        // reuse, and the wrapper's deferred close then destroyed the FRESHLY BAKED texture — or
+        // an unrelated one allocated in between. Only an id that never got a wrapper (first
+        // allocate, where texId is 0 anyway) may be deleted manually.
+        if (baked.texId != 0 && baked.location == null) {
             GlStateManager._deleteTexture(baked.texId);
         }
         if (baked.fbo != 0) {

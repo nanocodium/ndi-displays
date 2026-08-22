@@ -848,6 +848,18 @@ public class KineticWinchBlockEntity extends BlockEntity {
         super.setRemoved();
     }
 
+    @Override
+    public void onChunkUnloaded() {
+        super.onChunkUnloaded();
+        // Server chunk unload never calls setRemoved, so without this the DMX consumer — which
+        // holds this block entity — stayed registered in Theatrical's network for the whole
+        // session, and DMX arriving for the unloaded screen force-loaded the chunk on every
+        // frame the desk sent. A reload re-registers through setLevel.
+        if (level != null && !level.isClientSide) {
+            TheatricalCompat.unregister(this);
+        }
+    }
+
     // ------------------------------------------------------------------ NBT / sync
 
     @Override

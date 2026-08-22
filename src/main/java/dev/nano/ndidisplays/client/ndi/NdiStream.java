@@ -43,6 +43,10 @@ public class NdiStream {
     private boolean unknownFrameTypeLogged;
     private boolean badGeometryLogged;
 
+    /** Deliberate-leak visibility: how many receivers this session has abandoned (see run()). */
+    private static final java.util.concurrent.atomic.AtomicInteger ABANDONED_RECEIVERS =
+            new java.util.concurrent.atomic.AtomicInteger();
+
     private final Object frameLock = new Object();
     private ByteBuffer frameData;
     private int frameWidth;
@@ -113,6 +117,12 @@ public class NdiStream {
             // The frame must be released first — a captured frame's buffer is owned by the
             // receiver and DevolayVideoFrame.close() frees it *through* that receiver.
             closeQuietly(videoFrame);
+            int abandoned = ABANDONED_RECEIVERS.incrementAndGet();
+            if (abandoned % 8 == 0) {
+                LOGGER.info("[ndidisplays] {} NDI receivers abandoned this session (deliberate:"
+                        + " destroying one crashes the NDI 6 runtime); each keeps a few MB and"
+                        + " worker threads until the game closes", abandoned);
+            }
             // The receiver is deliberately ABANDONED, never destroyed. Every JVM crash
             // observed with the NDI 6 runtime has been inside NDIlib_recv_destroy — either
             // an immediate access violation or silent heap corruption detonating at a later

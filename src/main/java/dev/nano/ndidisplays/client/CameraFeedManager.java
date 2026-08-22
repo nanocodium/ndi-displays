@@ -163,6 +163,54 @@ public final class CameraFeedManager {
      */
     private static final Map<Long, RenderTarget> CAPTURE_TARGETS = new HashMap<>();
 
+    /**
+     * Idle eviction for the target pool. A MainTarget is a full colour+depth framebuffer —
+     * ~16 MB of VRAM at 1080p, ~66 MB at 4K — and entries used to live until logout, so every
+     * resolution a session ever touched stayed allocated forever. Thirty seconds of disuse is
+     * far past any capture cadence, and a re-created target costs one glTexImage on next use.
+     */
+    private static final double CAPTURE_TARGET_IDLE_SECONDS = 30.0;
+    private static final Map<Long, Double> CAPTURE_TARGET_LAST_USED = new HashMap<>();
+    private static double lastTargetSweep;
+
+    /**
+     * A 16x16 throwaway target for vanilla code paths that insist on clearing "their" Fabulous
+     * target mid-render (weather, clouds). Clearing this loses nothing; letting those clears hit
+     * the capture target wiped whole feeds to white. One per process, ~2 KB of VRAM.
+     */
+    private static RenderTarget sacrificial;
+
+    private static RenderTarget sacrificialTarget() {
+        if (sacrificial == null) {
+            sacrificial = new MainTarget(16, 16);
+        }
+        return sacrificial;
+    }
+
+    /** Every capture goes through here so the pool knows what is still in use. */
+    private static RenderTarget acquireCaptureTarget(int width, int height) {
+        long key = ((long) width << 32) | height;
+        CAPTURE_TARGET_LAST_USED.put(key, GLFW.glfwGetTime());
+        return CAPTURE_TARGETS.computeIfAbsent(key, k -> new MainTarget(width, height));
+    }
+
+    /** Render thread, outside any capture: destroys pool entries nothing has used lately. */
+    private static void sweepCaptureTargets(double now) {
+        if (now - lastTargetSweep < 5.0 || CAPTURE_TARGETS.isEmpty()) {
+            return;
+        }
+        lastTargetSweep = now;
+        CAPTURE_TARGETS.entrySet().removeIf(entry -> {
+            Double used = CAPTURE_TARGET_LAST_USED.get(entry.getKey());
+            if (used != null && now - used <= CAPTURE_TARGET_IDLE_SECONDS) {
+                return false;
+            }
+            entry.getValue().destroyBuffers();
+            CAPTURE_TARGET_LAST_USED.remove(entry.getKey());
+            return true;
+        });
+    }
+
     /** The target for the capture currently in progress; render thread only. */
     private static RenderTarget captureTarget;
 
@@ -433,6 +481,23 @@ public final class CameraFeedManager {
             }
             return false;
         });
+        // Web terminals too. Server chunk swaps never call setRemoved on the old level's block
+        // entities, so without this sweep a dimension change left each old terminal's Chromium
+        // process running, its NDI feed publishing against a dead block entity, and — through the
+        // retained block entity — the ENTIRE old dimension's chunk graph pinned in heap until
+        // logout. Terminals in the new level re-register through their renderer next frame.
+        WEB_TERMINALS.entrySet().removeIf(entry -> {
+            dev.nano.ndidisplays.block.WebTerminalBlockEntity be = entry.getValue();
+            if (be.isRemoved() || be.getLevel() != level) {
+                Feed dead = WEB_FEEDS.remove(entry.getKey());
+                if (dead != null) {
+                    dead.release();
+                }
+                dev.nano.ndidisplays.client.web.WebBrowsers.close(entry.getKey());
+                return true;
+            }
+            return false;
+        });
     }
 
     /**
@@ -455,6 +520,7 @@ public final class CameraFeedManager {
         DRONE_FEEDS.clear();
         CAPTURE_TARGETS.values().forEach(RenderTarget::destroyBuffers);
         CAPTURE_TARGETS.clear();
+        CAPTURE_TARGET_LAST_USED.clear();
         captureTarget = null;
     }
 
@@ -580,10 +646,26 @@ public final class CameraFeedManager {
                 DRONE_FEEDS.values().forEach(Feed::release);
                 DRONE_FEEDS.clear();
             }
+            // Web terminals and the handheld broadcast from this path too, so a host handover
+            // must take them off air the same way — otherwise their senders and native staging
+            // buffers survive as ghost sources the network can still see. The browsers stay:
+            // pages are in-world visuals, independent of who broadcasts.
+            if (!WEB_FEEDS.isEmpty()) {
+                WEB_FEEDS.values().forEach(Feed::release);
+                WEB_FEEDS.clear();
+            }
+            if (handheldFeed != null) {
+                handheldFeed.release();
+                handheldFeed = null;
+            }
+            // Still sweep the target pool: a client that just stopped being the broadcast host
+            // is exactly the one holding framebuffers nothing will use again.
+            sweepCaptureTargets(GLFW.glfwGetTime());
             return;
         }
 
         double now = GLFW.glfwGetTime();
+        sweepCaptureTargets(now);
         if (shaders != lastShadersActive) {
             lastShadersActive = shaders;
             shaderGraceUntil = now + SHADER_TOGGLE_GRACE_SECONDS;
@@ -916,9 +998,7 @@ public final class CameraFeedManager {
         }
         try {
             completePendingReadback(handheldFeed);
-            captureTarget = CAPTURE_TARGETS.computeIfAbsent(
-                    ((long) HANDHELD_WIDTH << 32) | HANDHELD_HEIGHT,
-                    key -> new MainTarget(HANDHELD_WIDTH, HANDHELD_HEIGHT));
+            captureTarget = acquireCaptureTarget(HANDHELD_WIDTH, HANDHELD_HEIGHT);
             // Operator wobble: two incommensurate sines per axis so it never loops visibly.
             float wobbleYaw = (float) (Math.sin(now * 1.7) * 0.5 + Math.sin(now * 4.3) * 0.2);
             float wobblePitch = (float) (Math.sin(now * 2.1 + 1.0) * 0.4 + Math.sin(now * 5.7) * 0.15);
@@ -1004,9 +1084,7 @@ public final class CameraFeedManager {
             completePendingReadback(due);
             int width = drone.getWidth();
             int height = drone.getHeight();
-            captureTarget = CAPTURE_TARGETS.computeIfAbsent(
-                    ((long) width << 32) | height,
-                    key -> new MainTarget(width, height));
+            captureTarget = acquireCaptureTarget(width, height);
             capturingDrone = drone;
             beginCapturingSource(drone.getEffectiveSourceName());
             try {
@@ -1113,8 +1191,7 @@ public final class CameraFeedManager {
         completePendingReadback(feed);
         int width = session.width();
         int height = session.height();
-        captureTarget = CAPTURE_TARGETS.computeIfAbsent(((long) width << 32) | height,
-                key -> new MainTarget(width, height));
+        captureTarget = acquireCaptureTarget(width, height);
 
         // Blit the page into the capture target.
         //
@@ -1617,8 +1694,7 @@ public final class CameraFeedManager {
         // Must be a real MainTarget: mods that post-process the "main" target
         // (e.g. Shimmer's bloom mixins) cast it to interfaces only MainTarget
         // implements, and they run inside our capture's renderLevel too.
-        captureTarget = CAPTURE_TARGETS.computeIfAbsent(((long) width << 32) | height,
-                key -> new MainTarget(width, height));
+        captureTarget = acquireCaptureTarget(width, height);
 
         NdiCameraBlockEntity.ViewState view = be.getViewState(framePartialTick);
         // Probe the viewport through the render stages of the frames we also dump.
@@ -1774,17 +1850,35 @@ public final class CameraFeedManager {
         // a window-sized viewport into the capture target: entities (and everything after
         // them) landed displaced and scaled by the window/capture size ratio.
         lr.entityTarget = null;
-        lr.translucentTarget = null; // Fabulous targets break off-screen capture
-        lr.itemEntityTarget = null;
-        lr.weatherTarget = null;
-        // ALL six Fabulous targets, not four. particlesTarget and cloudsTarget were missed: on
-        // Fabulous graphics their output shards bind these shared window-sized buffers mid-render,
-        // so a capture's particles and clouds were drawn into the PLAYER's compositing buffers
-        // with the rig camera's matrices — lost from the feed, then composited over the player's
-        // frame by their own transparency chain. Intermittent because it depends on what content
-        // routes through those targets on a given frame.
-        lr.particlesTarget = null;
-        lr.cloudsTarget = null;
+        // The Fabulous target surgery must respect the graphics mode, because vanilla treats a
+        // non-null target as proof Fabulous is on:
+        //
+        // FANCY/FAST — all null, as vanilla leaves them. Redirecting cloudsTarget here made
+        // vanilla's `cloudsTarget != null` branch run mid-render and CLEAR the target — which was
+        // the capture — wiping every feed to a RenderTarget's default clear colour: solid white.
+        //
+        // FABULOUS — vanilla's output shards bind translucent/itemEntity/particles WITHOUT null
+        // checks (guarded only by useShaderTransparency()), so nulling them NPEs the first
+        // translucent terrain pass; they are redirected into the capture instead, drawing
+        // linearly since the chain is off. weather and clouds get a tiny sacrificial target:
+        // their code paths clear their target mid-render, and a clear must never hit the feed.
+        // The cost is clouds/rain missing from feeds on Fabulous clients only.
+        //
+        // entityTarget stays null everywhere: the outline path null-checks it.
+        if (Minecraft.useShaderTransparency()) {
+            lr.translucentTarget = captureTarget;
+            lr.itemEntityTarget = captureTarget;
+            lr.particlesTarget = captureTarget;
+            RenderTarget sacrificial = sacrificialTarget();
+            lr.weatherTarget = sacrificial;
+            lr.cloudsTarget = sacrificial;
+        } else {
+            lr.translucentTarget = null;
+            lr.itemEntityTarget = null;
+            lr.particlesTarget = null;
+            lr.weatherTarget = null;
+            lr.cloudsTarget = null;
+        }
         lr.transparencyChain = null;
         // Do NOT touch lastCameraChunk* here. setupRender compares those against
         // minecraft.player's position, not the camera's, so writing the camera's section

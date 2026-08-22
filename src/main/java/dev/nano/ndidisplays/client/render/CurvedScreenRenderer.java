@@ -164,7 +164,16 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
             vertex(builder, mat, at(center, d1, rFace, yBottom), uu[1], 1.0F);
             vertex(builder, mat, at(center, d0, rFace, yBottom), uu[0], 1.0F);
         }
+        // Depth-bias the video face off its cabinet. The face sits a few millimetres proud of
+        // the cabinet geometry, but depth precision falls with distance, so past ~60 blocks the
+        // fixed offset drops below what the depth buffer can resolve and the face stipple-fights
+        // the cabinet. Polygon offset biases in DEPTH-BUFFER units, so it scales with distance
+        // automatically — same values vanilla's z-layering uses.
+        RenderSystem.polygonOffset(-1.0F, -10.0F);
+        RenderSystem.enablePolygonOffset();
         BufferUploader.drawWithShader(builder.end());
+        RenderSystem.polygonOffset(0.0F, 0.0F);
+        RenderSystem.disablePolygonOffset();
 
         RenderSystem.enableCull();
     }

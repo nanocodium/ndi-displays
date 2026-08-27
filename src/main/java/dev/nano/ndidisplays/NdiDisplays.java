@@ -46,7 +46,7 @@ public class NdiDisplays {
                     .strength(1.5F)
                     .sound(SoundType.METAL)
                     .noOcclusion()
-                    .lightLevel(state -> 10)));
+                    .lightLevel(state -> 0)));
 
     public static final RegistryObject<Item> LED_PANEL_ITEM = ITEMS.register("led_panel",
             () -> new BlockItem(LED_PANEL.get(), new Item.Properties()));
@@ -62,7 +62,7 @@ public class NdiDisplays {
                     .strength(1.2F)
                     .sound(SoundType.METAL)
                     .noOcclusion()
-                    .lightLevel(state -> 6)
+                    .lightLevel(state -> 0)
                     .isViewBlocking((state, level, pos) -> false)
                     .isSuffocating((state, level, pos) -> false), true));
 
@@ -83,7 +83,7 @@ public class NdiDisplays {
                     .strength(1.5F)
                     .sound(SoundType.METAL)
                     .noOcclusion()
-                    .lightLevel(state -> 10)));
+                    .lightLevel(state -> 0)));
 
     public static final RegistryObject<Item> LED_FLOOR_ITEM = ITEMS.register("led_floor",
             () -> new BlockItem(LED_FLOOR.get(), new Item.Properties()));
@@ -122,7 +122,7 @@ public class NdiDisplays {
                     .strength(1.5F)
                     .sound(SoundType.METAL)
                     .noOcclusion()
-                    .lightLevel(state -> 10)));
+                    .lightLevel(state -> 0)));
 
     public static final RegistryObject<Item> ROUND_SCREEN_ITEM = ITEMS.register("round_screen",
             () -> new BlockItem(ROUND_SCREEN.get(), new Item.Properties()));
@@ -142,7 +142,7 @@ public class NdiDisplays {
                     .strength(1.5F)
                     .sound(SoundType.METAL)
                     .noOcclusion()
-                    .lightLevel(state -> 10)));
+                    .lightLevel(state -> 0)));
 
     public static final RegistryObject<Item> CURVED_SCREEN_ITEM = ITEMS.register("curved_screen",
             () -> new BlockItem(CURVED_SCREEN.get(), new Item.Properties()));
@@ -162,7 +162,7 @@ public class NdiDisplays {
                     .strength(1.5F)
                     .sound(SoundType.METAL)
                     .noOcclusion()
-                    .lightLevel(state -> 8)));
+                    .lightLevel(state -> 0)));
 
     public static final RegistryObject<Item> MULTIVIEW_ITEM = ITEMS.register("multiview",
             () -> new BlockItem(MULTIVIEW.get(), new Item.Properties()));
@@ -181,7 +181,7 @@ public class NdiDisplays {
                     .strength(1.5F)
                     .sound(SoundType.METAL)
                     .noOcclusion()
-                    .lightLevel(state -> 8)));
+                    .lightLevel(state -> 0)));
 
     public static final RegistryObject<Item> WINCH_PARK_MONITOR_ITEM = ITEMS.register("winch_park_monitor",
             () -> new BlockItem(WINCH_PARK_MONITOR.get(), new Item.Properties()));
@@ -290,7 +290,7 @@ public class NdiDisplays {
                     .strength(1.4F)
                     .sound(SoundType.METAL)
                     .noOcclusion()
-                    .lightLevel(state -> 6)));
+                    .lightLevel(state -> 0)));
 
     public static final RegistryObject<Item> WEB_TERMINAL_ITEM = ITEMS.register("web_terminal",
             () -> new BlockItem(WEB_TERMINAL.get(), new Item.Properties()));

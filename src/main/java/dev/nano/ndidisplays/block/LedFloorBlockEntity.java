@@ -21,6 +21,8 @@ import javax.annotation.Nullable;
  */
 public class LedFloorBlockEntity extends BlockEntity implements DmxScreen {
 
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
+
     public static final int MAX_SOURCE_NAME = LedPanelBlockEntity.MAX_SOURCE_NAME;
     public static final int PATTERN_COUNT = LedPanelBlockEntity.PATTERN_COUNT;
 
@@ -114,13 +116,27 @@ public class LedFloorBlockEntity extends BlockEntity implements DmxScreen {
         if (cachedFloor == null || now - cacheTime > 40 || now < cacheTime) {
             Direction facing = getFacing();
             Block kind = getPanelKind();
-            BlockPos anchor = FloorScanner.findAnchor(lvl, worldPosition, facing, kind);
-            FloorScanner.FloorInfo rect = FloorScanner.scan(lvl, anchor, facing, kind);
-            if (FloorScanner.contains(rect, worldPosition)
-                    && FloorScanner.isIsolatedRectangle(lvl, rect, kind)) {
-                cachedFloor = rect;
-                cachedRenderAnchor = worldPosition.equals(anchor);
+            try {
+            // Shaped floors: any connected arrangement is one screen (see WallScanner.scanShape).
+            FloorScanner.FloorInfo shape = FloorScanner.scanShape(lvl, worldPosition, facing, kind);
+            if (shape != null) {
+                cachedFloor = shape;
+                cachedRenderAnchor = worldPosition.equals(shape.anchor());
             } else {
+                BlockPos anchor = FloorScanner.findAnchor(lvl, worldPosition, facing, kind);
+                FloorScanner.FloorInfo rect = FloorScanner.scan(lvl, anchor, facing, kind);
+                if (FloorScanner.contains(rect, worldPosition)
+                        && FloorScanner.isIsolatedRectangle(lvl, rect, kind)) {
+                    cachedFloor = rect;
+                    cachedRenderAnchor = worldPosition.equals(anchor);
+                } else {
+                    cachedFloor = new FloorScanner.FloorInfo(worldPosition, facing, 1, 1);
+                    cachedRenderAnchor = true;
+                }
+            }
+            } catch (Throwable t) {
+                LOGGER.error("[ndidisplays] floor scan failed at {}; tile falls back to 1x1",
+                        worldPosition, t);
                 cachedFloor = new FloorScanner.FloorInfo(worldPosition, facing, 1, 1);
                 cachedRenderAnchor = true;
             }
@@ -156,9 +172,13 @@ public class LedFloorBlockEntity extends BlockEntity implements DmxScreen {
             return;
         }
         Direction right = FloorScanner.right(floor.facing());
+        BlockPos origin = floor.origin();
         for (int w = 0; w < floor.width(); w++) {
             for (int d = 0; d < floor.depth(); d++) {
-                BlockPos p = floor.anchor().relative(right, w).relative(floor.facing(), d);
+                if (!floor.has(w, d)) {
+                    continue;
+                }
+                BlockPos p = origin.relative(right, w).relative(floor.facing(), d);
                 if (level.getBlockEntity(p) instanceof LedFloorBlockEntity tile) {
                     tile.acceptFloorDmx(dimmer, slot);
                 }
@@ -260,10 +280,11 @@ public class LedFloorBlockEntity extends BlockEntity implements DmxScreen {
             FloorScanner.FloorInfo floor = getFloorInfo();
             if (floor != null) {
                 Direction right = FloorScanner.right(floor.facing());
-                BlockPos far = floor.anchor()
+                BlockPos origin = floor.origin();
+                BlockPos far = origin
                         .relative(right, floor.width() - 1)
                         .relative(floor.facing(), floor.depth() - 1);
-                return new AABB(floor.anchor()).minmax(new AABB(far)).inflate(1.0);
+                return new AABB(origin).minmax(new AABB(far)).inflate(1.0);
             }
         }
         return new AABB(worldPosition);

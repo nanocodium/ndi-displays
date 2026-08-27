@@ -203,14 +203,29 @@ public final class ShimmerCompat {
         }
         // The consumer is drained later in the same frame's post pass; copy the
         // matrix since the PoseStack entry is reused after the BER returns.
+        submitBloomUv(pose, p00, p10, p11, p01, 0.0F, 1.0F, 1.0F, 0.0F, texture, ledParams);
+    }
+
+    /**
+     * Bloom quad with explicit texture coordinates — shaped screens glow one run of tiles at a
+     * time, each sampling its own slice of the frame.
+     */
+    public static void submitBloomUv(Matrix4f pose, Vec3 p00, Vec3 p10, Vec3 p11, Vec3 p01,
+                                     float u0, float u1, float vBottom, float vTop,
+                                     ResourceLocation texture, float[] ledParams) {
+        if (ClientSetup.ledWallBloomShader == null) {
+            return;
+        }
+        // The consumer is drained later in the same frame's post pass; copy the
+        // matrix since the PoseStack entry is reused after the BER returns.
         Matrix4f mat = new Matrix4f(pose);
         RenderType type = BloomRenderType.of(texture, ledParams);
         PostProcessing.BLOOM_UNREAL.postEntity(buffer -> {
             VertexConsumer vc = buffer.getBuffer(type);
-            vertex(vc, mat, p00, 0.0F, 1.0F);
-            vertex(vc, mat, p10, 1.0F, 1.0F);
-            vertex(vc, mat, p11, 1.0F, 0.0F);
-            vertex(vc, mat, p01, 0.0F, 0.0F);
+            vertex(vc, mat, p00, u0, vBottom);
+            vertex(vc, mat, p10, u1, vBottom);
+            vertex(vc, mat, p11, u1, vTop);
+            vertex(vc, mat, p01, u0, vTop);
         });
     }
 

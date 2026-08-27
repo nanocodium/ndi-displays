@@ -29,8 +29,36 @@ public final class FloorScanner {
      * @param width  tiles along viewer-right (clockwise of facing)
      * @param depth  tiles along facing (image top)
      */
-    public record FloorInfo(BlockPos anchor, Direction facing, int width, int depth) {
+    /**
+     * @param anchor      the render-anchor TILE (image-bottom-most, then left-most) — for shaped
+     *                    floors not necessarily the bounding box corner
+     * @param tiles       present cells, row-major (along * width + across), null = full rectangle
+     * @param anchorAcross the anchor's cell x in the bounding box
+     * @param anchorAlong  the anchor's cell position along facing in the bounding box
+     */
+    public record FloorInfo(BlockPos anchor, Direction facing, int width, int depth,
+                            java.util.BitSet tiles, int anchorAcross, int anchorAlong) {
+
+        public FloorInfo(BlockPos anchor, Direction facing, int width, int depth) {
+            this(anchor, facing, width, depth, null, 0, 0);
+        }
+
+        public boolean isShaped() {
+            return tiles != null;
+        }
+
+        public boolean has(int x, int along) {
+            return tiles == null || tiles.get(along * width + x);
+        }
+
+        /** The bounding box's image-bottom-left corner position (may be air when shaped). */
+        public BlockPos origin() {
+            return anchor.relative(right(facing), -anchorAcross).relative(facing, -anchorAlong);
+        }
     }
+
+    /** Shapes above this tile count fall back to the rectangle rules (see WallScanner). */
+    public static final int SHAPE_TILE_LIMIT = 8192;
 
     private FloorScanner() {
     }
@@ -128,6 +156,78 @@ public final class FloorScanner {
         int across = d.getX() * r.getStepX() + d.getZ() * r.getStepZ();
         int along = d.getX() * facing.getStepX() + d.getZ() * facing.getStepZ();
         return across >= 0 && across < floor.width() && along >= 0 && along < floor.depth();
+    }
+
+    /**
+     * The floor as one connected component of any shape — the Eurovision cross, a ring, a
+     * runway. Frame = bounding box; each tile shows its cell; the build is the mask.
+     *
+     * @return the shape, or null when over the caps — callers fall back to rectangle rules
+     */
+    public static FloorInfo scanShape(BlockGetter level, BlockPos start, Direction facing, Block kind) {
+        List<BlockPos> group = collectGroup(level, start, facing, kind);
+        if (group.size() >= SHAPE_TILE_LIMIT) {
+            return null;
+        }
+        Direction r = right(facing);
+        int minA = Integer.MAX_VALUE;
+        int maxA = Integer.MIN_VALUE;
+        int minL = Integer.MAX_VALUE;
+        int maxL = Integer.MIN_VALUE;
+        int[] across = new int[group.size()];
+        int[] along = new int[group.size()];
+        for (int i = 0; i < group.size(); i++) {
+            BlockPos d = group.get(i).subtract(start);
+            across[i] = d.getX() * r.getStepX() + d.getZ() * r.getStepZ();
+            along[i] = d.getX() * facing.getStepX() + d.getZ() * facing.getStepZ();
+            minA = Math.min(minA, across[i]);
+            maxA = Math.max(maxA, across[i]);
+            minL = Math.min(minL, along[i]);
+            maxL = Math.max(maxL, along[i]);
+        }
+        int width = maxA - minA + 1;
+        int depth = maxL - minL + 1;
+        if (width > MAX_SPAN || depth > MAX_SPAN) {
+            return null;
+        }
+        java.util.BitSet tiles = new java.util.BitSet(width * depth);
+        BlockPos anchor = null;
+        int anchorA = 0;
+        int anchorL = 0;
+        for (int i = 0; i < group.size(); i++) {
+            int x = across[i] - minA;
+            int l = along[i] - minL;
+            tiles.set(l * width + x);
+            if (anchor == null || l < anchorL || (l == anchorL && x < anchorA)) {
+                anchor = group.get(i);
+                anchorA = x;
+                anchorL = l;
+            }
+        }
+        if (tiles.cardinality() == width * depth) {
+            return new FloorInfo(anchor, facing, width, depth);
+        }
+        return new FloorInfo(anchor, facing, width, depth, tiles, anchorA, anchorL);
+    }
+
+    /** Runs of present tiles per along-row: {@code {x0, x1exclusive, along}}. */
+    public static List<int[]> runs(FloorInfo floor) {
+        List<int[]> out = new ArrayList<>();
+        for (int l = 0; l < floor.depth(); l++) {
+            int x = 0;
+            while (x < floor.width()) {
+                if (!floor.has(x, l)) {
+                    x++;
+                    continue;
+                }
+                int x0 = x;
+                while (x < floor.width() && floor.has(x, l)) {
+                    x++;
+                }
+                out.add(new int[]{x0, x, l});
+            }
+        }
+        return out;
     }
 
     public static List<BlockPos> collectGroup(BlockGetter level, BlockPos start, Direction facing, Block kind) {

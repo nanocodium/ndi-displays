@@ -16,6 +16,8 @@ import javax.annotation.Nullable;
 
 public class LedPanelBlockEntity extends BlockEntity implements DmxScreen {
 
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
+
     /** Test pattern ids, mirrored in the shader: 0 video, 1 bars, 2 grid, 3 white, 4 red, 5 green, 6 blue, 7 checker. */
     public static final int PATTERN_COUNT = 8;
 
@@ -128,13 +130,39 @@ public class LedPanelBlockEntity extends BlockEntity implements DmxScreen {
         if (cachedWall == null || now - cacheTime > 40 || now < cacheTime) {
             PanelFacing facing = getFacing();
             Block kind = getPanelKind();
-            BlockPos anchor = WallScanner.findAnchor(lvl, worldPosition, facing, kind);
-            WallScanner.WallInfo rect = WallScanner.scan(lvl, anchor, facing, kind);
-            if (WallScanner.contains(rect, worldPosition)
-                    && WallScanner.isIsolatedRectangle(lvl, rect, kind)) {
-                cachedWall = rect;
-                cachedRenderAnchor = worldPosition.equals(anchor);
+            try {
+            // Any connected arrangement is one screen now — a cross, a ring, letters. The
+            // video frame is the shape's bounding box and the build masks it, so shaped
+            // walls are driven exactly like real shaped LED.
+            // A wall that turns corners (flat -> 45° chamfer -> flat) is one screen: the path
+            // scan chains columns wherever their face edges meet, whatever their orientation.
+            WallScanner.WallInfo shape = WallScanner.scanPath(lvl, worldPosition, facing,
+                    getBlockState().getBlock() instanceof LedCornerBlock ? null : kind);
+            if (shape == null) {
+                shape = WallScanner.scanShape(lvl, worldPosition, facing, kind);
+            }
+            if (shape != null) {
+                cachedWall = shape;
+                cachedRenderAnchor = worldPosition.equals(shape.anchor());
             } else {
+                // Too large for the flood fill: the classic rectangle rules still apply, so a
+                // giant plain wall keeps working; anything irregular at that size is 1x1.
+                BlockPos anchor = WallScanner.findAnchor(lvl, worldPosition, facing, kind);
+                WallScanner.WallInfo rect = WallScanner.scan(lvl, anchor, facing, kind);
+                if (WallScanner.contains(rect, worldPosition)
+                        && WallScanner.isIsolatedRectangle(lvl, rect, kind)) {
+                    cachedWall = rect;
+                    cachedRenderAnchor = worldPosition.equals(anchor);
+                } else {
+                    cachedWall = new WallScanner.WallInfo(worldPosition, facing, 1, 1);
+                    cachedRenderAnchor = true;
+                }
+            }
+            } catch (Throwable t) {
+                // The scan runs on the render thread (getRenderBoundingBox), so a scanner bug
+                // must degrade to one broken panel and a log line — never a dead game.
+                LOGGER.error("[ndidisplays] wall scan failed at {}; panel falls back to 1x1",
+                        worldPosition, t);
                 cachedWall = new WallScanner.WallInfo(worldPosition, facing, 1, 1);
                 cachedRenderAnchor = true;
             }
@@ -179,15 +207,9 @@ public class LedPanelBlockEntity extends BlockEntity implements DmxScreen {
             acceptWallDmx(dimmer, slot);
             return;
         }
-        net.minecraft.core.Vec3i right = wall.facing().rightStep();
-        for (int w = 0; w < wall.width(); w++) {
-            for (int h = 0; h < wall.height(); h++) {
-                BlockPos p = wall.anchor()
-                        .offset(right.getX() * w, right.getY() * w, right.getZ() * w)
-                        .above(h);
-                if (level.getBlockEntity(p) instanceof LedPanelBlockEntity panel) {
-                    panel.acceptWallDmx(dimmer, slot);
-                }
+        for (BlockPos p : WallScanner.allPanels(wall)) {
+            if (level.getBlockEntity(p) instanceof LedPanelBlockEntity panel) {
+                panel.acceptWallDmx(dimmer, slot);
             }
         }
     }
@@ -291,12 +313,20 @@ public class LedPanelBlockEntity extends BlockEntity implements DmxScreen {
         if (level != null && isRenderAnchor()) {
             WallScanner.WallInfo wall = getWallInfo();
             if (wall != null) {
+                if (wall.isPath()) {
+                    AABB box = new AABB(wall.pathColumns().get(0));
+                    for (BlockPos c : wall.pathColumns()) {
+                        box = box.minmax(new AABB(c)).minmax(new AABB(c.above(wall.height() - 1)));
+                    }
+                    return box.inflate(1.0);
+                }
                 net.minecraft.core.Vec3i right = wall.facing().rightStep();
                 int span = wall.width() - 1;
-                BlockPos far = wall.anchor()
+                BlockPos origin = wall.origin();
+                BlockPos far = origin
                         .offset(right.getX() * span, right.getY() * span, right.getZ() * span)
                         .above(wall.height() - 1);
-                AABB box = new AABB(wall.anchor()).minmax(new AABB(far));
+                AABB box = new AABB(origin).minmax(new AABB(far));
                 return box.inflate(1.0);
             }
         }

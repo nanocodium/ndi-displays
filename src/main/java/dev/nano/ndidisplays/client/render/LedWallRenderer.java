@@ -20,6 +20,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.fml.ModList;
 import org.joml.Matrix4f;
@@ -77,9 +78,16 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
             return;
         }
 
+        // A corner cabinet with no wall attached is an unmapped cabinet: dark, like the real
+        // thing — not a one-column billboard of the entire frame.
+        boolean unmappedCorner = wall.isPath() && wall.width() == 1
+                && WallScanner.pathArc(wall, 0) != null;
+
         int texId;
         ResourceLocation bloomTexture = null;
-        if (mode == 0) {
+        if (unmappedCorner) {
+            texId = FallbackTextures.black();
+        } else if (mode == 0) {
             texId = ScreenVideo.textureId(be.getSourceName());
             bloomTexture = ScreenVideo.textureLocation(be.getSourceName());
         } else {
@@ -102,7 +110,11 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
         double pitch = facing.pitch();
         Vec3 base = new Vec3(0.5, 0.0, 0.5)
                 .subtract(r.scale(pitch * 0.5))
-                .add(f.scale(facing.surfaceOffset(THICKNESS, SURFACE_EPSILON)));
+                .add(f.scale(facing.surfaceOffset(THICKNESS, SURFACE_EPSILON)))
+                // Shaped walls: the render-anchor tile (this block entity) is not necessarily the
+                // bounding-box corner — a cross's bottom tile sits mid-box — so shift to the origin.
+                .add(r.scale(-pitch * wall.anchorAcross()))
+                .add(0.0, -wall.anchorUp(), 0.0);
 
         Vec3 span = r.scale(pitch * w);
         Vec3 p00 = base;                          // bottom, viewer-left
@@ -134,10 +146,39 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
         Matrix4f mat = poseStack.last().pose();
         BufferBuilder builder = Tesselator.getInstance().getBuilder();
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        vertex(builder, mat, p00, 0.0F, 1.0F);
-        vertex(builder, mat, p10, 1.0F, 1.0F);
-        vertex(builder, mat, p11, 1.0F, 0.0F);
-        vertex(builder, mat, p01, 0.0F, 0.0F);
+        if (wall.isPath()) {
+            // A bending wall: one vertical strip per column, positioned on the column's own face
+            // segment, so a flat run, a 45° chamfer and the run beyond join corner-to-corner into
+            // one continuous picture. Each column is one cabinet of the frame — bends never
+            // stretch the image.
+            emitPath(wall, be.getBlockPos(), (bl, br, tr, tl, u0, u1, vB, vT) -> {
+                vertex(builder, mat, bl, u0, vB);
+                vertex(builder, mat, br, u1, vB);
+                vertex(builder, mat, tr, u1, vT);
+                vertex(builder, mat, tl, u0, vT);
+            });
+        } else if (!wall.isShaped()) {
+            vertex(builder, mat, p00, 0.0F, 1.0F);
+            vertex(builder, mat, p10, 1.0F, 1.0F);
+            vertex(builder, mat, p11, 1.0F, 0.0F);
+            vertex(builder, mat, p01, 0.0F, 0.0F);
+        } else {
+            // One quad per horizontal run of tiles. The frame is the shape's bounding box, so
+            // each run samples its own slice — a rectangular source, masked by the build itself,
+            // which is exactly how real shaped LED (a Eurovision cross) is driven.
+            for (int[] run : WallScanner.runs(wall)) {
+                Vec3 bl = p00.add(r.scale(pitch * run[0])).add(0.0, run[2], 0.0);
+                Vec3 br = p00.add(r.scale(pitch * run[1])).add(0.0, run[2], 0.0);
+                float u0 = run[0] / (float) w;
+                float u1 = run[1] / (float) w;
+                float vB = 1.0F - run[2] / (float) h;
+                float vT = 1.0F - (run[2] + 1) / (float) h;
+                vertex(builder, mat, bl, u0, vB);
+                vertex(builder, mat, br, u1, vB);
+                vertex(builder, mat, br.add(0.0, 1.0, 0.0), u1, vT);
+                vertex(builder, mat, bl.add(0.0, 1.0, 0.0), u0, vT);
+            }
+        }
         // Depth-bias the video face off its cabinet. The face sits a few millimetres proud of
         // the cabinet geometry, but depth precision falls with distance, so past ~60 blocks the
         // fixed offset drops below what the depth buffer can resolve and the face stipple-fights
@@ -167,10 +208,36 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
             // A wall in video mode with no signal is black and casts no glow.
             ResourceLocation shimmerTex = mode == 0 ? bloomTexture : FallbackTextures.whiteLocation();
             if (shimmerTex != null) {
-                ShimmerCompat.submitBloom(mat, p00, p10, p11, p01, shimmerTex, new float[]{
-                        gridW, gridH, ScreenVideo.ledGap(PIXEL_GAP), be.getEffectiveBrightness(),
-                        be.getGamma(), (float) mode, (float) pxPerBlock, ScreenVideo.ledVariance(CALIBRATION_VARIANCE),
-                        crop.u0(), crop.v0(), crop.du(), crop.dv()});
+                float[] bloomParams = new float[]{
+                        gridW, gridH, PIXEL_GAP, be.getEffectiveBrightness(),
+                        be.getGamma(), (float) mode, (float) pxPerBlock, CALIBRATION_VARIANCE,
+                        crop.u0(), crop.v0(), crop.du(), crop.dv()};
+                if (wall.isPath()) {
+                    final int[] budget = {160};
+                    emitPath(wall, be.getBlockPos(), (bl, br, tr, tl, u0, u1, vB, vT) -> {
+                        if (budget[0]-- > 0) {
+                            ShimmerCompat.submitBloomUv(mat, bl, br, tr, tl, u0, u1, vB, vT,
+                                    shimmerTex, bloomParams);
+                        }
+                    });
+                } else if (!wall.isShaped()) {
+                    ShimmerCompat.submitBloom(mat, p00, p10, p11, p01, shimmerTex, bloomParams);
+                } else {
+                    // Shaped: glow run by run so holes stay dark. Capped for pathological shapes
+                    // (a checkerboard) — past the cap only the picture loses its bloom, not itself.
+                    java.util.List<int[]> runs = WallScanner.runs(wall);
+                    if (runs.size() <= 128) {
+                        for (int[] run : runs) {
+                            Vec3 bl = p00.add(r.scale(pitch * run[0])).add(0.0, run[2], 0.0);
+                            Vec3 br = p00.add(r.scale(pitch * run[1])).add(0.0, run[2], 0.0);
+                            ShimmerCompat.submitBloomUv(mat, bl, br,
+                                    br.add(0.0, 1.0, 0.0), bl.add(0.0, 1.0, 0.0),
+                                    run[0] / (float) w, run[1] / (float) w,
+                                    1.0F - run[2] / (float) h, 1.0F - (run[2] + 1) / (float) h,
+                                    shimmerTex, bloomParams);
+                        }
+                    }
+                }
             }
         }
     }
@@ -187,10 +254,13 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
         int h = wall.height();
         Vec3 f = facing.normal();
         Vec3 r = facing.rightUnit();
+        double pitch = facing.pitch();
         Vec3 base = new Vec3(0.5, 0.0, 0.5)
-                .subtract(r.scale(facing.pitch() * 0.5))
-                .add(f.scale(facing.surfaceOffset(THICKNESS, SURFACE_EPSILON)));
-        Vec3 span = r.scale(facing.pitch() * w);
+                .subtract(r.scale(pitch * 0.5))
+                .add(f.scale(facing.surfaceOffset(THICKNESS, SURFACE_EPSILON)))
+                .add(r.scale(-pitch * wall.anchorAcross()))
+                .add(0.0, -wall.anchorUp(), 0.0);
+        Vec3 span = r.scale(pitch * w);
         Vec3 p00 = base;
         Vec3 p10 = base.add(span);
         Vec3 p11 = base.add(span).add(0, h, 0);
@@ -204,10 +274,34 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
             Matrix4f bakedMat = poseStack.last().pose();
             VertexConsumer bakedVc = buffers.getBuffer(RenderType.entityTranslucentEmissive(baked));
             // The bake writes bottom-up (v=1 at the wall's bottom edge), so sample flipped.
-            compatVertex(bakedVc, bakedMat, p00, 0.0F, 0.0F, f, 1.0F, 1.0F, 1.0F, 1.0F);
-            compatVertex(bakedVc, bakedMat, p10, 1.0F, 0.0F, f, 1.0F, 1.0F, 1.0F, 1.0F);
-            compatVertex(bakedVc, bakedMat, p11, 1.0F, 1.0F, f, 1.0F, 1.0F, 1.0F, 1.0F);
-            compatVertex(bakedVc, bakedMat, p01, 0.0F, 1.0F, f, 1.0F, 1.0F, 1.0F, 1.0F);
+            if (wall.isPath()) {
+                emitPath(wall, be.getBlockPos(), (bl, br, tr, tl, u0, u1, vB, vT) -> {
+                    // baked v is inverted relative to the live shader's convention
+                    Vec3 n = normalOf(bl, br);
+                    compatVertex(bakedVc, bakedMat, bl, u0, 1.0F - vB, n, 1.0F, 1.0F, 1.0F, 1.0F);
+                    compatVertex(bakedVc, bakedMat, br, u1, 1.0F - vB, n, 1.0F, 1.0F, 1.0F, 1.0F);
+                    compatVertex(bakedVc, bakedMat, tr, u1, 1.0F - vT, n, 1.0F, 1.0F, 1.0F, 1.0F);
+                    compatVertex(bakedVc, bakedMat, tl, u0, 1.0F - vT, n, 1.0F, 1.0F, 1.0F, 1.0F);
+                });
+            } else if (!wall.isShaped()) {
+                compatVertex(bakedVc, bakedMat, p00, 0.0F, 0.0F, f, 1.0F, 1.0F, 1.0F, 1.0F);
+                compatVertex(bakedVc, bakedMat, p10, 1.0F, 0.0F, f, 1.0F, 1.0F, 1.0F, 1.0F);
+                compatVertex(bakedVc, bakedMat, p11, 1.0F, 1.0F, f, 1.0F, 1.0F, 1.0F, 1.0F);
+                compatVertex(bakedVc, bakedMat, p01, 0.0F, 1.0F, f, 1.0F, 1.0F, 1.0F, 1.0F);
+            } else {
+                for (int[] run : WallScanner.runs(wall)) {
+                    Vec3 bl = p00.add(r.scale(pitch * run[0])).add(0.0, run[2], 0.0);
+                    Vec3 br = p00.add(r.scale(pitch * run[1])).add(0.0, run[2], 0.0);
+                    float u0 = run[0] / (float) w;
+                    float u1 = run[1] / (float) w;
+                    float vB = run[2] / (float) h;
+                    float vT = (run[2] + 1) / (float) h;
+                    compatVertex(bakedVc, bakedMat, bl, u0, vB, f, 1.0F, 1.0F, 1.0F, 1.0F);
+                    compatVertex(bakedVc, bakedMat, br, u1, vB, f, 1.0F, 1.0F, 1.0F, 1.0F);
+                    compatVertex(bakedVc, bakedMat, br.add(0.0, 1.0, 0.0), u1, vT, f, 1.0F, 1.0F, 1.0F, 1.0F);
+                    compatVertex(bakedVc, bakedMat, bl.add(0.0, 1.0, 0.0), u0, vT, f, 1.0F, 1.0F, 1.0F, 1.0F);
+                }
+            }
             return;
         }
 
@@ -239,7 +333,7 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
 
         Matrix4f mat = poseStack.last().pose();
         VertexConsumer vc = buffers.getBuffer(RenderType.entityTranslucentEmissive(tex));
-        if (mode == 1) {
+        if (mode == 1 && !wall.isShaped()) {
             // Colour bars survive as real bars: eight vertical strips.
             float[][] bars = {
                     {1, 1, 1}, {1, 1, 0}, {0, 1, 1}, {0, 1, 0},
@@ -255,10 +349,43 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
         } else {
             // The wall's input window (video-processor crop) applied to the raw quad.
             dev.nano.ndidisplays.block.CropWindow crop = be.crop();
-            compatVertex(vc, mat, p00, crop.u0(), crop.v1(), f, cr * bright, cg * bright, cb * bright, alpha);
-            compatVertex(vc, mat, p10, crop.u1(), crop.v1(), f, cr * bright, cg * bright, cb * bright, alpha);
-            compatVertex(vc, mat, p11, crop.u1(), crop.v0(), f, cr * bright, cg * bright, cb * bright, alpha);
-            compatVertex(vc, mat, p01, crop.u0(), crop.v0(), f, cr * bright, cg * bright, cb * bright, alpha);
+            if (mode == 1) {
+                cr = cg = cb = 0.6F; // shaped bars approximated as grey, like grid/checker
+            }
+            if (wall.isPath()) {
+                final float fcr = cr * bright;
+                final float fcg = cg * bright;
+                final float fcb = cb * bright;
+                emitPath(wall, be.getBlockPos(), (bl, br, tr, tl, u0, u1, vB, vT) -> {
+                    Vec3 n = normalOf(bl, br);
+                    float cu0 = crop.u0() + crop.du() * u0;
+                    float cu1 = crop.u0() + crop.du() * u1;
+                    float cvB = crop.v0() + crop.dv() * vB;
+                    float cvT = crop.v0() + crop.dv() * vT;
+                    compatVertex(vc, mat, bl, cu0, cvB, n, fcr, fcg, fcb, alpha);
+                    compatVertex(vc, mat, br, cu1, cvB, n, fcr, fcg, fcb, alpha);
+                    compatVertex(vc, mat, tr, cu1, cvT, n, fcr, fcg, fcb, alpha);
+                    compatVertex(vc, mat, tl, cu0, cvT, n, fcr, fcg, fcb, alpha);
+                });
+            } else if (!wall.isShaped()) {
+                compatVertex(vc, mat, p00, crop.u0(), crop.v1(), f, cr * bright, cg * bright, cb * bright, alpha);
+                compatVertex(vc, mat, p10, crop.u1(), crop.v1(), f, cr * bright, cg * bright, cb * bright, alpha);
+                compatVertex(vc, mat, p11, crop.u1(), crop.v0(), f, cr * bright, cg * bright, cb * bright, alpha);
+                compatVertex(vc, mat, p01, crop.u0(), crop.v0(), f, cr * bright, cg * bright, cb * bright, alpha);
+            } else {
+                for (int[] run : WallScanner.runs(wall)) {
+                    Vec3 bl = p00.add(r.scale(pitch * run[0])).add(0.0, run[2], 0.0);
+                    Vec3 br = p00.add(r.scale(pitch * run[1])).add(0.0, run[2], 0.0);
+                    float u0 = crop.u0() + crop.du() * run[0] / (float) w;
+                    float u1 = crop.u0() + crop.du() * run[1] / (float) w;
+                    float vB = crop.v0() + crop.dv() * (1.0F - run[2] / (float) h);
+                    float vT = crop.v0() + crop.dv() * (1.0F - (run[2] + 1) / (float) h);
+                    compatVertex(vc, mat, bl, u0, vB, f, cr * bright, cg * bright, cb * bright, alpha);
+                    compatVertex(vc, mat, br, u1, vB, f, cr * bright, cg * bright, cb * bright, alpha);
+                    compatVertex(vc, mat, br.add(0.0, 1.0, 0.0), u1, vT, f, cr * bright, cg * bright, cb * bright, alpha);
+                    compatVertex(vc, mat, bl.add(0.0, 1.0, 0.0), u0, vT, f, cr * bright, cg * bright, cb * bright, alpha);
+                }
+            }
         }
     }
 
@@ -280,6 +407,96 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
                 .uv2(LightTexture.FULL_BRIGHT)
                 .normal((float) normal.x, (float) normal.y, (float) normal.z)
                 .endVertex();
+    }
+
+    /** One quad per (column, vertical run) of a path wall, handed to {@code out}. */
+    @FunctionalInterface
+    interface PathQuad {
+        void emit(Vec3 bl, Vec3 br, Vec3 tr, Vec3 tl, float u0, float u1, float vB, float vT);
+    }
+
+    /**
+     * Walks a path wall's columns emitting one quad per vertical run, in the ANCHOR block
+     * entity's local space (the pose stack is anchored there). Face segments are the scanner's
+     * idealised polyline — cell-front edges and cell diagonals — which is what makes adjacent
+     * columns of different orientation meet exactly at their shared corner.
+     */
+    static void emitPath(WallScanner.WallInfo wall, BlockPos anchorPos, PathQuad out) {
+        int w = wall.width();
+        int h = wall.height();
+        for (int i = 0; i < w; i++) {
+            double[] seg = WallScanner.pathSegment(wall, i);
+            double[] arc = WallScanner.pathArc(wall, i);
+            // Horizontal subsegments {x0, z0, x1, z1, uFrac0, uFrac1}: one for a straight
+            // cabinet, six around a corner cabinet's quarter-arc.
+            java.util.List<double[]> subs = new java.util.ArrayList<>(6);
+            if (arc == null) {
+                subs.add(new double[]{seg[0], seg[1], seg[2], seg[3], 0.0, 1.0});
+            } else {
+                int div = 6;
+                double a0 = Math.atan2(seg[1] - arc[1], seg[0] - arc[0]);
+                double a1 = Math.atan2(seg[3] - arc[1], seg[2] - arc[0]);
+                double d = a1 - a0;
+                while (d > Math.PI) {
+                    d -= 2.0 * Math.PI;
+                }
+                while (d < -Math.PI) {
+                    d += 2.0 * Math.PI;
+                }
+                for (int k = 0; k < div; k++) {
+                    double t0 = a0 + d * k / div;
+                    double t1 = a0 + d * (k + 1) / div;
+                    subs.add(new double[]{arc[0] + Math.cos(t0), arc[1] + Math.sin(t0),
+                            arc[0] + Math.cos(t1), arc[1] + Math.sin(t1),
+                            k / (double) div, (k + 1) / (double) div});
+                }
+            }
+            for (double[] sub : subs) {
+                double dxs = sub[2] - sub[0];
+                double dzs = sub[3] - sub[1];
+                double len = Math.max(1.0E-6, Math.sqrt(dxs * dxs + dzs * dzs));
+                double nx = -dzs / len;
+                double nz = dxs / len;
+                if (arc != null) {
+                    // Arc normals are radial: outward for convex, inward for concave — flip the
+                    // chord normal when it disagrees with the radial direction the sign asks for.
+                    double mx = (sub[0] + sub[2]) * 0.5 - arc[0];
+                    double mz = (sub[1] + sub[3]) * 0.5 - arc[1];
+                    if ((nx * mx + nz * mz) * arc[2] < 0.0) {
+                        nx = -nx;
+                        nz = -nz;
+                    }
+                }
+                double lx = sub[0] - anchorPos.getX() + nx * 0.001;
+                double lz = sub[1] - anchorPos.getZ() + nz * 0.001;
+                double rx = sub[2] - anchorPos.getX() + nx * 0.001;
+                double rz = sub[3] - anchorPos.getZ() + nz * 0.001;
+                float u0 = (float) ((i + sub[4]) / w);
+                float u1 = (float) ((i + sub[5]) / w);
+                int y = 0;
+                while (y < h) {
+                    if (!wall.has(i, y)) {
+                        y++;
+                        continue;
+                    }
+                    int y0 = y;
+                    while (y < h && wall.has(i, y)) {
+                        y++;
+                    }
+                    double yLo = y0 - wall.anchorUp();
+                    double yHi = y - wall.anchorUp();
+                    float vB = 1.0F - y0 / (float) h;
+                    float vT = 1.0F - y / (float) h;
+                    out.emit(new Vec3(lx, yLo, lz), new Vec3(rx, yLo, rz),
+                            new Vec3(rx, yHi, rz), new Vec3(lx, yHi, lz), u0, u1, vB, vT);
+                }
+            }
+        }
+    }
+
+    private static Vec3 normalOf(Vec3 bl, Vec3 br) {
+        Vec3 alongRight = br.subtract(bl).normalize();
+        return new Vec3(-alongRight.z, 0.0, alongRight.x);
     }
 
     private static void vertex(BufferBuilder builder, Matrix4f mat, Vec3 pos, float u, float v) {

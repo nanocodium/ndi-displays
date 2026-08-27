@@ -56,7 +56,7 @@ public class LedFloorRenderer implements BlockEntityRenderer<LedFloorBlockEntity
         Vec3 up = new Vec3(0, 1, 0);
 
         if (ShaderPackCompat.shaderPackActive()) {
-            renderShaderPackCompat(be, mode, p00, p10, p11, p01, up, poseStack, buffers);
+            renderShaderPackCompat(be, floor, mode, p00, p10, p11, p01, up, poseStack, buffers);
             return;
         }
 
@@ -88,10 +88,29 @@ public class LedFloorRenderer implements BlockEntityRenderer<LedFloorBlockEntity
         Matrix4f mat = poseStack.last().pose();
         BufferBuilder builder = Tesselator.getInstance().getBuilder();
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        vertex(builder, mat, p00, 0.0F, 1.0F);
-        vertex(builder, mat, p10, 1.0F, 1.0F);
-        vertex(builder, mat, p11, 1.0F, 0.0F);
-        vertex(builder, mat, p01, 0.0F, 0.0F);
+        Vec3 rv = Vec3.atLowerCornerOf(FloorScanner.right(floor.facing()).getNormal());
+        Vec3 fv = Vec3.atLowerCornerOf(floor.facing().getNormal());
+        if (!floor.isShaped()) {
+            vertex(builder, mat, p00, 0.0F, 1.0F);
+            vertex(builder, mat, p10, 1.0F, 1.0F);
+            vertex(builder, mat, p11, 1.0F, 0.0F);
+            vertex(builder, mat, p01, 0.0F, 0.0F);
+        } else {
+            // One quad per run of tiles — the Eurovision-cross case. Frame = bounding box;
+            // the build masks it.
+            for (int[] run : FloorScanner.runs(floor)) {
+                Vec3 bl = p00.add(rv.scale(run[0])).add(fv.scale(run[2]));
+                Vec3 br = p00.add(rv.scale(run[1])).add(fv.scale(run[2]));
+                float u0 = run[0] / (float) floor.width();
+                float u1 = run[1] / (float) floor.width();
+                float vB = 1.0F - run[2] / (float) floor.depth();
+                float vT = 1.0F - (run[2] + 1) / (float) floor.depth();
+                vertex(builder, mat, bl, u0, vB);
+                vertex(builder, mat, br, u1, vB);
+                vertex(builder, mat, br.add(fv), u1, vT);
+                vertex(builder, mat, bl.add(fv), u0, vT);
+            }
+        }
         // Depth-bias the video face off its cabinet. The face sits a few millimetres proud of
         // the cabinet geometry, but depth precision falls with distance, so past ~60 blocks the
         // fixed offset drops below what the depth buffer can resolve and the face stipple-fights
@@ -108,10 +127,26 @@ public class LedFloorRenderer implements BlockEntityRenderer<LedFloorBlockEntity
         if (LedWallRenderer.SHIMMER_LOADED && !dev.nano.ndidisplays.client.CameraFeedManager.isCapturing()) {
             ResourceLocation shimmerTex = mode == 0 ? bloomTexture : FallbackTextures.whiteLocation();
             if (shimmerTex != null) {
-                ShimmerCompat.submitBloom(mat, p00, p10, p11, p01, shimmerTex, new float[]{
+                float[] bloomParams = new float[]{
                         gridW, gridH, ScreenVideo.ledGap(PIXEL_GAP), be.getEffectiveBrightness(),
                         be.getGamma(), (float) mode, (float) pxPerBlock, ScreenVideo.ledVariance(CALIBRATION_VARIANCE),
-                        crop.u0(), crop.v0(), crop.du(), crop.dv()});
+                        crop.u0(), crop.v0(), crop.du(), crop.dv()};
+                if (!floor.isShaped()) {
+                    ShimmerCompat.submitBloom(mat, p00, p10, p11, p01, shimmerTex, bloomParams);
+                } else {
+                    java.util.List<int[]> runs = FloorScanner.runs(floor);
+                    if (runs.size() <= 128) {
+                        for (int[] run : runs) {
+                            Vec3 bl = p00.add(rv.scale(run[0])).add(fv.scale(run[2]));
+                            Vec3 br = p00.add(rv.scale(run[1])).add(fv.scale(run[2]));
+                            ShimmerCompat.submitBloomUv(mat, bl, br, br.add(fv), bl.add(fv),
+                                    run[0] / (float) floor.width(), run[1] / (float) floor.width(),
+                                    1.0F - run[2] / (float) floor.depth(),
+                                    1.0F - (run[2] + 1) / (float) floor.depth(),
+                                    shimmerTex, bloomParams);
+                        }
+                    }
+                }
             }
         }
     }
@@ -128,7 +163,10 @@ public class LedFloorRenderer implements BlockEntityRenderer<LedFloorBlockEntity
         float y = THICKNESS + SURFACE_EPSILON;
         Vec3 origin = new Vec3(0.5, y, 0.5)
                 .subtract(r.scale(0.5))
-                .subtract(f.scale(0.5));
+                .subtract(f.scale(0.5))
+                // Shaped floors: the render-anchor tile is not necessarily the box corner.
+                .subtract(r.scale(floor.anchorAcross()))
+                .subtract(f.scale(floor.anchorAlong()));
         Vec3 p00 = origin;
         Vec3 p10 = origin.add(r.scale(floor.width()));
         Vec3 p01 = origin.add(f.scale(floor.depth()));
@@ -136,7 +174,7 @@ public class LedFloorRenderer implements BlockEntityRenderer<LedFloorBlockEntity
         return new Vec3[]{p00, p10, p11, p01};
     }
 
-    private void renderShaderPackCompat(LedFloorBlockEntity be, int mode,
+    private void renderShaderPackCompat(LedFloorBlockEntity be, FloorScanner.FloorInfo floor, int mode,
                                         Vec3 p00, Vec3 p10, Vec3 p11, Vec3 p01, Vec3 normal,
                                         PoseStack poseStack, MultiBufferSource buffers) {
         float bright = be.getEffectiveBrightness();
@@ -165,10 +203,27 @@ public class LedFloorRenderer implements BlockEntityRenderer<LedFloorBlockEntity
         CropWindow crop = be.crop();
         Matrix4f mat = poseStack.last().pose();
         VertexConsumer vc = buffers.getBuffer(RenderType.entityTranslucentEmissive(tex));
-        compatVertex(vc, mat, p00, crop.u0(), crop.v1(), normal, cr * bright, cg * bright, cb * bright);
-        compatVertex(vc, mat, p10, crop.u1(), crop.v1(), normal, cr * bright, cg * bright, cb * bright);
-        compatVertex(vc, mat, p11, crop.u1(), crop.v0(), normal, cr * bright, cg * bright, cb * bright);
-        compatVertex(vc, mat, p01, crop.u0(), crop.v0(), normal, cr * bright, cg * bright, cb * bright);
+        if (!floor.isShaped()) {
+            compatVertex(vc, mat, p00, crop.u0(), crop.v1(), normal, cr * bright, cg * bright, cb * bright);
+            compatVertex(vc, mat, p10, crop.u1(), crop.v1(), normal, cr * bright, cg * bright, cb * bright);
+            compatVertex(vc, mat, p11, crop.u1(), crop.v0(), normal, cr * bright, cg * bright, cb * bright);
+            compatVertex(vc, mat, p01, crop.u0(), crop.v0(), normal, cr * bright, cg * bright, cb * bright);
+        } else {
+            Vec3 rv = Vec3.atLowerCornerOf(FloorScanner.right(floor.facing()).getNormal());
+            Vec3 fv = Vec3.atLowerCornerOf(floor.facing().getNormal());
+            for (int[] run : FloorScanner.runs(floor)) {
+                Vec3 bl = p00.add(rv.scale(run[0])).add(fv.scale(run[2]));
+                Vec3 br = p00.add(rv.scale(run[1])).add(fv.scale(run[2]));
+                float u0 = crop.u0() + crop.du() * run[0] / (float) floor.width();
+                float u1 = crop.u0() + crop.du() * run[1] / (float) floor.width();
+                float vB = crop.v0() + crop.dv() * (1.0F - run[2] / (float) floor.depth());
+                float vT = crop.v0() + crop.dv() * (1.0F - (run[2] + 1) / (float) floor.depth());
+                compatVertex(vc, mat, bl, u0, vB, normal, cr * bright, cg * bright, cb * bright);
+                compatVertex(vc, mat, br, u1, vB, normal, cr * bright, cg * bright, cb * bright);
+                compatVertex(vc, mat, br.add(fv), u1, vT, normal, cr * bright, cg * bright, cb * bright);
+                compatVertex(vc, mat, bl.add(fv), u0, vT, normal, cr * bright, cg * bright, cb * bright);
+            }
+        }
     }
 
     private static void compatVertex(VertexConsumer vc, Matrix4f mat, Vec3 pos, float u, float v,

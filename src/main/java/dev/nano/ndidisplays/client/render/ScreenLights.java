@@ -35,6 +35,13 @@ import java.util.Map;
  */
 public final class ScreenLights {
 
+    /**
+     * OFF by default: the wash reads as ugly ambient light on nearby architecture more often
+     * than it reads as a video wall lighting a stage. Opt back in with
+     * -Dndidisplays.screenLights=true. Bloom (the glow on the screen itself) is unaffected.
+     */
+    private static final boolean ENABLED = Boolean.getBoolean("ndidisplays.screenLights");
+
     /** Ticks without a render refresh before a screen's lights are dropped. */
     private static final int EXPIRE_TICKS = 5;
 
@@ -105,6 +112,41 @@ public final class ScreenLights {
      */
     public static void updateWall(BlockPos owner, WallScanner.WallInfo wall, String source,
                                   int mode, CropWindow crop, float brightness) {
+        if (!ENABLED) {
+            return;
+        }
+        if (wall.isPath()) {
+            // A bending wall lights the room from where its columns actually are: one light per
+            // group of columns, each sitting in front of its group's centre column and sampling
+            // that group's slice of the frame.
+            int w = wall.width();
+            int h = wall.height();
+            int cols = lightCount(w, MAX_COLS);
+            int rows = lightCount(h, MAX_ROWS);
+            double baseY = owner.getY() - wall.anchorUp();
+            Vec3[] centres = new Vec3[cols * rows];
+            for (int i = 0; i < cols; i++) {
+                int ci = Math.min(w - 1, (int) ((i + 0.5) / cols * w));
+                double[] seg = WallScanner.pathSegment(wall, ci);
+                // Normal from the segment chord, so corner cabinets (no PanelFacing) work too.
+                double dxs = seg[2] - seg[0];
+                double dzs = seg[3] - seg[1];
+                double len = Math.max(1.0E-6, Math.sqrt(dxs * dxs + dzs * dzs));
+                Vec3 n = new Vec3(-dzs / len, 0.0, dxs / len);
+                double mx = (seg[0] + seg[2]) * 0.5 + n.x * PUSH_OUT;
+                double mz = (seg[1] + seg[3]) * 0.5 + n.z * PUSH_OUT;
+                for (int j = 0; j < rows; j++) {
+                    int k = j * cols + i;
+                    double up = h * (1.0 - (j + 0.5) / rows);
+                    centres[k] = new Vec3(mx, baseY + up, mz);
+                    putRect(k, (float) i / cols, (float) j / rows,
+                            (float) (i + 1) / cols, (float) (j + 1) / rows, crop);
+                }
+            }
+            apply(owner, source, mode, centres, cols, rows,
+                    Math.max((double) w / cols, (double) h / rows), brightness);
+            return;
+        }
         PanelFacing facing = wall.facing();
         int w = wall.width();
         int h = wall.height();
@@ -116,9 +158,14 @@ public final class ScreenLights {
         int rows = lightCount(h, MAX_ROWS);
 
         // Out past the cabinet face; the exact surface offset does not matter once pushed clear.
-        Vec3 base = new Vec3(0.5, 0.0, 0.5)
+        // World-anchored at the owner block — the renderers hand in block-local geometry — and
+        // shifted to the shape's bounding-box origin for shaped walls.
+        Vec3 base = Vec3.atLowerCornerOf(owner)
+                .add(0.5, 0.0, 0.5)
                 .subtract(right.scale(pitch * 0.5))
-                .add(normal.scale(0.5 + PUSH_OUT));
+                .add(normal.scale(0.5 + PUSH_OUT))
+                .add(right.scale(-pitch * wall.anchorAcross()))
+                .add(0.0, -wall.anchorUp(), 0.0);
         Vec3 span = right.scale(pitch * w);
 
         Vec3[] centres = new Vec3[cols * rows];
@@ -143,9 +190,12 @@ public final class ScreenLights {
     public static void updateDisc(BlockPos owner, Vec3 faceCentre, Vec3 right, Vec3 up,
                                   Vec3 normal, float radius, String source, int mode,
                                   CropWindow crop, float brightness) {
+        if (!ENABLED) {
+            return;
+        }
         int cols = lightCount(radius * 2.0, MAX_COLS);
         int rows = lightCount(radius * 2.0, MAX_ROWS);
-        Vec3 out = faceCentre.add(normal.scale(PUSH_OUT));
+        Vec3 out = Vec3.atLowerCornerOf(owner).add(faceCentre).add(normal.scale(PUSH_OUT));
 
         Vec3[] centres = new Vec3[cols * rows];
         for (int j = 0; j < rows; j++) {
@@ -170,11 +220,16 @@ public final class ScreenLights {
                                  double faceRadius, float yBottom, float yTop, int repeat,
                                  boolean convex, String source, int mode, CropWindow crop,
                                  float brightness) {
+        if (!ENABLED) {
+            return;
+        }
         double arcLength = Math.abs(arc) * faceRadius;
         double height = yTop - yBottom;
         int cols = lightCount(arcLength, MAX_COLS);
         int rows = lightCount(height, MAX_ROWS);
 
+        // World-anchor the arc's centre; the renderer passes block-local coordinates.
+        centre = Vec3.atLowerCornerOf(owner).add(centre);
         Vec3[] centres = new Vec3[cols * rows];
         for (int i = 0; i < cols; i++) {
             double t0 = (double) i / cols;
@@ -194,7 +249,7 @@ public final class ScreenLights {
             }
             for (int j = 0; j < rows; j++) {
                 int k = j * cols + i;
-                double y = yTop - height * (j + 0.5) / rows;
+                double y = owner.getY() + yTop - height * (j + 0.5) / rows;
                 centres[k] = new Vec3(centre.x + dir.x * faceRadius, y, centre.z + dir.z * faceRadius)
                         .add(push.scale(PUSH_OUT));
                 putRect(k, u0, (float) j / rows, u1, (float) (j + 1) / rows, crop);

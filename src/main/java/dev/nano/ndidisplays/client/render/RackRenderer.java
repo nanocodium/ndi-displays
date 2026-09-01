@@ -47,7 +47,7 @@ public class RackRenderer implements BlockEntityRenderer<RackBlockEntity> {
     private static final float WEB_X1 = 0.3340F;
     private static final float WEB_Y0 = 0.0253F;
     private static final float WEB_Y1 = 0.1197F;
-    private static final float WEB_Z = 0.2146F + 0.004F;
+    private static final float WEB_Z = 0.3538F + 0.004F;
 
     @Override
     public void render(RackBlockEntity rack, float partialTick, PoseStack pose,
@@ -56,7 +56,7 @@ public class RackRenderer implements BlockEntityRenderer<RackBlockEntity> {
 
         pose.pushPose();
         pose.translate(0.5, 0.0, 0.5);
-        pose.mulPose(Axis.YP.rotationDegrees(-(rack.getFacing().toYRot() + 180.0F)));
+        pose.mulPose(Axis.YP.rotationDegrees(-rack.getFacing().toYRot()));
 
         for (int slot = 0; slot < RackBlockEntity.SLOTS; slot++) {
             RackUnitType type = rack.unit(slot);

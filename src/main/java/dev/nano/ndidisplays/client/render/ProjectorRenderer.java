@@ -447,7 +447,9 @@ public class ProjectorRenderer implements BlockEntityRenderer<ProjectorBlockEnti
     // ------------------------------------------------------------------ the visible beam
 
     private static void drawBeam(ProjectorBlockEntity be, PoseStack poseStack) {
-        Vec3 origin = lensOrigin(be);
+        // Start at the chassis lens (a little below block centre, where the mesh's glass is),
+        // and open at the frustum's own angles so the haze IS the light cone, just shorter.
+        Vec3 origin = lensOrigin(be).add(0.0, -0.12, 0.0);
         Vec3 dir = lensDirection(be);
         Vec3 up = Math.abs(dir.y) > 0.999 ? new Vec3(0, 0, 1) : new Vec3(0, 1, 0);
         Vec3 right = dir.cross(up).normalize();
@@ -455,16 +457,17 @@ public class ProjectorRenderer implements BlockEntityRenderer<ProjectorBlockEnti
         BlockPos anchor = be.getBlockPos();
 
         double len = Math.min(7.0, be.getFar() * 0.45);
-        double tanV = Math.tan(Math.toRadians(be.getFov() * 0.5)) * 0.55;
+        double tanV = Math.tan(Math.toRadians(be.getFov() * 0.5));
         double tanH = tanV * be.getAspect();
         float alpha = 0.10F * be.getBrightness();
 
-        Vec3 nearC = origin.add(dir.scale(0.25));
+        double near = 0.25;
+        Vec3 nearC = origin.add(dir.scale(near));
         Vec3 farC = origin.add(dir.scale(len));
-        Vec3[] nearR = {nearC.subtract(right.scale(0.05)).subtract(upv.scale(0.04)),
-                nearC.add(right.scale(0.05)).subtract(upv.scale(0.04)),
-                nearC.add(right.scale(0.05)).add(upv.scale(0.04)),
-                nearC.subtract(right.scale(0.05)).add(upv.scale(0.04))};
+        Vec3 nr = right.scale(tanH * near);
+        Vec3 nu = upv.scale(tanV * near);
+        Vec3[] nearR = {nearC.subtract(nr).subtract(nu), nearC.add(nr).subtract(nu),
+                nearC.add(nr).add(nu), nearC.subtract(nr).add(nu)};
         Vec3 r = right.scale(tanH * len);
         Vec3 u = upv.scale(tanV * len);
         Vec3[] farR = {farC.subtract(r).subtract(u), farC.add(r).subtract(u),

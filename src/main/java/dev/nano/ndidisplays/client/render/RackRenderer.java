@@ -53,6 +53,7 @@ public class RackRenderer implements BlockEntityRenderer<RackBlockEntity> {
     public void render(RackBlockEntity rack, float partialTick, PoseStack pose,
                        MultiBufferSource buffers, int packedLight, int packedOverlay) {
         boolean powered = rack.powered();
+        dev.nano.ndidisplays.client.ndi.RackRouters.note(rack);
 
         pose.pushPose();
         pose.translate(0.5, 0.0, 0.5);

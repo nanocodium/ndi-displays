@@ -1,19 +1,19 @@
 {
     "variants": {
         "facing=north": {
-            "model": "ndidisplays:block/equipment_rack",
-            "y": 180
+            "model": "ndidisplays:block/equipment_rack"
         },
         "facing=east": {
             "model": "ndidisplays:block/equipment_rack",
-            "y": 270
+            "y": 90
         },
         "facing=south": {
-            "model": "ndidisplays:block/equipment_rack"
+            "model": "ndidisplays:block/equipment_rack",
+            "y": 180
         },
         "facing=west": {
             "model": "ndidisplays:block/equipment_rack",
-            "y": 90
+            "y": 270
         }
     }
 }

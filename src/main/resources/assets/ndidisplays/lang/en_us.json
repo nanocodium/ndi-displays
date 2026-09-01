@@ -101,6 +101,8 @@
   "gui.ndidisplays.processor.nosource": "No source configured on this screen",
     "block.ndidisplays.equipment_rack": "Equipment Rack",
     "item.ndidisplays.web_module": "Rack Unit: Web Module",
+    "item.ndidisplays.rack_router": "Rack Unit: NDI Router",
+    "gui.ndidisplays.rack_router.title": "Rack NDI Router",
     "item.ndidisplays.rack_pdu": "Rack Unit: PDU",
     "item.ndidisplays.rack_switch": "Rack Unit: Network Switch",
     "item.ndidisplays.rack_patch": "Rack Unit: Patch Panel",

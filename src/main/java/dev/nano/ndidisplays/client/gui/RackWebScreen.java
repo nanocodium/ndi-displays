@@ -75,7 +75,7 @@ public class RackWebScreen extends Screen {
             typed = "https://" + typed;
             urlBox.setValue(typed);
         }
-        NetworkHandler.CHANNEL.sendToServer(new RackConfigPacket(rack.getBlockPos(), slot, typed));
+        NetworkHandler.CHANNEL.sendToServer(new RackConfigPacket(rack.getBlockPos(), slot, "Url", typed));
         rack.cfg(slot).putString("Url", typed);
         WebBrowsers.Session s = current();
         if (s != null) {

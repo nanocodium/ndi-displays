@@ -120,6 +120,14 @@ public class RackBlock extends HorizontalDirectionalBlock implements EntityBlock
             }
             return InteractionResult.sidedSuccess(level.isClientSide);
         }
+        if (type == RackUnitType.ROUTER) {
+            if (level.isClientSide) {
+                final int s = slot;
+                DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
+                        dev.nano.ndidisplays.client.ClientHooks.openRackRouter(pos, s));
+            }
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
         return type != null
                 ? InteractionResult.sidedSuccess(level.isClientSide)
                 : InteractionResult.PASS;

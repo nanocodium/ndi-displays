@@ -12,7 +12,9 @@ public enum RackUnitType {
     PATCH("rack_patch", "rack_patch"),
     RECORDER("rack_recorder", "rack_recorder"),
     SYNC("rack_sync", "rack_sync"),
-    BLANK("rack_blank", "rack_blank");
+    BLANK("rack_blank", "rack_blank"),
+    // appended last: slot bytes persist ordinals, so order is append-only
+    ROUTER("rack_router", "rack_router");
 
     public final String mesh;
     /** Registry name of the unit's item. */

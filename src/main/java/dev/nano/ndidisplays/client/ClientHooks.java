@@ -138,6 +138,15 @@ public final class ClientHooks {
     }
 
     /** Opens a web terminal: the page, a URL bar, and mouse/keyboard wired to the browser. */
+    public static void openRackRouter(BlockPos pos, int slot) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level != null && level.getBlockEntity(pos)
+                instanceof dev.nano.ndidisplays.block.RackBlockEntity rack) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.RackRouterScreen(rack, slot));
+        }
+    }
+
     public static void openRackWeb(BlockPos pos, int slot) {
         Minecraft mc = Minecraft.getInstance();
         Level level = mc.level;

@@ -88,6 +88,7 @@ public final class ComputerOS {
     private int mouseY = 100;
     private boolean startOpen;
     private OsWindow dragging;
+    private OsWindow resizing;
     private int dragDx;
     private int dragDy;
     private boolean dirty = true;
@@ -194,6 +195,10 @@ public final class ComputerOS {
             dragging.x = clamp(mouseX - dragDx, -dragging.w + 30, width - 20);
             dragging.y = clamp(mouseY - dragDy, 0, height - TASKBAR_H - 10);
         }
+        if (resizing != null) {
+            resizing.w = clamp(mouseX - resizing.x + dragDx, 120, width);
+            resizing.h = clamp(mouseY - resizing.y + dragDy, 60, height - TASKBAR_H);
+        }
         OsWindow f = focused();
         if (f != null && !f.minimized) {
             f.app.mouseMove(mouseX - f.x - 2, mouseY - f.y - 14);
@@ -245,7 +250,11 @@ public final class ComputerOS {
                 continue;
             }
             focus(w);
-            if (y < w.y + 14) { // titlebar
+            if (x >= w.x + w.w - 8 && y >= w.y + w.h - 8) { // resize grip
+                resizing = w;
+                dragDx = w.x + w.w - x;
+                dragDy = w.y + w.h - y;
+            } else if (y < w.y + 14) { // titlebar
                 if (x >= w.x + w.w - 12) {
                     close(w);
                 } else if (x >= w.x + w.w - 24) {
@@ -280,6 +289,7 @@ public final class ComputerOS {
     public void mouseUp(int x, int y, int button) {
         mouseMove(x, y);
         dragging = null;
+        resizing = null;
         OsWindow f = focused();
         if (f != null && !f.minimized) {
             f.app.mouseUp(x - f.x - 2, y - f.y - 14, button);
@@ -353,6 +363,7 @@ public final class ComputerOS {
 
     /** Block removed / world left: release textures and sounds, save the drive. */
     public void shutdown() {
+        stopDisc();
         for (OsWindow w : new ArrayList<>(windows)) {
             close(w);
         }
@@ -591,6 +602,9 @@ public final class ComputerOS {
                     x + 4, y + 3, C_TEXT, false);
             g.drawString(os.font, "-", x + w - 21, y + 3, C_DIM, false);
             g.drawString(os.font, "x", x + w - 10, y + 3, C_RED, false);
+            // resize grip in the corner
+            g.fill(x + w - 6, y + h - 2, x + w - 2, y + h - 1, C_DIM);
+            g.fill(x + w - 2, y + h - 6, x + w - 1, y + h - 2, C_DIM);
             // No scissor: GuiGraphics scissoring assumes the real window's GUI scale, which is
             // meaningless inside the computer's own framebuffer. Apps stay inside their bounds.
             g.pose().pushPose();

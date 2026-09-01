@@ -70,6 +70,12 @@ class MusicApp extends OsApp {
         }
     }
 
+    /** Closing the player stops the record, like quitting a real music app. */
+    @Override
+    void onClose() {
+        os.stopDisc();
+    }
+
     @Override
     void scroll(double amount) {
         scroll = ComputerOS.clamp(scroll - (int) Math.signum(amount) * 24, 0,

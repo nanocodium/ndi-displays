@@ -26,7 +26,10 @@ out vec4 fragColor;
 // shows exactly how the optics land on the architecture.
 vec3 frame(vec2 uv, float mode) {
     if (mode < 0.5) {
-        return texture(Sampler0, uv).rgb;
+        // Full-resolution sample, always: the drape's oblique surfaces make the GPU pick deep
+        // mip levels, which smeared the projected video into a blur. A projector's image is as
+        // sharp as its source at any angle — so is this one.
+        return textureLod(Sampler0, uv, 0.0).rgb;
     }
     if (mode < 1.5) { // SMPTE-ish bars
         float band = floor(uv.x * 8.0);

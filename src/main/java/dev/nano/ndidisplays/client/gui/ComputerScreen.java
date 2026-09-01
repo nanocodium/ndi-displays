@@ -54,12 +54,21 @@ public class ComputerScreen extends Screen {
     @Override
     protected void init() {
         int pad = 6;
-        pageX = pad;
-        pageY = pad;
-        pageW = width - pad * 2;
-        pageH = (int) (height * PAGE_FRACTION) - pad;
+        // Letterbox the desktop to the machine's own aspect: stretching a 16:9 screen across
+        // whatever the Minecraft window happens to be distorted every pixel and every click.
+        int availW = width - pad * 2;
+        int availH = (int) (height * PAGE_FRACTION) - pad;
+        double aspect = (double) pc.getWidth() / pc.getHeight();
+        pageW = availW;
+        pageH = (int) (pageW / aspect);
+        if (pageH > availH) {
+            pageH = availH;
+            pageW = (int) (pageH * aspect);
+        }
+        pageX = (width - pageW) / 2;
+        pageY = pad + (availH - pageH) / 2;
 
-        int row = pageY + pageH + 6;
+        int row = pad + availH + 6;
         nameBox = new EditBox(font, pad, row + 1, 130, 18,
                 Component.translatable("gui.ndidisplays.computer.name"));
         nameBox.setMaxLength(ComputerBlockEntity.MAX_NAME);

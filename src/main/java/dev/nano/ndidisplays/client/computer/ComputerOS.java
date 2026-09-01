@@ -327,6 +327,7 @@ public final class ComputerOS {
             }
         }
         OsApp app = switch (kind) {
+            case BROWSER -> new BrowserApp(this);
             case NOTEPAD -> new NotepadApp(this);
             case FILES -> new FilesApp(this);
             case PAINT -> new PaintApp(this);
@@ -541,6 +542,7 @@ public final class ComputerOS {
     // ================================================================ window shell
 
     enum AppKind {
+        BROWSER("[@]", "Browser", 0xFF60A0FF),
         NOTEPAD("[=]", "Notes", 0xFFF0D060),
         FILES("[/]", "Files", 0xFF60C0F0),
         PAINT("[~]", "Paint", 0xFFF080B0),

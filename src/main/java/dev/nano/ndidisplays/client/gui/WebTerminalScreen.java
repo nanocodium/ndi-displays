@@ -63,10 +63,20 @@ public class WebTerminalScreen extends Screen {
     @Override
     protected void init() {
         int pad = 6;
-        pageX = pad;
-        pageY = pad + 24;
-        pageW = width - pad * 2;
-        pageH = (int) (height * PAGE_FRACTION) - pad;
+        // Letterbox the page to its output aspect, so the picture and the cursor mapping are
+        // undistorted at any window size — the same fix the computer screen carries.
+        int availW = width - pad * 2;
+        int availH = (int) (height * PAGE_FRACTION) - pad - 24;
+        double aspect = (double) WebTerminalBlockEntity.RES_W[resolution]
+                / WebTerminalBlockEntity.RES_H[resolution];
+        pageW = availW;
+        pageH = (int) (pageW / aspect);
+        if (pageH > availH) {
+            pageH = availH;
+            pageW = (int) (pageH * aspect);
+        }
+        pageX = (width - pageW) / 2;
+        pageY = pad + 24 + (availH - pageH) / 2;
 
         urlBox = new EditBox(font, pad + 66, pad, width - pad * 2 - 150, 18,
                 Component.translatable("gui.ndidisplays.web.url"));
@@ -87,7 +97,7 @@ public class WebTerminalScreen extends Screen {
                         })
                 .bounds(width - pad - 80, pad, 80, 18).build());
 
-        int row = pageY + pageH + 6;
+        int row = pad + 24 + availH + 6;
         addRenderableWidget(CycleButton.<Integer>builder(r -> Component.literal(
                         WebTerminalBlockEntity.RES_W[r] + "x" + WebTerminalBlockEntity.RES_H[r]))
                 .withValues(0, 1, 2)

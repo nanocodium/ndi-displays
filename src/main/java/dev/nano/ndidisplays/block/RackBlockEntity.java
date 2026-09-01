@@ -24,8 +24,8 @@ public class RackBlockEntity extends BlockEntity {
 
     public static final int SLOTS = 6;
     /** First slot's base height and the per-slot pitch, in block units (matches the frame mesh). */
-    public static final float SLOT_Y0 = 0.045F;
-    public static final float SLOT_PITCH = 0.1525F;
+    public static final float SLOT_Y0 = 0.065F;
+    public static final float SLOT_PITCH = 0.1455F;
 
     /** Slot contents: 0 = empty, otherwise RackUnitType ordinal + 1. */
     private final byte[] slots = new byte[SLOTS];

@@ -57,7 +57,7 @@ public class RackRenderer implements BlockEntityRenderer<RackBlockEntity> {
 
         pose.pushPose();
         pose.translate(0.5, 0.0, 0.5);
-        pose.mulPose(Axis.YP.rotationDegrees(-rack.getFacing().toYRot()));
+        pose.mulPose(Axis.YP.rotationDegrees(-(rack.getFacing().toYRot() + 180.0F)));
 
         for (int slot = 0; slot < RackBlockEntity.SLOTS; slot++) {
             RackUnitType type = rack.unit(slot);
@@ -72,7 +72,7 @@ public class RackRenderer implements BlockEntityRenderer<RackBlockEntity> {
                     && (type != RackUnitType.PDU || rack.cfg(slot).getBoolean("On"));
 
             pose.pushPose();
-            pose.translate(0.0, y, 0.05);
+            pose.translate(0.0, y, -0.05);
             mesh.render(pose, vc, packedLight, g -> !isGlow(g));
             mesh.render(pose, vc, unitLit ? LightTexture.FULL_BRIGHT : packedLight,
                     RackRenderer::isGlow);

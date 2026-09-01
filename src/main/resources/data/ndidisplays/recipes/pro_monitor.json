@@ -1,0 +1,22 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "GGG",
+        "IPI"
+    ],
+    "key": {
+        "G": {
+            "item": "minecraft:glass"
+        },
+        "I": {
+            "item": "minecraft:iron_ingot"
+        },
+        "P": {
+            "item": "ndidisplays:led_panel"
+        }
+    },
+    "result": {
+        "item": "ndidisplays:pro_monitor",
+        "count": 1
+    }
+}

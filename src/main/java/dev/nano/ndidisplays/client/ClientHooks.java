@@ -138,6 +138,24 @@ public final class ClientHooks {
     }
 
     /** Opens a web terminal: the page, a URL bar, and mouse/keyboard wired to the browser. */
+    public static void openSwitcher(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level != null && level.getBlockEntity(pos)
+                instanceof dev.nano.ndidisplays.block.SwitcherBlockEntity sw) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.SwitcherScreen(sw));
+        }
+    }
+
+    public static void openProMonitor(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level != null && level.getBlockEntity(pos)
+                instanceof dev.nano.ndidisplays.block.ProMonitorBlockEntity mon) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.ProMonitorScreen(mon));
+        }
+    }
+
     public static void openComputer(BlockPos pos) {
         Minecraft mc = Minecraft.getInstance();
         Level level = mc.level;

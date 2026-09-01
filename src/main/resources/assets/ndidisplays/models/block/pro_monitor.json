@@ -1,0 +1,40 @@
+{
+    "loader": "forge:obj",
+    "model": "ndidisplays:meshes/pro_monitor.obj",
+    "flip_v": true,
+    "textures": {
+        "atlas": "ndidisplays:block/pro_monitor_atlas",
+        "particle": "ndidisplays:block/camera_dark"
+    },
+    "display": {
+        "gui": {
+            "rotation": [
+                30,
+                225,
+                0
+            ],
+            "translation": [
+                0,
+                -1,
+                0
+            ],
+            "scale": [
+                0.62,
+                0.62,
+                0.62
+            ]
+        },
+        "fixed": {
+            "rotation": [
+                0,
+                180,
+                0
+            ],
+            "scale": [
+                0.8,
+                0.8,
+                0.8
+            ]
+        }
+    }
+}

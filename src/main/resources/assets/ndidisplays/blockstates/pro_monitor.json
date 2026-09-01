@@ -1,0 +1,19 @@
+{
+    "variants": {
+        "facing=north": {
+            "model": "ndidisplays:block/pro_monitor"
+        },
+        "facing=east": {
+            "model": "ndidisplays:block/pro_monitor",
+            "y": 90
+        },
+        "facing=south": {
+            "model": "ndidisplays:block/pro_monitor",
+            "y": 180
+        },
+        "facing=west": {
+            "model": "ndidisplays:block/pro_monitor",
+            "y": 270
+        }
+    }
+}

@@ -326,6 +326,40 @@ public class NdiDisplays {
                             dev.nano.ndidisplays.block.ComputerBlockEntity::new,
                             COMPUTER.get()).build(null));
 
+    /** ATEM-style vision switcher: eight NDI inputs, PGM/PVW buses, real transitions. */
+    public static final RegistryObject<Block> VISION_SWITCHER = BLOCKS.register("vision_switcher",
+            () -> new dev.nano.ndidisplays.block.SwitcherBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.2F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()));
+
+    public static final RegistryObject<Item> VISION_SWITCHER_ITEM = ITEMS.register("vision_switcher",
+            () -> new BlockItem(VISION_SWITCHER.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.SwitcherBlockEntity>> SWITCHER_BE =
+            BLOCK_ENTITIES.register("vision_switcher",
+                    () -> BlockEntityType.Builder.of(
+                            dev.nano.ndidisplays.block.SwitcherBlockEntity::new,
+                            VISION_SWITCHER.get()).build(null));
+
+    /** Production monitor: one NDI source on a desk display. */
+    public static final RegistryObject<Block> PRO_MONITOR = BLOCKS.register("pro_monitor",
+            () -> new dev.nano.ndidisplays.block.ProMonitorBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.2F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()));
+
+    public static final RegistryObject<Item> PRO_MONITOR_ITEM = ITEMS.register("pro_monitor",
+            () -> new BlockItem(PRO_MONITOR.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.ProMonitorBlockEntity>> PRO_MONITOR_BE =
+            BLOCK_ENTITIES.register("pro_monitor",
+                    () -> BlockEntityType.Builder.of(
+                            dev.nano.ndidisplays.block.ProMonitorBlockEntity::new,
+                            PRO_MONITOR.get()).build(null));
+
     public static final RegistryObject<Block> WEB_TERMINAL = BLOCKS.register("web_terminal",
             () -> new dev.nano.ndidisplays.block.WebTerminalBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_BLACK)
@@ -369,6 +403,8 @@ public class NdiDisplays {
                         output.accept(NDI_ROUTER_ITEM.get());
                         output.accept(WEB_TERMINAL_ITEM.get());
                         output.accept(COMPUTER_ITEM.get());
+                        output.accept(VISION_SWITCHER_ITEM.get());
+                        output.accept(PRO_MONITOR_ITEM.get());
                         output.accept(DRONE_ITEM.get());
                         output.accept(DRONE_REMOTE_ITEM.get());
                     })

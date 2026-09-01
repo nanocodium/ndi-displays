@@ -535,6 +535,9 @@ public final class CameraFeedManager {
         COMPUTER_FEEDS.values().forEach(Feed::release);
         COMPUTER_FEEDS.clear();
         COMPUTERS.clear();
+        SWITCHER_FEEDS.values().forEach(Feed::release);
+        SWITCHER_FEEDS.clear();
+        SWITCHERS.clear();
         dev.nano.ndidisplays.client.computer.Computers.closeAll();
         dev.nano.ndidisplays.client.web.WebBrowsers.closeAll();
         if (handheldFeed != null) {
@@ -683,6 +686,10 @@ public final class CameraFeedManager {
                 COMPUTER_FEEDS.values().forEach(Feed::release);
                 COMPUTER_FEEDS.clear();
             }
+            if (!SWITCHER_FEEDS.isEmpty()) {
+                SWITCHER_FEEDS.values().forEach(Feed::release);
+                SWITCHER_FEEDS.clear();
+            }
             if (handheldFeed != null) {
                 handheldFeed.release();
                 handheldFeed = null;
@@ -726,6 +733,7 @@ public final class CameraFeedManager {
         // for that budget nor is affected by a shader pack replacing the world pipeline.
         tickWebTerminals(now);
         tickComputers(now);
+        tickSwitchers(now);
 
         // The handheld camera keeps the one-capture-per-frame budget: when it captured
         // this frame, the block rigs wait for the next one. Under shaders the handheld
@@ -1162,6 +1170,173 @@ public final class CameraFeedManager {
 
     public static void noteComputer(dev.nano.ndidisplays.block.ComputerBlockEntity be) {
         COMPUTERS.put(be.getBlockPos().immutable(), be);
+    }
+
+    // --- vision switchers: the program output, transitions composited on the GPU ---
+
+    private static final Map<BlockPos, dev.nano.ndidisplays.block.SwitcherBlockEntity>
+            SWITCHERS = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<BlockPos, Feed> SWITCHER_FEEDS = new java.util.HashMap<>();
+
+    public static void noteSwitcher(dev.nano.ndidisplays.block.SwitcherBlockEntity be) {
+        SWITCHERS.put(be.getBlockPos().immutable(), be);
+    }
+
+    private static void tickSwitchers(double now) {
+        if (SWITCHERS.isEmpty()) {
+            return;
+        }
+        java.util.Iterator<Map.Entry<BlockPos,
+                dev.nano.ndidisplays.block.SwitcherBlockEntity>> it =
+                SWITCHERS.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<BlockPos, dev.nano.ndidisplays.block.SwitcherBlockEntity> e = it.next();
+            dev.nano.ndidisplays.block.SwitcherBlockEntity be = e.getValue();
+            if (be.isRemoved()) {
+                Feed dead = SWITCHER_FEEDS.remove(e.getKey());
+                if (dead != null) {
+                    dead.release();
+                }
+                it.remove();
+                continue;
+            }
+            if (!be.isBroadcasting()) {
+                Feed off = SWITCHER_FEEDS.remove(e.getKey());
+                if (off != null) {
+                    off.release();
+                }
+                continue;
+            }
+            Feed feed = SWITCHER_FEEDS.computeIfAbsent(e.getKey(), k -> new Feed(null));
+            if (now < feed.nextDue) {
+                continue;
+            }
+            double period = 1.0 / Math.max(1, be.getFps());
+            feed.nextDue += period;
+            if (feed.nextDue < now - period) {
+                feed.nextDue = now + period;
+            }
+            try {
+                publishSwitcherFrame(feed, be);
+            } catch (Throwable t) {
+                LOGGER.warn("[ndidisplays] switcher {} publish failed: {}",
+                        be.getEffectiveSourceName(), t.toString());
+                feed.nextDue = now + 2.0;
+            }
+        }
+    }
+
+    private static int switcherTex(String source) {
+        if (source == null || source.isBlank()) {
+            return 0;
+        }
+        dev.nano.ndidisplays.client.ndi.NdiStream stream =
+                dev.nano.ndidisplays.client.ndi.NdiManager.acquire(source);
+        if (stream == null) {
+            return 0;
+        }
+        stream.uploadIfNeeded();
+        return stream.getTextureId();
+    }
+
+    /**
+     * The program frame, transitions included: draw the outgoing input, then blend the incoming
+     * one on top per the selected style — mix crossfades, dip passes through black, wipe slides
+     * a hard edge across. Black is a first-class input (texture 0 draws nothing over the clear).
+     */
+    private static void publishSwitcherFrame(Feed feed,
+            dev.nano.ndidisplays.block.SwitcherBlockEntity be) {
+        completePendingReadback(feed);
+        captureTarget = acquireCaptureTarget(be.getWidth(), be.getHeight());
+
+        Minecraft mc = Minecraft.getInstance();
+        long gameTime = mc.level == null ? 0L : mc.level.getGameTime();
+        float p = be.transitionProgress(gameTime, framePartialTick);
+        boolean inTrans = be.transitioning(gameTime) && p < 1.0F;
+        int toTex = switcherTex(be.busSource(be.getProgram()));
+        int fromTex = inTrans ? switcherTex(be.busSource(be.getTransFrom())) : 0;
+
+        Matrix4f oldProjection = new Matrix4f(RenderSystem.getProjectionMatrix());
+        com.mojang.blaze3d.vertex.VertexSorting oldSorting = RenderSystem.getVertexSorting();
+        com.mojang.blaze3d.vertex.PoseStack modelView = RenderSystem.getModelViewStack();
+
+        captureTarget.setClearColor(0.0F, 0.0F, 0.0F, 1.0F);
+        captureTarget.clear(Minecraft.ON_OSX);
+        captureTarget.bindWrite(true);
+        RenderSystem.setProjectionMatrix(new Matrix4f(),
+                com.mojang.blaze3d.vertex.VertexSorting.ORTHOGRAPHIC_Z);
+        modelView.pushPose();
+        modelView.setIdentity();
+        RenderSystem.applyModelViewMatrix();
+        RenderSystem.disableDepthTest();
+        RenderSystem.disableCull();
+        try {
+            if (!inTrans) {
+                RenderSystem.disableBlend();
+                switcherQuad(toTex, -1.0F, 1.0F, 0.0F, 1.0F, 1.0F);
+            } else {
+                int style = be.getStyle();
+                RenderSystem.disableBlend();
+                if (style == dev.nano.ndidisplays.block.SwitcherBlockEntity.STYLE_WIPE) {
+                    switcherQuad(fromTex, -1.0F, 1.0F, 0.0F, 1.0F, 1.0F);
+                    // the incoming picture slides in from the left with a hard edge
+                    switcherQuad(toTex, -1.0F, -1.0F + 2.0F * p, 0.0F, p, 1.0F);
+                } else if (style == dev.nano.ndidisplays.block.SwitcherBlockEntity.STYLE_DIP) {
+                    boolean firstHalf = p < 0.5F;
+                    switcherQuad(firstHalf ? fromTex : toTex, -1.0F, 1.0F, 0.0F, 1.0F, 1.0F);
+                    RenderSystem.enableBlend();
+                    RenderSystem.defaultBlendFunc();
+                    float black = firstHalf ? p * 2.0F : 2.0F - p * 2.0F;
+                    switcherBlack(black);
+                } else { // MIX
+                    switcherQuad(fromTex, -1.0F, 1.0F, 0.0F, 1.0F, 1.0F);
+                    RenderSystem.enableBlend();
+                    RenderSystem.defaultBlendFunc();
+                    switcherQuad(toTex, -1.0F, 1.0F, 0.0F, 1.0F, p);
+                }
+            }
+        } finally {
+            RenderSystem.disableBlend();
+            RenderSystem.setProjectionMatrix(oldProjection, oldSorting);
+            modelView.popPose();
+            RenderSystem.applyModelViewMatrix();
+            RenderSystem.enableCull();
+            RenderSystem.enableDepthTest();
+            captureTarget.unbindWrite();
+            Minecraft.getInstance().getMainRenderTarget().bindWrite(true);
+        }
+
+        readAndSend(feed, be.getEffectiveSourceName(), be.getFps(), false,
+                captureTarget.viewWidth, captureTarget.viewHeight);
+    }
+
+    /** Full-height textured quad from clip x0..x1, sampling u 0..uMax, at the given alpha. */
+    private static void switcherQuad(int tex, float x0, float x1, float u0, float u1, float alpha) {
+        if (tex == 0) {
+            return; // black input: the cleared target already is black
+        }
+        RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionTexColorShader);
+        RenderSystem.setShaderTexture(0, tex);
+        BufferBuilder b = Tesselator.getInstance().getBuilder();
+        b.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+        int a = (int) (alpha * 255.0F);
+        b.vertex(x0, -1.0F, 0.0F).uv(u0, 1.0F).color(255, 255, 255, a).endVertex();
+        b.vertex(x1, -1.0F, 0.0F).uv(u1, 1.0F).color(255, 255, 255, a).endVertex();
+        b.vertex(x1, 1.0F, 0.0F).uv(u1, 0.0F).color(255, 255, 255, a).endVertex();
+        b.vertex(x0, 1.0F, 0.0F).uv(u0, 0.0F).color(255, 255, 255, a).endVertex();
+        BufferUploader.drawWithShader(b.end());
+    }
+
+    private static void switcherBlack(float alpha) {
+        RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionColorShader);
+        BufferBuilder b = Tesselator.getInstance().getBuilder();
+        b.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        int a = (int) (Math.min(1.0F, alpha) * 255.0F);
+        b.vertex(-1.0F, -1.0F, 0.0F).color(0, 0, 0, a).endVertex();
+        b.vertex(1.0F, -1.0F, 0.0F).color(0, 0, 0, a).endVertex();
+        b.vertex(1.0F, 1.0F, 0.0F).color(0, 0, 0, a).endVertex();
+        b.vertex(-1.0F, 1.0F, 0.0F).color(0, 0, 0, a).endVertex();
+        BufferUploader.drawWithShader(b.end());
     }
 
     private static void tickComputers(double now) {

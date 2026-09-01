@@ -143,5 +143,13 @@ public final class NetworkHandler {
                 UpdateComputerConfigPacket::encode,
                 UpdateComputerConfigPacket::decode,
                 UpdateComputerConfigPacket::handle);
+        CHANNEL.registerMessage(id++, SwitcherActionPacket.class,
+                SwitcherActionPacket::encode,
+                SwitcherActionPacket::decode,
+                SwitcherActionPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateProMonitorPacket.class,
+                UpdateProMonitorPacket::encode,
+                UpdateProMonitorPacket::decode,
+                UpdateProMonitorPacket::handle);
     }
 }

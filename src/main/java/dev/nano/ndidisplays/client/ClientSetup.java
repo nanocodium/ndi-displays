@@ -90,6 +90,8 @@ public final class ClientSetup {
                 ctx -> new dev.nano.ndidisplays.client.render.ProjectorRenderer());
         event.registerBlockEntityRenderer(NdiDisplays.COMPUTER_BE.get(),
                 ctx -> new dev.nano.ndidisplays.client.render.ComputerRenderer());
+        event.registerBlockEntityRenderer(NdiDisplays.PRO_MONITOR_BE.get(),
+                ctx -> new dev.nano.ndidisplays.client.render.ProMonitorRenderer());
     }
 
     @SubscribeEvent

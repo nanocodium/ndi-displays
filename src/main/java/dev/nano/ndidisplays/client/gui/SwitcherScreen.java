@@ -62,13 +62,20 @@ public class SwitcherScreen extends Screen {
         sw.handleAction(op, index, text);
     }
 
+    private int topPad = 8;
+
     @Override
     protected void init() {
-        int pad = 8;
-        busX = pad;
+        // Centre the whole desk in the window instead of hugging the top-left.
         busW = Math.min(430, width - 240);
+        int transW = 148;
+        int contentW = busW + 16 + transW;
+        busX = Math.max(8, (width - contentW) / 2);
         keyW = (busW - 8 * 4) / 9;
         int monH = Math.max(70, (int) (height * 0.30));
+        int contentH = monH + 26 + 40 + 46 + 130;
+        topPad = Math.max(8, (height - contentH) / 2);
+        int pad = topPad;
         pvwY = pad + monH + 26;
         pgmY = pvwY + 40;
         transX = busX + busW + 16;
@@ -210,7 +217,7 @@ public class SwitcherScreen extends Screen {
         float progress = sw.transitionProgress(gameTime, partialTick);
 
         // monitors: preview (green) and program (red)
-        int pad = 8;
+        int pad = topPad;
         int monH = pvwY - pad - 26;
         int monW = (busW - 8) / 2;
         drawMonitor(g, busX, pad + 10, monW, monH - 10, sw.busSource(sw.getPreview()),
@@ -228,7 +235,7 @@ public class SwitcherScreen extends Screen {
         // transition state
         int barX = transX;
         int barY = pvwY - 10;
-        g.drawString(font, sw.getEffectiveSourceName(), transX, 8, C_DIM, false);
+        g.drawString(font, sw.getEffectiveSourceName(), transX, topPad, C_DIM, false);
         String style = new String[]{"MIX", "DIP", "WIPE"}[sw.getStyle()];
         g.drawString(font, "Style: " + style + "   Rate: "
                         + String.format("%.1fs", sw.getRateTicks() / 20.0),

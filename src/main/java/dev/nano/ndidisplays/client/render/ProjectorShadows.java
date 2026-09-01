@@ -37,7 +37,9 @@ import java.util.Map;
 @Mod.EventBusSubscriber(modid = NdiDisplays.MODID, value = Dist.CLIENT)
 public final class ProjectorShadows {
 
-    public static final int MAP_SIZE = 1024;
+    // 2048² gives near-4K silhouette sharpness for the memory of a single 1080p frame per
+    // projector; the PCF radius scales with the texel, so edges tighten automatically.
+    public static final int MAP_SIZE = 2048;
 
     /** Depth compare bias in METRES; adjustable via -Dndidisplays.projectorShadowBias. */
     public static final float BIAS = Float.parseFloat(

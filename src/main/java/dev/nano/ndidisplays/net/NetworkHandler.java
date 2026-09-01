@@ -151,5 +151,9 @@ public final class NetworkHandler {
                 UpdateProMonitorPacket::encode,
                 UpdateProMonitorPacket::decode,
                 UpdateProMonitorPacket::handle);
+        CHANNEL.registerMessage(id++, RackConfigPacket.class,
+                RackConfigPacket::encode,
+                RackConfigPacket::decode,
+                RackConfigPacket::handle);
     }
 }

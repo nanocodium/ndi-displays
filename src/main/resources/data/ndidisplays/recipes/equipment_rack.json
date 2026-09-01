@@ -1,0 +1,20 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "IRI",
+        "I I",
+        "IRI"
+    ],
+    "key": {
+        "I": {
+            "item": "minecraft:iron_ingot"
+        },
+        "R": {
+            "item": "minecraft:iron_bars"
+        }
+    },
+    "result": {
+        "item": "ndidisplays:equipment_rack",
+        "count": 1
+    }
+}

@@ -1,0 +1,67 @@
+{
+    "parent": "block/block",
+    "textures": {
+        "t": "ndidisplays:block/camera_dark",
+        "particle": "ndidisplays:block/camera_dark"
+    },
+    "elements": [
+        {
+            "from": [
+                1,
+                6,
+                7
+            ],
+            "to": [
+                15,
+                9,
+                12
+            ],
+            "faces": {
+                "north": {
+                    "texture": "#t"
+                },
+                "south": {
+                    "texture": "#t"
+                },
+                "east": {
+                    "texture": "#t"
+                },
+                "west": {
+                    "texture": "#t"
+                },
+                "up": {
+                    "texture": "#t"
+                },
+                "down": {
+                    "texture": "#t"
+                }
+            }
+        }
+    ],
+    "display": {
+        "gui": {
+            "rotation": [
+                30,
+                225,
+                0
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        },
+        "fixed": {
+            "rotation": [
+                0,
+                180,
+                0
+            ],
+            "scale": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        }
+    }
+}

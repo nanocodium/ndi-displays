@@ -360,6 +360,38 @@ public class NdiDisplays {
                             dev.nano.ndidisplays.block.ProMonitorBlockEntity::new,
                             PRO_MONITOR.get()).build(null));
 
+    /** 19-inch equipment rack: six slots for functional rack units, powered by a PDU. */
+    public static final RegistryObject<Block> EQUIPMENT_RACK = BLOCKS.register("equipment_rack",
+            () -> new dev.nano.ndidisplays.block.RackBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.6F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()));
+
+    public static final RegistryObject<Item> EQUIPMENT_RACK_ITEM = ITEMS.register("equipment_rack",
+            () -> new BlockItem(EQUIPMENT_RACK.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.RackBlockEntity>> RACK_BE =
+            BLOCK_ENTITIES.register("equipment_rack",
+                    () -> BlockEntityType.Builder.of(
+                            dev.nano.ndidisplays.block.RackBlockEntity::new,
+                            EQUIPMENT_RACK.get()).build(null));
+
+    private static final java.util.Map<dev.nano.ndidisplays.block.RackUnitType, RegistryObject<Item>>
+            RACK_UNIT_ITEMS = new java.util.EnumMap<>(dev.nano.ndidisplays.block.RackUnitType.class);
+
+    static {
+        for (dev.nano.ndidisplays.block.RackUnitType type
+                : dev.nano.ndidisplays.block.RackUnitType.values()) {
+            RACK_UNIT_ITEMS.put(type, ITEMS.register(type.itemName,
+                    () -> new dev.nano.ndidisplays.item.RackUnitItem(type, new Item.Properties())));
+        }
+    }
+
+    public static Item rackUnitItem(dev.nano.ndidisplays.block.RackUnitType type) {
+        return RACK_UNIT_ITEMS.get(type).get();
+    }
+
     public static final RegistryObject<Block> WEB_TERMINAL = BLOCKS.register("web_terminal",
             () -> new dev.nano.ndidisplays.block.WebTerminalBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_BLACK)
@@ -405,6 +437,11 @@ public class NdiDisplays {
                         output.accept(COMPUTER_ITEM.get());
                         output.accept(VISION_SWITCHER_ITEM.get());
                         output.accept(PRO_MONITOR_ITEM.get());
+                        output.accept(EQUIPMENT_RACK_ITEM.get());
+                        for (dev.nano.ndidisplays.block.RackUnitType t
+                                : dev.nano.ndidisplays.block.RackUnitType.values()) {
+                            output.accept(rackUnitItem(t));
+                        }
                         output.accept(DRONE_ITEM.get());
                         output.accept(DRONE_REMOTE_ITEM.get());
                     })

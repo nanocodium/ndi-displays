@@ -1,112 +1,12 @@
 {
-    "__comment": "Media-server chassis, top cap and side attachment module \u2014 the kept model \u2014 wearing the 16x16 pixel-art faces.",
-    "parent": "block/block",
+    "__comment": "Venue projector mesh (forge OBJ loader); atlas painted per part from its UVs.",
+    "loader": "forge:obj",
+    "model": "ndidisplays:models/block/venue_projector.obj",
+    "flip_v": true,
     "textures": {
-        "top": "ndidisplays:block/projector_top",
-        "bottom": "ndidisplays:block/projector_bottom",
-        "side": "ndidisplays:block/projector_side",
-        "front": "ndidisplays:block/projector_front",
-        "back": "ndidisplays:block/projector_back",
+        "projector_atlas": "ndidisplays:block/projector_atlas",
         "particle": "ndidisplays:block/projector_side"
     },
-    "elements": [
-        {
-            "__comment": "main chassis",
-            "from": [
-                1,
-                0,
-                2
-            ],
-            "to": [
-                14,
-                13,
-                14
-            ],
-            "faces": {
-                "north": {
-                    "texture": "#front"
-                },
-                "south": {
-                    "texture": "#back"
-                },
-                "west": {
-                    "texture": "#side"
-                },
-                "east": {
-                    "texture": "#side"
-                },
-                "up": {
-                    "texture": "#top"
-                },
-                "down": {
-                    "texture": "#bottom"
-                }
-            }
-        },
-        {
-            "__comment": "top cap",
-            "from": [
-                3,
-                13,
-                4
-            ],
-            "to": [
-                12,
-                16,
-                12
-            ],
-            "faces": {
-                "north": {
-                    "texture": "#side"
-                },
-                "south": {
-                    "texture": "#side"
-                },
-                "west": {
-                    "texture": "#side"
-                },
-                "east": {
-                    "texture": "#side"
-                },
-                "up": {
-                    "texture": "#top"
-                },
-                "down": {
-                    "texture": "#top"
-                }
-            }
-        },
-        {
-            "__comment": "side attachment module",
-            "from": [
-                14,
-                2,
-                4
-            ],
-            "to": [
-                16,
-                10,
-                12
-            ],
-            "faces": {
-                "north": {
-                    "texture": "#side"
-                },
-                "south": {
-                    "texture": "#side"
-                },
-                "east": {
-                    "texture": "#side"
-                },
-                "up": {
-                    "texture": "#top"
-                },
-                "down": {
-                    "texture": "#bottom"
-                }
-            }
-        }
-    ],
     "display": {
         "gui": {
             "rotation": [
@@ -135,6 +35,35 @@
                 0.8,
                 0.8,
                 0.8
+            ]
+        },
+        "thirdperson_righthand": {
+            "rotation": [
+                75,
+                45,
+                0
+            ],
+            "translation": [
+                0,
+                2.5,
+                0
+            ],
+            "scale": [
+                0.375,
+                0.375,
+                0.375
+            ]
+        },
+        "firstperson_righthand": {
+            "rotation": [
+                0,
+                45,
+                0
+            ],
+            "scale": [
+                0.4,
+                0.4,
+                0.4
             ]
         }
     }

@@ -1,0 +1,3 @@
+newmtl projector_atlas
+Kd 1.0 1.0 1.0
+map_Kd #projector_atlas

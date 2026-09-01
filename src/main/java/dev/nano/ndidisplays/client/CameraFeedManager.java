@@ -410,6 +410,27 @@ public final class CameraFeedManager {
     }
 
     /**
+     * Renders the world once from an arbitrary view into the caller's target — the projector
+     * shadow-map pass. Reuses the whole capture pipeline (state save/restore, queue isolation,
+     * chunk-graph pinning) by pointing its target elsewhere for one render. The caller reads the
+     * target's DEPTH texture; the colour image is a by-product.
+     */
+    public static void captureDepth(NdiCameraBlockEntity.ViewState view, float fov,
+                                    RenderTarget target) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null || capturing || target == null) {
+            return;
+        }
+        RenderTarget saved = captureTarget;
+        captureTarget = target;
+        try {
+            renderView(mc, view, fov);
+        } finally {
+            captureTarget = saved;
+        }
+    }
+
+    /**
      * NDI name of the rig currently being rendered into a capture target, or null.
      * Screens that display this source must not sample the live texture: that is
      * the video-feedback loop that paints black hatch across a wall fed by a drone.

@@ -135,5 +135,9 @@ public final class NetworkHandler {
                 DroneImportWaypointsPacket::encode,
                 DroneImportWaypointsPacket::decode,
                 DroneImportWaypointsPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateProjectorConfigPacket.class,
+                UpdateProjectorConfigPacket::encode,
+                UpdateProjectorConfigPacket::decode,
+                UpdateProjectorConfigPacket::handle);
     }
 }

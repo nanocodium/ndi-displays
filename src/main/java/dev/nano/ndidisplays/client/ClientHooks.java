@@ -68,6 +68,15 @@ public final class ClientHooks {
         }
     }
 
+    public static void openProjectorConfig(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level != null && level.getBlockEntity(pos)
+                instanceof dev.nano.ndidisplays.block.ProjectorBlockEntity projector) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.ProjectorConfigScreen(projector));
+        }
+    }
+
     public static void openRoundScreenConfig(BlockPos pos) {
         Minecraft mc = Minecraft.getInstance();
         Level level = mc.level;

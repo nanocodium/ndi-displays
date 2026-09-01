@@ -29,6 +29,9 @@ public final class ClientSetup {
     /** Blow-through variant: alpha-blended, with the inter-emitter gaps discarded. */
     public static ShaderInstance ledWallTransparentShader;
 
+    /** Projective texturing for the video projector: frame UVs arrive per vertex. */
+    public static ShaderInstance projectorShader;
+
     /** Layer the worn shoulder rig's geometry is baked into. */
     public static final net.minecraft.client.model.geom.ModelLayerLocation SHOULDER_RIG_LAYER =
             new net.minecraft.client.model.geom.ModelLayerLocation(
@@ -83,6 +86,8 @@ public final class ClientSetup {
                 ctx -> new dev.nano.ndidisplays.client.render.WinchParkMonitorRenderer());
         event.registerBlockEntityRenderer(NdiDisplays.WEB_TERMINAL_BE.get(),
                 ctx -> new dev.nano.ndidisplays.client.render.WebTerminalRenderer());
+        event.registerBlockEntityRenderer(NdiDisplays.PROJECTOR_BE.get(),
+                ctx -> new dev.nano.ndidisplays.client.render.ProjectorRenderer());
     }
 
     @SubscribeEvent
@@ -102,5 +107,10 @@ public final class ClientSetup {
                         new ResourceLocation(NdiDisplays.MODID, "led_wall_transparent"),
                         DefaultVertexFormat.POSITION_TEX_COLOR),
                 shader -> ledWallTransparentShader = shader);
+        event.registerShader(
+                new ShaderInstance(event.getResourceProvider(),
+                        new ResourceLocation(NdiDisplays.MODID, "projector"),
+                        DefaultVertexFormat.POSITION_TEX_COLOR),
+                shader -> projectorShader = shader);
     }
 }

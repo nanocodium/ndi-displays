@@ -1,0 +1,23 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "III",
+        "GPI",
+        "III"
+    ],
+    "key": {
+        "I": {
+            "item": "minecraft:iron_ingot"
+        },
+        "G": {
+            "item": "minecraft:glass"
+        },
+        "P": {
+            "item": "ndidisplays:led_panel"
+        }
+    },
+    "result": {
+        "item": "ndidisplays:projector",
+        "count": 1
+    }
+}

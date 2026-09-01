@@ -109,6 +109,7 @@ public final class ClientEvents {
         NdiManager.shutdownAll();
         CameraFeedManager.shutdownAll();
         dev.nano.ndidisplays.client.ndi.RouterManager.shutdownAll();
+        dev.nano.ndidisplays.client.render.ProjectorShadows.clearAll();
         if (dev.nano.ndidisplays.client.render.LedWallRenderer.SHIMMER_LOADED) {
             dev.nano.ndidisplays.client.render.ShimmerSphereLights.clearAll();
             dev.nano.ndidisplays.client.render.ScreenLights.clearAll();

@@ -1,0 +1,19 @@
+{
+    "variants": {
+        "facing=north": {
+            "model": "ndidisplays:block/projector"
+        },
+        "facing=east": {
+            "model": "ndidisplays:block/projector",
+            "y": 90
+        },
+        "facing=south": {
+            "model": "ndidisplays:block/projector",
+            "y": 180
+        },
+        "facing=west": {
+            "model": "ndidisplays:block/projector",
+            "y": 270
+        }
+    }
+}

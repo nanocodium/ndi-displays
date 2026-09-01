@@ -116,6 +116,26 @@ public class NdiDisplays {
      * Circular LED screen: one mount block rendering a video disc of configurable
      * radius — the round-screen counterpart of the rectangular walls.
      */
+    /**
+     * Video projector: throws its content onto whatever world geometry its frustum hits,
+     * with occlusion — projection mapping onto buildings and scenery instead of a screen.
+     */
+    public static final RegistryObject<Block> PROJECTOR = BLOCKS.register("projector",
+            () -> new dev.nano.ndidisplays.block.ProjectorBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 0)));
+
+    public static final RegistryObject<Item> PROJECTOR_ITEM = ITEMS.register("projector",
+            () -> new BlockItem(PROJECTOR.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.ProjectorBlockEntity>> PROJECTOR_BE =
+            BLOCK_ENTITIES.register("projector",
+                    () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.ProjectorBlockEntity::new,
+                            PROJECTOR.get()).build(null));
+
     public static final RegistryObject<Block> ROUND_SCREEN = BLOCKS.register("round_screen",
             () -> new dev.nano.ndidisplays.block.RoundScreenBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_BLACK)
@@ -312,6 +332,7 @@ public class NdiDisplays {
                         output.accept(LED_FLOOR_ITEM.get());
                         output.accept(KINETIC_WINCH_ITEM.get());
                         output.accept(ROUND_SCREEN_ITEM.get());
+                        output.accept(PROJECTOR_ITEM.get());
                         output.accept(CURVED_SCREEN_ITEM.get());
                         output.accept(MULTIVIEW_ITEM.get());
                         output.accept(WINCH_PARK_MONITOR_ITEM.get());

@@ -1,5 +1,5 @@
 {
-    "__comment": "Lens-forward projector chassis; the beam and frustum come from the renderer.",
+    "__comment": "Media-server chassis, top cap and side attachment module \u2014 the kept model \u2014 wearing the 16x16 pixel-art faces.",
     "parent": "block/block",
     "textures": {
         "top": "ndidisplays:block/projector_top",
@@ -11,15 +11,16 @@
     },
     "elements": [
         {
+            "__comment": "main chassis",
             "from": [
                 1,
                 0,
-                1
+                2
             ],
             "to": [
-                15,
-                11,
-                15
+                14,
+                13,
+                14
             ],
             "faces": {
                 "north": {
@@ -29,6 +30,69 @@
                     "texture": "#back"
                 },
                 "west": {
+                    "texture": "#side"
+                },
+                "east": {
+                    "texture": "#side"
+                },
+                "up": {
+                    "texture": "#top"
+                },
+                "down": {
+                    "texture": "#bottom"
+                }
+            }
+        },
+        {
+            "__comment": "top cap",
+            "from": [
+                3,
+                13,
+                4
+            ],
+            "to": [
+                12,
+                16,
+                12
+            ],
+            "faces": {
+                "north": {
+                    "texture": "#side"
+                },
+                "south": {
+                    "texture": "#side"
+                },
+                "west": {
+                    "texture": "#side"
+                },
+                "east": {
+                    "texture": "#side"
+                },
+                "up": {
+                    "texture": "#top"
+                },
+                "down": {
+                    "texture": "#top"
+                }
+            }
+        },
+        {
+            "__comment": "side attachment module",
+            "from": [
+                14,
+                2,
+                4
+            ],
+            "to": [
+                16,
+                10,
+                12
+            ],
+            "faces": {
+                "north": {
+                    "texture": "#side"
+                },
+                "south": {
                     "texture": "#side"
                 },
                 "east": {

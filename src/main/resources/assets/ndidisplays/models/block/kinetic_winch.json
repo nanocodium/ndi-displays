@@ -1,151 +1,40 @@
 {
-    "parent": "block/block",
+    "loader": "forge:obj",
+    "model": "ndidisplays:meshes/winch_body.obj",
+    "flip_v": true,
     "textures": {
-        "body": "ndidisplays:block/camera_base",
-        "dark": "ndidisplays:block/camera_dark",
+        "atlas": "ndidisplays:entity/winch_body_atlas",
         "particle": "ndidisplays:block/camera_dark"
     },
-    "elements": [
-        {
-            "__comment": "rig mounting plate (truss clamp plate)",
-            "from": [1, 15, 1],
-            "to": [15, 16, 15],
-            "faces": {
-                "north": { "texture": "#body" }, "south": { "texture": "#body" },
-                "east": { "texture": "#body" }, "west": { "texture": "#body" },
-                "up": { "texture": "#body" }, "down": { "texture": "#body" }
-            }
+    "display": {
+        "gui": {
+            "rotation": [
+                30,
+                225,
+                0
+            ],
+            "translation": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                0.62,
+                0.62,
+                0.62
+            ]
         },
-        {
-            "__comment": "left suspension bracket",
-            "from": [3, 14, 5],
-            "to": [5, 15, 11],
-            "faces": {
-                "north": { "texture": "#dark" }, "south": { "texture": "#dark" },
-                "east": { "texture": "#dark" }, "west": { "texture": "#dark" },
-                "down": { "texture": "#dark" }
-            }
-        },
-        {
-            "__comment": "right suspension bracket",
-            "from": [11, 14, 5],
-            "to": [13, 15, 11],
-            "faces": {
-                "north": { "texture": "#dark" }, "south": { "texture": "#dark" },
-                "east": { "texture": "#dark" }, "west": { "texture": "#dark" },
-                "down": { "texture": "#dark" }
-            }
-        },
-        {
-            "__comment": "main housing - compact black winch body",
-            "from": [1.5, 6, 3],
-            "to": [14.5, 14, 13],
-            "faces": {
-                "north": { "texture": "#dark" }, "south": { "texture": "#dark" },
-                "east": { "texture": "#dark" }, "west": { "texture": "#dark" },
-                "up": { "texture": "#dark" }, "down": { "texture": "#dark" }
-            }
-        },
-        {
-            "__comment": "side flange plate, viewer left",
-            "from": [1, 5.5, 3.5],
-            "to": [1.5, 14.5, 12.5],
-            "faces": {
-                "north": { "texture": "#body" }, "south": { "texture": "#body" },
-                "east": { "texture": "#body" }, "west": { "texture": "#body" },
-                "up": { "texture": "#body" }, "down": { "texture": "#body" }
-            }
-        },
-        {
-            "__comment": "side flange plate, viewer right",
-            "from": [14.5, 5.5, 3.5],
-            "to": [15, 14.5, 12.5],
-            "faces": {
-                "north": { "texture": "#body" }, "south": { "texture": "#body" },
-                "east": { "texture": "#body" }, "west": { "texture": "#body" },
-                "up": { "texture": "#body" }, "down": { "texture": "#body" }
-            }
-        },
-        {
-            "__comment": "front status display",
-            "from": [3.5, 9.5, 2.6],
-            "to": [7.5, 12, 3],
-            "faces": {
-                "north": { "texture": "#body" },
-                "east": { "texture": "#body" }, "west": { "texture": "#body" },
-                "up": { "texture": "#body" }, "down": { "texture": "#body" }
-            }
-        },
-        {
-            "__comment": "front connector strip (network / safesys)",
-            "from": [9, 7.5, 2.7],
-            "to": [13, 9, 3],
-            "faces": {
-                "north": { "texture": "#body" },
-                "east": { "texture": "#body" }, "west": { "texture": "#body" },
-                "up": { "texture": "#body" }, "down": { "texture": "#body" }
-            }
-        },
-        {
-            "__comment": "cable drum, straight half of the octagon",
-            "from": [3, 3, 6.6],
-            "to": [13, 5.8, 9.4],
-            "faces": {
-                "north": { "texture": "#dark" }, "south": { "texture": "#dark" },
-                "up": { "texture": "#dark" }, "down": { "texture": "#dark" }
-            }
-        },
-        {
-            "__comment": "cable drum, rotated half of the octagon",
-            "from": [3, 3, 6.6],
-            "to": [13, 5.8, 9.4],
-            "rotation": { "origin": [8, 4.4, 8], "axis": "x", "angle": 45 },
-            "faces": {
-                "north": { "texture": "#dark" }, "south": { "texture": "#dark" },
-                "up": { "texture": "#dark" }, "down": { "texture": "#dark" }
-            }
-        },
-        {
-            "__comment": "drum cheek disc, viewer left",
-            "from": [2.5, 2.6, 6.2],
-            "to": [3, 6.2, 9.8],
-            "faces": {
-                "north": { "texture": "#body" }, "south": { "texture": "#body" },
-                "east": { "texture": "#body" }, "west": { "texture": "#body" },
-                "up": { "texture": "#body" }, "down": { "texture": "#body" }
-            }
-        },
-        {
-            "__comment": "drum cheek disc, viewer left, rotated",
-            "from": [2.5, 2.6, 6.2],
-            "to": [3, 6.2, 9.8],
-            "rotation": { "origin": [2.75, 4.4, 8], "axis": "x", "angle": 45 },
-            "faces": {
-                "north": { "texture": "#body" }, "south": { "texture": "#body" },
-                "east": { "texture": "#body" }, "west": { "texture": "#body" },
-                "up": { "texture": "#body" }, "down": { "texture": "#body" }
-            }
-        },
-        {
-            "__comment": "drum cheek disc, viewer right",
-            "from": [13, 2.6, 6.2],
-            "to": [13.5, 6.2, 9.8],
-            "faces": {
-                "north": { "texture": "#body" }, "south": { "texture": "#body" },
-                "east": { "texture": "#body" }, "west": { "texture": "#body" },
-                "up": { "texture": "#body" }, "down": { "texture": "#body" }
-            }
-        },
-        {
-            "__comment": "drum cheek disc, viewer right, rotated",
-            "from": [13, 2.6, 6.2],
-            "to": [13.5, 6.2, 9.8],
-            "rotation": { "origin": [13.25, 4.4, 8], "axis": "x", "angle": 45 },
-            "faces": {
-                "north": { "texture": "#body" }, "south": { "texture": "#body" },
-                "east": { "texture": "#body" }, "west": { "texture": "#body" },
-                "up": { "texture": "#body" }, "down": { "texture": "#body" }
-            }
+        "fixed": {
+            "rotation": [
+                0,
+                180,
+                0
+            ],
+            "scale": [
+                0.8,
+                0.8,
+                0.8
+            ]
         }
-    ]
+    }
 }

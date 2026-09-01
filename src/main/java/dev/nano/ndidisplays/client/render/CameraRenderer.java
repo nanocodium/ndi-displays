@@ -61,8 +61,8 @@ public class CameraRenderer implements BlockEntityRenderer<NdiCameraBlockEntity>
                        MultiBufferSource buffers, int packedLight, int packedOverlay) {
         VertexConsumer vc = buffers.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
         switch (be.getKind()) {
-            case BROADCAST -> renderBroadcast(be, pose, vc, packedLight);
-            case PTZ -> renderPtz(be, pose, vc, packedLight);
+            case BROADCAST -> renderBroadcast(be, pose, buffers, packedLight);
+            case PTZ -> renderPtz(be, pose, buffers, packedLight);
             case JIB -> renderJib(be, partialTick, pose, vc, packedLight);
             case TRACK -> renderTrack(be, partialTick, pose, vc, packedLight);
         }
@@ -70,150 +70,76 @@ public class CameraRenderer implements BlockEntityRenderer<NdiCameraBlockEntity>
 
     // --- broadcast ENG camera --------------------------------------------
 
-    private void renderBroadcast(NdiCameraBlockEntity be, PoseStack pose, VertexConsumer vc, int light) {
-        pose.pushPose();
-        pose.translate(0.5, 1.25, 0.5);
-        pose.mulPose(Axis.YP.rotationDegrees(-(be.getFacing().toYRot() + be.getPan())));
+    private static final net.minecraft.resources.ResourceLocation BROADCAST_ATLAS =
+            new net.minecraft.resources.ResourceLocation(NdiDisplays.MODID,
+                    "textures/entity/broadcast_camera_atlas.png");
+    private static final net.minecraft.resources.ResourceLocation PTZ_ATLAS =
+            new net.minecraft.resources.ResourceLocation(NdiDisplays.MODID,
+                    "textures/entity/ptz_camera_atlas.png");
 
-        // fluid head under the body (stays level with pan, not tilt)
-        box(pose, vc, light, -0.075F, -0.185F, -0.10F, 0.075F, -0.145F, 0.10F, SILVER);
-        box(pose, vc, light, -0.055F, -0.145F, -0.075F, 0.055F, -0.115F, 0.075F, BLACK);
-        // pan bar, angled back-down toward the operator
-        pose.pushPose();
-        pose.translate(0.06, -0.16, -0.08);
-        pose.mulPose(Axis.XP.rotationDegrees(-35.0F));
-        box(pose, vc, light, -0.008F, -0.008F, -0.30F, 0.008F, 0.008F, 0.0F, SILVER);
-        box(pose, vc, light, -0.011F, -0.011F, -0.36F, 0.011F, 0.011F, -0.30F, GRIP);
-        pose.popPose();
-
-        pose.mulPose(Axis.XP.rotationDegrees(-be.getTilt()));
-        // main body + carbon top plate
-        box(pose, vc, light, -0.115F, -0.10F, -0.30F, 0.115F, 0.135F, 0.20F, BODY);
-        box(pose, vc, light, -0.10F, 0.135F, -0.26F, 0.10F, 0.145F, 0.16F, CARBON);
-        // shoulder pad
-        box(pose, vc, light, -0.06F, -0.135F, -0.27F, 0.06F, -0.10F, -0.05F, GRIP);
-        // battery pack with connector block
-        box(pose, vc, light, -0.085F, -0.05F, -0.35F, 0.085F, 0.10F, -0.30F, CONNECTOR);
-        box(pose, vc, light, -0.06F, -0.09F, -0.335F, 0.06F, -0.05F, -0.30F, BLACK);
-        // left side: status LCD + button strip; right side: vents
-        box(pose, vc, light, -0.121F, -0.02F, -0.20F, -0.115F, 0.075F, -0.02F, LCD);
-        box(pose, vc, light, -0.121F, -0.065F, -0.20F, -0.115F, -0.03F, -0.06F, CONNECTOR);
-        box(pose, vc, light, 0.115F, -0.05F, -0.22F, 0.121F, 0.08F, 0.04F, VENT);
-        // white ID label on the rear right
-        box(pose, vc, light, 0.115F, 0.09F, -0.24F, 0.1205F, 0.12F, -0.14F, LABEL);
-        // top handle: posts, grip bar, accessory shoe
-        box(pose, vc, light, -0.025F, 0.145F, -0.185F, 0.025F, 0.185F, -0.135F, BODY_LIGHT);
-        box(pose, vc, light, -0.025F, 0.145F, 0.06F, 0.025F, 0.185F, 0.11F, BODY_LIGHT);
-        box(pose, vc, light, -0.03F, 0.185F, -0.20F, 0.03F, 0.23F, 0.13F, GRIP);
-        box(pose, vc, light, -0.02F, 0.23F, -0.05F, 0.02F, 0.245F, 0.05F, SILVER);
-        // shotgun mic on the handle front
-        box(pose, vc, light, -0.017F, 0.19F, 0.13F, 0.017F, 0.224F, 0.22F, BODY_LIGHT);
-        box(pose, vc, light, -0.021F, 0.186F, 0.22F, 0.021F, 0.228F, 0.42F, GRIP);
-        // viewfinder: arm, monitor with screen, rear eyepiece
-        box(pose, vc, light, -0.19F, 0.065F, -0.05F, -0.115F, 0.095F, -0.01F, BODY_LIGHT);
-        box(pose, vc, light, -0.225F, 0.01F, -0.09F, -0.185F, 0.15F, 0.03F, BLACK);
-        box(pose, vc, light, -0.1855F, 0.03F, -0.07F, -0.181F, 0.13F, 0.01F, LCD);
-        box(pose, vc, light, -0.215F, 0.03F, -0.15F, -0.195F, 0.11F, -0.09F, GRIP);
-        // lens train: rear barrel, focus ring, silver ring, zoom ring, front barrel
-        box(pose, vc, light, -0.065F, -0.05F, 0.20F, 0.065F, 0.08F, 0.245F, BLACK);
-        box(pose, vc, light, -0.072F, -0.057F, 0.245F, 0.072F, 0.087F, 0.30F, GRIP);
-        box(pose, vc, light, -0.062F, -0.047F, 0.30F, 0.062F, 0.077F, 0.322F, SILVER);
-        box(pose, vc, light, -0.072F, -0.057F, 0.322F, 0.072F, 0.087F, 0.375F, GRIP);
-        box(pose, vc, light, -0.06F, -0.045F, 0.375F, 0.06F, 0.075F, 0.41F, BLACK);
-        // matte box with top flag
-        box(pose, vc, light, -0.10F, -0.085F, 0.41F, 0.10F, 0.115F, 0.475F, BLACK);
-        box(pose, vc, light, -0.095F, -0.08F, 0.474F, 0.095F, 0.11F, 0.478F, CARBON);
-        box(pose, vc, light, -0.052F, -0.037F, 0.4735F, 0.052F, 0.067F, 0.4785F, LENS);
-        pose.pushPose();
-        pose.translate(0.0, 0.115, 0.43);
-        pose.mulPose(Axis.XP.rotationDegrees(35.0F));
-        box(pose, vc, light, -0.10F, 0.0F, 0.0F, 0.10F, 0.008F, 0.12F, CARBON);
-        pose.popPose();
-        // side flags, swung out at the same rake as the top one
-        for (int sx = -1; sx <= 1; sx += 2) {
-            pose.pushPose();
-            pose.translate(0.10F * sx, 0.015, 0.43);
-            pose.mulPose(Axis.YP.rotationDegrees(35.0F * sx));
-            box(pose, vc, light, sx > 0 ? 0.0F : -0.008F, -0.095F, 0.0F,
-                    sx > 0 ? 0.008F : 0.0F, 0.095F, 0.11F, CARBON);
-            pose.popPose();
-        }
-        // lens control cable
-        box(pose, vc, light, 0.066F, 0.0F, 0.10F, 0.078F, 0.012F, 0.30F, CABLE);
-        if (be.isActive()) {
-            box(pose, vc, LightTexture.FULL_BRIGHT, -0.035F, 0.11F, -0.365F, 0.035F, 0.165F, -0.35F, TALLY);
-        }
-        box(pose, vc, LightTexture.FULL_BRIGHT, 0.055F, -0.03F, -0.356F, 0.075F, -0.01F, -0.35F, BLUE_LED);
-        pose.popPose();
-    }
-
-    // --- single-arm broadcast PTZ (matches models/block/ptz_camera.json) ---
-
-    private void renderPtz(NdiCameraBlockEntity be, PoseStack pose, VertexConsumer vc, int light) {
-        float[] pt = be.getEasedPanTilt();
+    /**
+     * The generated ENG-camera mesh. Three articulation layers, exactly the fluid-head reality:
+     * the tripod stands still with the block's facing, the head and pan bars swing with pan, and
+     * the camera body with everything bolted to it tips with tilt around the head drum's axis.
+     */
+    private void renderBroadcast(NdiCameraBlockEntity be, PoseStack pose,
+                                 MultiBufferSource buffers, int light) {
+        ObjPartMesh mesh = ObjPartMesh.get("broadcast_camera");
+        VertexConsumer vc = buffers.getBuffer(RenderType.entityCutoutNoCull(BROADCAST_ATLAS));
         boolean live = be.isActive();
+
         pose.pushPose();
         pose.translate(0.5, 0.0, 0.5);
         pose.mulPose(Axis.YP.rotationDegrees(-be.getFacing().toYRot()));
+        mesh.render(pose, vc, light,
+                g -> g.startsWith("tripod") || g.startsWith("spreader"));
 
-        // Rubber feet tucked under a piano-black stepped puck (no 45° star).
-        for (int i = 0; i < 4; i++) {
-            float a = (float) Math.toRadians(45 + i * 90);
-            float fx = (float) Math.cos(a) * 0.132F;
-            float fz = (float) Math.sin(a) * 0.132F;
-            box(pose, vc, light, fx - 0.016F, 0.000F, fz - 0.016F, fx + 0.016F, 0.012F, fz + 0.016F, GRIP);
-        }
-        box(pose, vc, light, -0.168F, 0.008F, -0.168F, 0.168F, 0.022F, 0.168F, BLACK);
-        box(pose, vc, light, -0.158F, 0.022F, -0.158F, 0.158F, 0.148F, 0.158F, PTZ_GLOSS);
-        box(pose, vc, light, -0.146F, 0.148F, -0.146F, 0.146F, 0.172F, 0.146F, PTZ_BODY);
-        box(pose, vc, light, -0.132F, 0.172F, -0.132F, 0.132F, 0.198F, 0.132F, BLACK);
+        pose.mulPose(Axis.YP.rotationDegrees(-be.getPan()));
+        mesh.render(pose, vc, light, g -> g.startsWith("head_") || g.startsWith("pan_"));
 
-        // Flush side vents + compact rear I/O.
-        box(pose, vc, light, 0.154F, 0.048F, -0.042F, 0.162F, 0.128F, 0.042F, PTZ_VENT);
-        box(pose, vc, light, -0.162F, 0.048F, -0.042F, -0.154F, 0.128F, 0.042F, PTZ_VENT);
-        box(pose, vc, light, -0.048F, 0.046F, -0.166F, 0.048F, 0.132F, -0.154F, PTZ_BODY);
-        box(pose, vc, light, -0.038F, 0.088F, -0.174F, -0.008F, 0.118F, -0.162F, CONNECTOR);
-        box(pose, vc, light, 0.004F, 0.090F, -0.174F, 0.020F, 0.114F, -0.162F, CONNECTOR);
-        box(pose, vc, light, 0.024F, 0.056F, -0.178F, 0.040F, 0.082F, -0.160F, CABLE);
+        // tilt about the head drum axis
+        pose.translate(0.0, 0.975, -0.1134);
+        pose.mulPose(Axis.XP.rotationDegrees(-be.getTilt()));
+        pose.translate(0.0, -0.975, 0.1134);
+        mesh.render(pose, vc, light, g -> !g.startsWith("tripod") && !g.startsWith("spreader")
+                && !g.startsWith("head_") && !g.startsWith("pan_")
+                && !g.equals("tally_lamp") && !g.equals("battery_led") && !g.equals("side_led"));
+        mesh.render(pose, vc, live ? LightTexture.FULL_BRIGHT : light,
+                g -> g.equals("tally_lamp"));
+        mesh.render(pose, vc, LightTexture.FULL_BRIGHT,
+                g -> g.equals("battery_led") || g.equals("side_led"));
+        pose.popPose();
+    }
 
-        // Front: IR strip + two tiny status LEDs, inset in the face.
-        box(pose, vc, light, -0.038F, 0.108F, 0.154F, 0.038F, 0.132F, 0.164F, PTZ_IR);
-        box(pose, vc, light, -0.028F, 0.078F, 0.154F, 0.028F, 0.100F, 0.160F, LABEL);
-        box(pose, vc, live ? LightTexture.FULL_BRIGHT : light,
-                -0.030F, 0.048F, 0.154F, -0.010F, 0.068F, 0.162F, live ? TALLY : PTZ_BODY);
-        box(pose, vc, LightTexture.FULL_BRIGHT, 0.010F, 0.048F, 0.154F, 0.030F, 0.068F, 0.162F, BLUE_LED);
+    /**
+     * The generated PTZ mesh: the base and its rear I/O hold the block's facing, the turntable
+     * and yoke pan, and the head barrel tilts around the yoke's axle.
+     */
+    private void renderPtz(NdiCameraBlockEntity be, PoseStack pose,
+                           MultiBufferSource buffers, int light) {
+        ObjPartMesh mesh = ObjPartMesh.get("ptz_camera");
+        VertexConsumer vc = buffers.getBuffer(RenderType.entityCutoutNoCull(PTZ_ATLAS));
+        float[] pt = be.getEasedPanTilt();
+        boolean live = be.isActive();
 
-        // Pan platter — thin black disc, no glow ring, no silver star.
+        pose.pushPose();
+        pose.translate(0.5, 0.0, 0.5);
+        pose.mulPose(Axis.YP.rotationDegrees(-be.getFacing().toYRot()));
+        mesh.render(pose, vc, light, g -> g.startsWith("base_") && !g.equals("base_turntable")
+                || g.startsWith("port_") || g.equals("rear_panel"));
+        mesh.render(pose, vc, live ? LightTexture.FULL_BRIGHT : light,
+                g -> g.equals("base_led"));
+
         pose.mulPose(Axis.YP.rotationDegrees(-pt[0]));
-        box(pose, vc, light, -0.118F, 0.196F, -0.118F, 0.118F, 0.224F, 0.118F, PTZ_GLOSS);
-        box(pose, vc, light, -0.036F, 0.222F, -0.036F, 0.036F, 0.236F, 0.036F, PTZ_BODY);
+        mesh.render(pose, vc, light,
+                g -> g.equals("base_turntable") || g.startsWith("yoke_"));
 
-        box(pose, vc, light, -0.188F, 0.218F, -0.048F, -0.098F, 0.268F, 0.048F, PTZ_BODY);
-        octoYAt(pose, vc, light, -0.148F, 0.036F, 0.260F, 0.482F, PTZ_BODY);
-        box(pose, vc, light, -0.184F, 0.455F, -0.061F, -0.038F, 0.555F, 0.061F, PTZ_BODY);
-        octoX(pose, vc, light, -0.195F, -0.168F, 0.500F, 0.044F, PTZ_SILVER);
-        box(pose, vc, light, -0.198F, 0.478F, -0.022F, -0.186F, 0.522F, 0.022F, PTZ_GLOSS);
-
-        // Tilting head — body, rear I/O, shoe, lens train. Pivot = capture eye height.
-        pose.translate(0.0, 0.500F, 0.0);
+        // tilt about the yoke axle
+        pose.translate(0.0, 0.42, -0.014);
         pose.mulPose(Axis.XP.rotationDegrees(-pt[1]));
-        box(pose, vc, light, -0.101F, -0.099F, -0.116F, 0.151F, 0.080F, 0.089F, PTZ_BODY);
-        box(pose, vc, light, -0.086F, -0.086F, -0.170F, 0.136F, 0.068F, -0.112F, PTZ_GLOSS);
-        box(pose, vc, light, -0.053F, -0.053F, -0.180F, 0.103F, 0.034F, -0.168F, CONNECTOR);
-        box(pose, vc, light, 0.132F, -0.028F, -0.055F, 0.148F, 0.028F, 0.040F, PTZ_VENT);
-        box(pose, vc, light, -0.041F, 0.076F, -0.053F, 0.041F, 0.093F, 0.034F, PTZ_SILVER);
-        box(pose, vc, light, -0.025F, 0.090F, -0.028F, 0.025F, 0.099F, 0.016F, BLACK);
-
-        box(pose, vc, light, -0.080F, -0.080F, 0.086F, 0.130F, 0.061F, 0.136F, PTZ_BODY_LIGHT);
-        box(pose, vc, light, -0.070F, -0.070F, 0.134F, 0.120F, 0.051F, 0.184F, GRIP);
-        box(pose, vc, light, -0.064F, -0.064F, 0.182F, 0.114F, 0.045F, 0.205F, PTZ_SILVER);
-        box(pose, vc, light, -0.051F, -0.051F, 0.203F, 0.101F, 0.033F, 0.232F, BLACK);
-        box(pose, vc, light, -0.039F, -0.039F, 0.230F, 0.089F, 0.020F, 0.242F, PTZ_GLASS);
-        box(pose, vc, LightTexture.FULL_BRIGHT, -0.012F, -0.008F, 0.240F, 0.028F, 0.012F, 0.246F, LENS);
-
-        if (live) {
-            box(pose, vc, LightTexture.FULL_BRIGHT, -0.050F, 0.074F, 0.034F, 0.050F, 0.095F, 0.084F, TALLY);
-        }
+        pose.translate(0.0, -0.42, 0.014);
+        mesh.render(pose, vc, light, g -> g.startsWith("head_") || g.startsWith("lens")
+                || g.startsWith("tilt_"));
         pose.popPose();
     }
 

@@ -105,6 +105,10 @@ public class ProjectorRenderer implements BlockEntityRenderer<ProjectorBlockEnti
             texId = FallbackTextures.white();
         }
 
+        // The light itself: a faint additive cone out of the lens — the haze a projector cuts
+        // through a room. Short and tighter than the frustum, brightest at the lens.
+        drawBeam(be, poseStack);
+
         shader.safeGetUniform("ProjParams").set(be.getBrightness(), be.getFeather(),
                 (float) mode, be.isAdditive() ? 1.0F : 0.0F);
         BlockPos anchor = be.getBlockPos();
@@ -438,6 +442,62 @@ public class ProjectorRenderer implements BlockEntityRenderer<ProjectorBlockEnti
                 centre.add(u).add(v),
                 centre.subtract(u).add(v),
         };
+    }
+
+    // ------------------------------------------------------------------ the visible beam
+
+    private static void drawBeam(ProjectorBlockEntity be, PoseStack poseStack) {
+        Vec3 origin = lensOrigin(be);
+        Vec3 dir = lensDirection(be);
+        Vec3 up = Math.abs(dir.y) > 0.999 ? new Vec3(0, 0, 1) : new Vec3(0, 1, 0);
+        Vec3 right = dir.cross(up).normalize();
+        Vec3 upv = right.cross(dir).normalize();
+        BlockPos anchor = be.getBlockPos();
+
+        double len = Math.min(7.0, be.getFar() * 0.45);
+        double tanV = Math.tan(Math.toRadians(be.getFov() * 0.5)) * 0.55;
+        double tanH = tanV * be.getAspect();
+        float alpha = 0.10F * be.getBrightness();
+
+        Vec3 nearC = origin.add(dir.scale(0.25));
+        Vec3 farC = origin.add(dir.scale(len));
+        Vec3[] nearR = {nearC.subtract(right.scale(0.05)).subtract(upv.scale(0.04)),
+                nearC.add(right.scale(0.05)).subtract(upv.scale(0.04)),
+                nearC.add(right.scale(0.05)).add(upv.scale(0.04)),
+                nearC.subtract(right.scale(0.05)).add(upv.scale(0.04))};
+        Vec3 r = right.scale(tanH * len);
+        Vec3 u = upv.scale(tanV * len);
+        Vec3[] farR = {farC.subtract(r).subtract(u), farC.add(r).subtract(u),
+                farC.add(r).add(u), farC.subtract(r).add(u)};
+
+        RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionColorShader);
+        RenderSystem.enableDepthTest();
+        RenderSystem.depthMask(false);
+        RenderSystem.enableBlend();
+        RenderSystem.blendFunc(com.mojang.blaze3d.platform.GlStateManager.SourceFactor.ONE,
+                com.mojang.blaze3d.platform.GlStateManager.DestFactor.ONE);
+        RenderSystem.disableCull();
+        Matrix4f mat = poseStack.last().pose();
+        BufferBuilder builder = Tesselator.getInstance().getBuilder();
+        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        for (int i = 0; i < 4; i++) {
+            int j = (i + 1) % 4;
+            beamVertex(builder, mat, anchor, nearR[i], alpha);
+            beamVertex(builder, mat, anchor, nearR[j], alpha);
+            beamVertex(builder, mat, anchor, farR[j], 0.0F);
+            beamVertex(builder, mat, anchor, farR[i], 0.0F);
+        }
+        BufferUploader.drawWithShader(builder.end());
+        RenderSystem.depthMask(true);
+        RenderSystem.disableBlend();
+    }
+
+    private static void beamVertex(BufferBuilder b, Matrix4f mat, BlockPos anchor, Vec3 v,
+                                   float alpha) {
+        b.vertex(mat, (float) (v.x - anchor.getX()), (float) (v.y - anchor.getY()),
+                        (float) (v.z - anchor.getZ()))
+                .color(alpha, alpha, alpha * 1.06F, 1.0F)
+                .endVertex();
     }
 
     // ------------------------------------------------------------------ calibration frustum

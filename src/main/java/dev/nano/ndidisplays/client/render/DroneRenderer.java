@@ -22,6 +22,8 @@ public class DroneRenderer extends EntityRenderer<DroneEntity> {
 
     private static final ResourceLocation TEXTURE =
             new ResourceLocation(NdiDisplays.MODID, "textures/entity/camera_parts.png");
+    private static final ResourceLocation DRONE_ATLAS =
+            new ResourceLocation(NdiDisplays.MODID, "textures/entity/drone_atlas.png");
 
     private static final int BODY = 0;
     private static final int BLACK = 2;
@@ -51,43 +53,43 @@ public class DroneRenderer extends EntityRenderer<DroneEntity> {
         float spin = drone.isFlying() ? (drone.tickCount + partialTick) * 42.0F : 0.0F;
 
         pose.pushPose();
-        pose.translate(0.0, 0.10, 0.0);
         pose.mulPose(Axis.YP.rotationDegrees(-heading));
 
-        box(pose, vc, packedLight, -0.11F, -0.04F, -0.09F, 0.11F, 0.05F, 0.09F, PTZ_GLOSS);
-        box(pose, vc, packedLight, -0.07F, 0.05F, -0.05F, 0.07F, 0.07F, 0.05F, BLACK);
-        box(pose, vc, packedLight, -0.02F, 0.07F, -0.02F, 0.02F, 0.09F, 0.02F, SILVER);
+        ObjPartMesh mesh = ObjPartMesh.get("drone");
+        VertexConsumer mvc = buffers.getBuffer(RenderType.entityCutoutNoCull(DRONE_ATLAS));
+        // airframe: everything that is not a rotor or the gimbal's camera
+        mesh.render(pose, mvc, packedLight, g -> !g.startsWith("prop_")
+                && !g.equals("gimbal_camera_body") && !g.equals("gimbal_lens")
+                && !g.equals("gimbal_lens_ring"));
 
+        // rotors, each about its own motor axis
+        final float[][] hubs = {
+                {-0.1579F, -0.2012F}, {0.2155F, -0.2012F},
+                {0.2155F, 0.1722F}, {-0.1579F, 0.1722F}};
         for (int i = 0; i < 4; i++) {
-            float a = (float) Math.toRadians(45 + i * 90);
-            float ax = (float) Math.cos(a);
-            float az = (float) Math.sin(a);
-            box(pose, vc, packedLight,
-                    ax * 0.08F - 0.015F, -0.015F, az * 0.08F - 0.015F,
-                    ax * 0.22F + 0.015F, 0.015F, az * 0.22F + 0.015F, BODY);
+            final String prefix = "prop_" + (i + 1) + "_";
             pose.pushPose();
-            pose.translate(ax * 0.24F, 0.02F, az * 0.24F);
+            pose.translate(hubs[i][0], 0.0, hubs[i][1]);
             pose.mulPose(Axis.YP.rotationDegrees(spin + i * 20.0F));
-            box(pose, vc, packedLight, -0.11F, 0.00F, -0.012F, 0.11F, 0.008F, 0.012F, BLACK);
-            box(pose, vc, packedLight, -0.012F, 0.00F, -0.11F, 0.012F, 0.008F, 0.11F, BLACK);
-            box(pose, vc, packedLight, -0.018F, -0.01F, -0.018F, 0.018F, 0.016F, 0.018F, SILVER);
+            pose.translate(-hubs[i][0], 0.0, -hubs[i][1]);
+            mesh.render(pose, mvc, packedLight, g -> g.startsWith(prefix));
             pose.popPose();
         }
 
+        // gimbal camera pitches about its tilt motor
         pose.pushPose();
-        pose.translate(0.0F, -0.02F, 0.10F);
+        pose.translate(-0.0108, 0.0539, 0.0515);
         pose.mulPose(Axis.XP.rotationDegrees(-pitch));
-        box(pose, vc, packedLight, -0.035F, -0.03F, -0.02F, 0.035F, 0.03F, 0.06F, GRIP);
-        box(pose, vc, packedLight, -0.028F, -0.024F, 0.06F, 0.028F, 0.024F, 0.10F, BLACK);
-        box(pose, vc, packedLight, -0.022F, -0.018F, 0.10F, 0.022F, 0.018F, 0.112F, LENS);
+        pose.translate(0.0108, -0.0539, -0.0515);
+        mesh.render(pose, mvc, packedLight, g -> g.equals("gimbal_camera_body")
+                || g.equals("gimbal_lens") || g.equals("gimbal_lens_ring"));
         if (drone.isLive()) {
-            box(pose, vc, LightTexture.FULL_BRIGHT, -0.012F, 0.03F, 0.00F, 0.012F, 0.04F, 0.03F, TALLY);
-            box(pose, vc, LightTexture.FULL_BRIGHT, -0.03F, -0.026F, 0.098F, 0.03F, 0.026F, 0.102F, PTZ_RING);
+            box(pose, vc, LightTexture.FULL_BRIGHT, -0.012F, 0.10F, 0.02F, 0.012F, 0.115F, 0.05F, TALLY);
         }
         pose.popPose();
 
         if (drone.path().isPlaying()) {
-            box(pose, vc, LightTexture.FULL_BRIGHT, 0.04F, 0.05F, -0.04F, 0.07F, 0.07F, -0.01F, ORANGE);
+            box(pose, vc, LightTexture.FULL_BRIGHT, 0.05F, 0.22F, -0.05F, 0.08F, 0.24F, -0.02F, ORANGE);
         }
         pose.popPose();
     }

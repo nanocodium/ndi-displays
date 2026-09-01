@@ -3,7 +3,7 @@
     "model": "ndidisplays:meshes/winch_body.obj",
     "flip_v": true,
     "textures": {
-        "atlas": "ndidisplays:entity/winch_body_atlas",
+        "atlas": "ndidisplays:block/winch_body_atlas",
         "particle": "ndidisplays:block/camera_dark"
     },
     "display": {

@@ -1,1 +1,3 @@
-{ "parent": "ndidisplays:block/ndi_router" }
+{
+    "parent": "ndidisplays:block/ndi_router"
+}

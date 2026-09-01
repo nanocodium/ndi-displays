@@ -45,52 +45,32 @@ public class ComputerRenderer implements BlockEntityRenderer<ComputerBlockEntity
     private static final int BLUE_LED = 12;
     private static final int TALLY = 4;
 
+    // The desk-pc mesh's screen_panel bounds, block-local (facing=north, unrotated).
+    private static final float SCR_X0 = 0.387F;
+    private static final float SCR_X1 = 0.943F;
+    private static final float SCR_Y0 = 0.182F;
+    private static final float SCR_Y1 = 0.418F;
+    private static final float SCR_Z = 0.654F + 0.004F;
+
     @Override
     public void render(ComputerBlockEntity be, float partialTick, PoseStack pose,
                        MultiBufferSource buffers, int packedLight, int packedOverlay) {
         Computers.note(be);
         CameraFeedManager.noteComputer(be);
 
-        pose.pushPose();
-        pose.translate(0.5, 0.0, 0.5);
-        pose.mulPose(Axis.YP.rotationDegrees(-be.getFacing().toYRot()));
-
-        VertexConsumer vc = buffers.getBuffer(RenderType.entityCutoutNoCull(PARTS));
-        // --- desk plate and tower off to the side ---
-        box(pose, vc, packedLight, -0.44F, 0.0F, -0.28F, 0.44F, 0.04F, 0.30F, BODY);
-        box(pose, vc, packedLight, 0.24F, 0.04F, -0.10F, 0.42F, 0.46F, 0.24F, BODY);
-        box(pose, vc, packedLight, 0.245F, 0.08F, -0.11F, 0.415F, 0.40F, -0.10F, VENT);
-        box(pose, vc, LightTexture.FULL_BRIGHT, 0.27F, 0.42F, -0.105F, 0.31F, 0.44F, -0.10F, BLUE_LED);
-        if (be.isBroadcasting()) {
-            box(pose, vc, LightTexture.FULL_BRIGHT,
-                    0.35F, 0.42F, -0.105F, 0.39F, 0.44F, -0.10F, TALLY);
-        }
-
-        // --- keyboard in front of the monitor ---
-        box(pose, vc, packedLight, -0.34F, 0.04F, -0.26F, 0.10F, 0.06F, -0.10F, SILVER);
-        box(pose, vc, packedLight, -0.32F, 0.06F, -0.24F, 0.08F, 0.065F, -0.12F, BLACK);
-
-        // --- monitor: stand + widescreen bezel ---
-        box(pose, vc, packedLight, -0.16F, 0.04F, 0.10F, -0.08F, 0.24F, 0.16F, SILVER);
-        box(pose, vc, packedLight, -0.55F, 0.24F, 0.10F, 0.31F, 0.78F, 0.15F, BLACK);
-        pose.popPose();
-
-        // --- the desktop on the panel ---
-        pose.pushPose();
-        pose.translate(0.5, 0.0, 0.5);
-        pose.mulPose(Axis.YP.rotationDegrees(-be.getFacing().toYRot()));
-        pose.translate(0.0, 0.0, 0.096);
         int tex = Computers.textureId(be.getBlockPos());
-        if (tex != 0) {
-            drawDesktop(pose, tex);
-        } else {
-            VertexConsumer off = buffers.getBuffer(RenderType.entityCutoutNoCull(PARTS));
-            box(pose, off, packedLight, -0.53F, 0.26F, 0.0F, 0.29F, 0.76F, 0.004F, LCD);
+        if (tex == 0) {
+            return; // the mesh's own dark panel reads as a machine that is off
         }
+        pose.pushPose();
+        pose.translate(0.5, 0.0, 0.5);
+        pose.mulPose(Axis.YP.rotationDegrees(-(be.getFacing().toYRot() + 180.0F)));
+        pose.translate(-0.5, 0.0, -0.5);
+        drawDesktop(pose, tex);
         pose.popPose();
     }
 
-    /** Full-bright immediate quad on the machine's own framebuffer texture. */
+    /** Full-bright immediate quad; a render target's texture is bottom-up, V 0 at the bottom. */
     private static void drawDesktop(PoseStack pose, int tex) {
         RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionTexShader);
         RenderSystem.setShaderTexture(0, tex);
@@ -101,12 +81,10 @@ public class ComputerRenderer implements BlockEntityRenderer<ComputerBlockEntity
         Matrix4f mat = pose.last().pose();
         BufferBuilder b = Tesselator.getInstance().getBuilder();
         b.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-        // A render target's texture is bottom-up: V 0 at the panel's bottom keeps it upright.
-        // The monitor faces the block's front (-Z after the yaw), so X runs mirrored.
-        b.vertex(mat, 0.29F, 0.26F, 0.0F).uv(1.0F, 0.0F).endVertex();
-        b.vertex(mat, -0.53F, 0.26F, 0.0F).uv(0.0F, 0.0F).endVertex();
-        b.vertex(mat, -0.53F, 0.76F, 0.0F).uv(0.0F, 1.0F).endVertex();
-        b.vertex(mat, 0.29F, 0.76F, 0.0F).uv(1.0F, 1.0F).endVertex();
+        b.vertex(mat, SCR_X0, SCR_Y0, SCR_Z).uv(0.0F, 0.0F).endVertex();
+        b.vertex(mat, SCR_X1, SCR_Y0, SCR_Z).uv(1.0F, 0.0F).endVertex();
+        b.vertex(mat, SCR_X1, SCR_Y1, SCR_Z).uv(1.0F, 1.0F).endVertex();
+        b.vertex(mat, SCR_X0, SCR_Y1, SCR_Z).uv(0.0F, 1.0F).endVertex();
         BufferUploader.drawWithShader(b.end());
         RenderSystem.enableCull();
     }

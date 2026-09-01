@@ -53,6 +53,13 @@ public class WebTerminalRenderer implements BlockEntityRenderer<WebTerminalBlock
     /** Panel inset from the bezel, blocks. */
     private static final float SCREEN_Z = 0.5F / 16.0F;
 
+    // The workstation mesh's screen_panel bounds, block-local (facing=north, unrotated).
+    private static final float SCR_X0 = 0.114F;
+    private static final float SCR_X1 = 0.586F;
+    private static final float SCR_Y0 = 0.164F;
+    private static final float SCR_Y1 = 0.436F;
+    private static final float SCR_Z = 0.6505F + 0.004F;
+
     @Override
     public void render(WebTerminalBlockEntity be, float partialTick, PoseStack pose,
                        MultiBufferSource buffers, int packedLight, int packedOverlay) {
@@ -60,56 +67,26 @@ public class WebTerminalRenderer implements BlockEntityRenderer<WebTerminalBlock
         // see get published, and the NDI sender follows the browser rather than the chunk.
         CameraFeedManager.noteWebTerminal(be);
 
-        pose.pushPose();
-        pose.translate(0.5, 0.0, 0.5);
-        pose.mulPose(Axis.YP.rotationDegrees(-be.getFacing().toYRot()));
-
-        VertexConsumer vc = buffers.getBuffer(RenderType.entityCutoutNoCull(PARTS));
-        // --- chassis: a small tower with a vented flank and a drive bay ---
-        box(pose, vc, packedLight, -0.28F, 0.0F, -0.20F, 0.28F, 0.06F, 0.22F, BODY);
-        box(pose, vc, packedLight, -0.20F, 0.06F, -0.16F, 0.20F, 0.30F, 0.18F, BODY);
-        box(pose, vc, packedLight, -0.205F, 0.10F, -0.14F, -0.195F, 0.26F, 0.10F, VENT);
-        box(pose, vc, packedLight, 0.195F, 0.10F, -0.14F, 0.205F, 0.26F, 0.10F, VENT);
-        box(pose, vc, packedLight, -0.12F, 0.12F, -0.17F, 0.12F, 0.17F, -0.16F, BODY_LIGHT);
-        box(pose, vc, packedLight, -0.14F, 0.235F, -0.168F, 0.14F, 0.245F, -0.162F, CARBON);
-        // power LED, and a tally that lights when the page is on the network
-        box(pose, vc, LightTexture.FULL_BRIGHT, 0.10F, 0.08F, -0.168F, 0.14F, 0.10F, -0.163F, BLUE_LED);
-        if (be.isBroadcasting()) {
-            box(pose, vc, LightTexture.FULL_BRIGHT,
-                    -0.14F, 0.08F, -0.168F, -0.10F, 0.10F, -0.163F, TALLY);
-        }
-
-        // --- monitor: stand, then a bezel standing on the chassis ---
-        box(pose, vc, packedLight, -0.04F, 0.30F, -0.02F, 0.04F, 0.40F, 0.04F, SILVER);
-        box(pose, vc, packedLight, -0.42F, 0.40F, -0.03F, 0.42F, 0.86F, 0.03F, BLACK);
-        box(pose, vc, packedLight, -0.44F, 0.38F, -0.05F, 0.44F, 0.42F, 0.05F, BODY);
-        pose.popPose();
-
-        // --- the page itself, on the front of the bezel ---
         WebBrowsers.Session session = WebBrowsers.session(be.getBlockPos(), be.getUrl(),
                 be.getWidth(), be.getHeight(),
                 be.getLevel() == null ? 0L : be.getLevel().getGameTime());
+        int tex = session == null ? 0 : session.textureId();
+        if (tex == 0) {
+            return; // the mesh's own dark panel reads as a switched-off monitor
+        }
+        // The chassis is the block model (rotated by the blockstate); this pass adds only the
+        // live page, on the mesh's screen panel, through the same rotation.
         pose.pushPose();
         pose.translate(0.5, 0.0, 0.5);
-        pose.mulPose(Axis.YP.rotationDegrees(-be.getFacing().toYRot()));
-        pose.translate(0.0, 0.0, -0.03 - SCREEN_Z);
-        int tex = session == null ? 0 : session.textureId();
-        if (tex != 0) {
-            drawPage(pose, tex);
-        } else {
-            // Offline: a dark panel rather than a missing texture, so a terminal without MCEF
-            // reads as a screen that is switched off instead of as a broken block.
-            VertexConsumer off = buffers.getBuffer(RenderType.entityCutoutNoCull(PARTS));
-            box(pose, off, packedLight, -0.40F, 0.42F, 0.0F, 0.40F, 0.84F, 0.004F, LCD);
-        }
+        pose.mulPose(Axis.YP.rotationDegrees(-(be.getFacing().toYRot() + 180.0F)));
+        pose.translate(-0.5, 0.0, -0.5);
+        drawPage(pose, tex);
         pose.popPose();
     }
 
     /**
-     * Immediate-mode quad bound straight to Chromium's texture.
-     *
-     * Drawn full-bright: a monitor emits its own light, and shading a screen by the block's
-     * light level would make a lit page look wrong in a dark room.
+     * Immediate-mode quad bound straight to Chromium's texture, full-bright: a monitor emits its
+     * own light. CEF's image is top-down, so V is 1 at the panel's bottom.
      */
     private static void drawPage(PoseStack pose, int tex) {
         RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionTexShader);
@@ -121,11 +98,10 @@ public class WebTerminalRenderer implements BlockEntityRenderer<WebTerminalBlock
         Matrix4f mat = pose.last().pose();
         BufferBuilder b = Tesselator.getInstance().getBuilder();
         b.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-        // CEF's image is top-down, so V runs 1 at the bottom of the panel to 0 at the top.
-        vertex(b, mat, -0.40F, 0.42F, 0.0F, 0.0F, 1.0F);
-        vertex(b, mat, 0.40F, 0.42F, 0.0F, 1.0F, 1.0F);
-        vertex(b, mat, 0.40F, 0.84F, 0.0F, 1.0F, 0.0F);
-        vertex(b, mat, -0.40F, 0.84F, 0.0F, 0.0F, 0.0F);
+        vertex(b, mat, SCR_X0, SCR_Y0, SCR_Z, 0.0F, 1.0F);
+        vertex(b, mat, SCR_X1, SCR_Y0, SCR_Z, 1.0F, 1.0F);
+        vertex(b, mat, SCR_X1, SCR_Y1, SCR_Z, 1.0F, 0.0F);
+        vertex(b, mat, SCR_X0, SCR_Y1, SCR_Z, 0.0F, 0.0F);
         BufferUploader.drawWithShader(b.end());
         RenderSystem.enableCull();
     }

@@ -57,7 +57,9 @@ public class RackRenderer implements BlockEntityRenderer<RackBlockEntity> {
 
         pose.pushPose();
         pose.translate(0.5, 0.0, 0.5);
-        pose.mulPose(Axis.YP.rotationDegrees(-rack.getFacing().toYRot()));
+        // Same turn the frame's blockstate applies (facing -> y = toYRot + 180), so the units'
+        // local space IS the frame's model space: +Z toward the opening, faceplates at the rails.
+        pose.mulPose(Axis.YP.rotationDegrees(-(rack.getFacing().toYRot() + 180.0F)));
 
         for (int slot = 0; slot < RackBlockEntity.SLOTS; slot++) {
             RackUnitType type = rack.unit(slot);

@@ -72,7 +72,9 @@ public class SwitcherScreen extends Screen {
         int contentW = busW + 16 + transW;
         busX = Math.max(8, (width - contentW) / 2);
         keyW = (busW - 8 * 4) / 9;
-        int monH = Math.max(70, (int) (height * 0.30));
+        // Monitors are 16:9, like the feeds they show.
+        int monW = (busW - 8) / 2;
+        int monH = monW * 9 / 16;
         int contentH = monH + 26 + 40 + 46 + 130;
         topPad = Math.max(8, (height - contentH) / 2);
         int pad = topPad;
@@ -216,10 +218,10 @@ public class SwitcherScreen extends Screen {
         boolean inTrans = sw.transitioning(gameTime);
         float progress = sw.transitionProgress(gameTime, partialTick);
 
-        // monitors: preview (green) and program (red)
+        // monitors: preview (green) and program (red), 16:9 like the feeds they carry
         int pad = topPad;
-        int monH = pvwY - pad - 26;
         int monW = (busW - 8) / 2;
+        int monH = monW * 9 / 16;
         drawMonitor(g, busX, pad + 10, monW, monH - 10, sw.busSource(sw.getPreview()),
                 "PREVIEW", C_GREEN);
         drawMonitor(g, busX + monW + 8, pad + 10, monW, monH - 10, sw.busSource(sw.getProgram()),

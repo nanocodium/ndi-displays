@@ -1,0 +1,20 @@
+{
+    "__comment": "Geometry is drawn by ComputerRenderer; the blockstate is a particle source.",
+    "variants": {
+        "facing=north": {
+            "model": "ndidisplays:block/computer"
+        },
+        "facing=east": {
+            "model": "ndidisplays:block/computer",
+            "y": 90
+        },
+        "facing=south": {
+            "model": "ndidisplays:block/computer",
+            "y": 180
+        },
+        "facing=west": {
+            "model": "ndidisplays:block/computer",
+            "y": 270
+        }
+    }
+}

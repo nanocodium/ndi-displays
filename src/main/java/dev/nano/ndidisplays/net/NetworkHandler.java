@@ -139,5 +139,9 @@ public final class NetworkHandler {
                 UpdateProjectorConfigPacket::encode,
                 UpdateProjectorConfigPacket::decode,
                 UpdateProjectorConfigPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateComputerConfigPacket.class,
+                UpdateComputerConfigPacket::encode,
+                UpdateComputerConfigPacket::decode,
+                UpdateComputerConfigPacket::handle);
     }
 }

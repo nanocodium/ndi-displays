@@ -304,6 +304,28 @@ public class NdiDisplays {
      * Web terminal: a workstation that renders a page and publishes it as an NDI source, so a
      * browser becomes just another source any screen in the world can select.
      */
+    /**
+     * A personal computer: a native desktop OS rendered by the mod itself (no browser engine),
+     * usable with mouse and keyboard, shown on its in-world monitor, and broadcast as the NDI
+     * source "MC Computer <name>".
+     */
+    public static final RegistryObject<Block> COMPUTER = BLOCKS.register("computer",
+            () -> new dev.nano.ndidisplays.block.ComputerBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.4F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 0)));
+
+    public static final RegistryObject<Item> COMPUTER_ITEM = ITEMS.register("computer",
+            () -> new BlockItem(COMPUTER.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.ComputerBlockEntity>> COMPUTER_BE =
+            BLOCK_ENTITIES.register("computer",
+                    () -> BlockEntityType.Builder.of(
+                            dev.nano.ndidisplays.block.ComputerBlockEntity::new,
+                            COMPUTER.get()).build(null));
+
     public static final RegistryObject<Block> WEB_TERMINAL = BLOCKS.register("web_terminal",
             () -> new dev.nano.ndidisplays.block.WebTerminalBlock(BlockBehaviour.Properties.of()
                     .mapColor(MapColor.COLOR_BLACK)
@@ -346,6 +368,7 @@ public class NdiDisplays {
                         output.accept(NDI_CONFIG_CARD_ITEM.get());
                         output.accept(NDI_ROUTER_ITEM.get());
                         output.accept(WEB_TERMINAL_ITEM.get());
+                        output.accept(COMPUTER_ITEM.get());
                         output.accept(DRONE_ITEM.get());
                         output.accept(DRONE_REMOTE_ITEM.get());
                     })

@@ -138,6 +138,15 @@ public final class ClientHooks {
     }
 
     /** Opens a web terminal: the page, a URL bar, and mouse/keyboard wired to the browser. */
+    public static void openComputer(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level != null && level.getBlockEntity(pos)
+                instanceof dev.nano.ndidisplays.block.ComputerBlockEntity pc) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.ComputerScreen(pc));
+        }
+    }
+
     public static void openWebTerminal(BlockPos pos) {
         Minecraft mc = Minecraft.getInstance();
         Level level = mc.level;

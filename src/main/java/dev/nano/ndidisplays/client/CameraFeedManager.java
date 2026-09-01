@@ -532,6 +532,10 @@ public final class CameraFeedManager {
         WEB_FEEDS.values().forEach(Feed::release);
         WEB_FEEDS.clear();
         WEB_TERMINALS.clear();
+        COMPUTER_FEEDS.values().forEach(Feed::release);
+        COMPUTER_FEEDS.clear();
+        COMPUTERS.clear();
+        dev.nano.ndidisplays.client.computer.Computers.closeAll();
         dev.nano.ndidisplays.client.web.WebBrowsers.closeAll();
         if (handheldFeed != null) {
             handheldFeed.release();
@@ -675,6 +679,10 @@ public final class CameraFeedManager {
                 WEB_FEEDS.values().forEach(Feed::release);
                 WEB_FEEDS.clear();
             }
+            if (!COMPUTER_FEEDS.isEmpty()) {
+                COMPUTER_FEEDS.values().forEach(Feed::release);
+                COMPUTER_FEEDS.clear();
+            }
             if (handheldFeed != null) {
                 handheldFeed.release();
                 handheldFeed = null;
@@ -717,6 +725,7 @@ public final class CameraFeedManager {
         // blit plus a readback — no nested world render — so it neither competes with the rigs
         // for that budget nor is affected by a shader pack replacing the world pipeline.
         tickWebTerminals(now);
+        tickComputers(now);
 
         // The handheld camera keeps the one-capture-per-frame budget: when it captured
         // this frame, the block rigs wait for the next one. Under shaders the handheld
@@ -1143,6 +1152,112 @@ public final class CameraFeedManager {
     /** Registers a terminal for publishing; its renderer calls this while it is in view. */
     public static void noteWebTerminal(dev.nano.ndidisplays.block.WebTerminalBlockEntity be) {
         WEB_TERMINALS.put(be.getBlockPos().immutable(), be);
+    }
+
+    // --- computers: same publishing contract as web terminals, pixels from the native OS ---
+
+    private static final Map<BlockPos, dev.nano.ndidisplays.block.ComputerBlockEntity>
+            COMPUTERS = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<BlockPos, Feed> COMPUTER_FEEDS = new java.util.HashMap<>();
+
+    public static void noteComputer(dev.nano.ndidisplays.block.ComputerBlockEntity be) {
+        COMPUTERS.put(be.getBlockPos().immutable(), be);
+    }
+
+    private static void tickComputers(double now) {
+        if (COMPUTERS.isEmpty()) {
+            return;
+        }
+        java.util.Iterator<Map.Entry<BlockPos,
+                dev.nano.ndidisplays.block.ComputerBlockEntity>> it =
+                COMPUTERS.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<BlockPos, dev.nano.ndidisplays.block.ComputerBlockEntity> e = it.next();
+            dev.nano.ndidisplays.block.ComputerBlockEntity be = e.getValue();
+            if (be.isRemoved()) {
+                Feed dead = COMPUTER_FEEDS.remove(e.getKey());
+                if (dead != null) {
+                    dead.release();
+                }
+                it.remove();
+                continue;
+            }
+            if (!be.isBroadcasting()) {
+                Feed off = COMPUTER_FEEDS.remove(e.getKey());
+                if (off != null) {
+                    off.release();
+                }
+                continue;
+            }
+            int tex = dev.nano.ndidisplays.client.computer.Computers.textureId(be.getBlockPos());
+            if (tex == 0) {
+                continue;   // the OS has not painted yet, nothing worth announcing
+            }
+            Feed feed = COMPUTER_FEEDS.computeIfAbsent(e.getKey(), k -> new Feed(null));
+            if (now < feed.nextDue) {
+                continue;
+            }
+            double period = 1.0 / Math.max(1, be.getFps());
+            feed.nextDue += period;
+            if (feed.nextDue < now - period) {
+                feed.nextDue = now + period;
+            }
+            try {
+                publishComputerFrame(feed, be, tex);
+            } catch (Throwable t) {
+                LOGGER.warn("[ndidisplays] computer {} publish failed: {}",
+                        be.getEffectiveSourceName(), t.toString());
+                feed.nextDue = now + 2.0;
+            }
+        }
+    }
+
+    /**
+     * Blits the machine's desktop framebuffer into a capture target and ships it. Identical
+     * discipline to {@link #publishWebFrame}, with one difference: a render target's texture is
+     * already bottom-up (unlike CEF's top-down image), so the copy keeps V upright and the
+     * flip in readAndSend lands the published frame the right way round.
+     */
+    private static void publishComputerFrame(Feed feed,
+            dev.nano.ndidisplays.block.ComputerBlockEntity be, int tex) {
+        completePendingReadback(feed);
+        captureTarget = acquireCaptureTarget(be.getWidth(), be.getHeight());
+
+        Matrix4f oldProjection = new Matrix4f(RenderSystem.getProjectionMatrix());
+        com.mojang.blaze3d.vertex.VertexSorting oldSorting = RenderSystem.getVertexSorting();
+        com.mojang.blaze3d.vertex.PoseStack modelView = RenderSystem.getModelViewStack();
+
+        captureTarget.bindWrite(true);
+        RenderSystem.setProjectionMatrix(new Matrix4f(),
+                com.mojang.blaze3d.vertex.VertexSorting.ORTHOGRAPHIC_Z);
+        modelView.pushPose();
+        modelView.setIdentity();
+        RenderSystem.applyModelViewMatrix();
+        RenderSystem.disableDepthTest();
+        RenderSystem.disableBlend();
+        RenderSystem.disableCull();
+        try {
+            RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionTexShader);
+            RenderSystem.setShaderTexture(0, tex);
+            BufferBuilder b = Tesselator.getInstance().getBuilder();
+            b.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+            b.vertex(-1.0F, -1.0F, 0.0F).uv(0.0F, 0.0F).endVertex();
+            b.vertex(1.0F, -1.0F, 0.0F).uv(1.0F, 0.0F).endVertex();
+            b.vertex(1.0F, 1.0F, 0.0F).uv(1.0F, 1.0F).endVertex();
+            b.vertex(-1.0F, 1.0F, 0.0F).uv(0.0F, 1.0F).endVertex();
+            BufferUploader.drawWithShader(b.end());
+        } finally {
+            RenderSystem.setProjectionMatrix(oldProjection, oldSorting);
+            modelView.popPose();
+            RenderSystem.applyModelViewMatrix();
+            RenderSystem.enableCull();
+            RenderSystem.enableDepthTest();
+            captureTarget.unbindWrite();
+            Minecraft.getInstance().getMainRenderTarget().bindWrite(true);
+        }
+
+        readAndSend(feed, be.getEffectiveSourceName(), be.getFps(), false,
+                captureTarget.viewWidth, captureTarget.viewHeight);
     }
 
     /** Names of terminals currently on air, so they can be picked as sources in the GUIs. */

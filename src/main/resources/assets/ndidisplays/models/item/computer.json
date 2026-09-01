@@ -1,0 +1,168 @@
+{
+    "__comment": "Inventory stand-in: tower, widescreen monitor and keyboard.",
+    "parent": "block/block",
+    "textures": {
+        "d": "ndidisplays:block/camera_dark",
+        "b": "ndidisplays:block/camera_base",
+        "particle": "ndidisplays:block/camera_dark"
+    },
+    "elements": [
+        {
+            "__comment": "tower",
+            "from": [
+                11,
+                0,
+                5
+            ],
+            "to": [
+                15,
+                8,
+                11
+            ],
+            "faces": {
+                "north": {
+                    "texture": "#d"
+                },
+                "south": {
+                    "texture": "#d"
+                },
+                "east": {
+                    "texture": "#d"
+                },
+                "west": {
+                    "texture": "#d"
+                },
+                "up": {
+                    "texture": "#d"
+                },
+                "down": {
+                    "texture": "#d"
+                }
+            }
+        },
+        {
+            "__comment": "keyboard",
+            "from": [
+                2,
+                0,
+                2
+            ],
+            "to": [
+                9,
+                1,
+                5
+            ],
+            "faces": {
+                "north": {
+                    "texture": "#b"
+                },
+                "south": {
+                    "texture": "#b"
+                },
+                "east": {
+                    "texture": "#b"
+                },
+                "west": {
+                    "texture": "#b"
+                },
+                "up": {
+                    "texture": "#b"
+                },
+                "down": {
+                    "texture": "#b"
+                }
+            }
+        },
+        {
+            "__comment": "monitor stand",
+            "from": [
+                4.5,
+                0,
+                8
+            ],
+            "to": [
+                6.5,
+                5,
+                10
+            ],
+            "faces": {
+                "north": {
+                    "texture": "#b"
+                },
+                "south": {
+                    "texture": "#b"
+                },
+                "east": {
+                    "texture": "#b"
+                },
+                "west": {
+                    "texture": "#b"
+                }
+            }
+        },
+        {
+            "__comment": "monitor panel",
+            "from": [
+                0,
+                5,
+                8.2
+            ],
+            "to": [
+                11,
+                12,
+                9.8
+            ],
+            "faces": {
+                "north": {
+                    "texture": "#d"
+                },
+                "south": {
+                    "texture": "#d"
+                },
+                "east": {
+                    "texture": "#d"
+                },
+                "west": {
+                    "texture": "#d"
+                },
+                "up": {
+                    "texture": "#d"
+                },
+                "down": {
+                    "texture": "#d"
+                }
+            }
+        }
+    ],
+    "display": {
+        "gui": {
+            "rotation": [
+                30,
+                225,
+                0
+            ],
+            "translation": [
+                0,
+                -1,
+                0
+            ],
+            "scale": [
+                0.62,
+                0.62,
+                0.62
+            ]
+        },
+        "fixed": {
+            "rotation": [
+                0,
+                180,
+                0
+            ],
+            "scale": [
+                0.8,
+                0.8,
+                0.8
+            ]
+        }
+    }
+}

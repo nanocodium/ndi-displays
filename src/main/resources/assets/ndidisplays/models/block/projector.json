@@ -1,16 +1,23 @@
 {
+    "__comment": "Media-server style projector: main chassis, top cap, side attachment module.",
     "parent": "block/block",
     "textures": {
-        "body": "ndidisplays:block/led_panel_back",
-        "side": "ndidisplays:block/led_panel_side",
-        "particle": "ndidisplays:block/led_panel_side"
+        "top": "ndidisplays:block/projector_top",
+        "bottom": "ndidisplays:block/projector_bottom",
+        "side": "ndidisplays:block/projector_side",
+        "side2": "ndidisplays:block/projector_side2",
+        "front": "ndidisplays:block/projector_front",
+        "back": "ndidisplays:block/projector_back",
+        "attach": "ndidisplays:block/projector_attachment",
+        "particle": "ndidisplays:block/projector_side"
     },
     "elements": [
         {
+            "__comment": "main chassis",
             "from": [
-                2,
-                3,
-                3
+                1,
+                0,
+                2
             ],
             "to": [
                 14,
@@ -19,35 +26,36 @@
             ],
             "faces": {
                 "north": {
-                    "texture": "#body"
+                    "texture": "#front"
                 },
                 "south": {
-                    "texture": "#body"
-                },
-                "east": {
-                    "texture": "#body"
+                    "texture": "#back"
                 },
                 "west": {
-                    "texture": "#body"
+                    "texture": "#side"
+                },
+                "east": {
+                    "texture": "#side2"
                 },
                 "up": {
-                    "texture": "#body"
+                    "texture": "#top"
                 },
                 "down": {
-                    "texture": "#body"
+                    "texture": "#bottom"
                 }
             }
         },
         {
+            "__comment": "top cap",
             "from": [
-                5,
-                5,
-                0
+                3,
+                13,
+                4
             ],
             "to": [
-                11,
-                11,
-                3
+                12,
+                16,
+                12
             ],
             "faces": {
                 "north": {
@@ -56,29 +64,30 @@
                 "south": {
                     "texture": "#side"
                 },
-                "east": {
-                    "texture": "#side"
-                },
                 "west": {
                     "texture": "#side"
                 },
-                "up": {
+                "east": {
                     "texture": "#side"
                 },
+                "up": {
+                    "texture": "#top"
+                },
                 "down": {
-                    "texture": "#side"
+                    "texture": "#top"
                 }
             }
         },
         {
+            "__comment": "side attachment module",
             "from": [
-                4,
-                13,
-                5
+                14,
+                2,
+                4
             ],
             "to": [
-                12,
-                14,
+                16,
+                10,
                 12
             ],
             "faces": {
@@ -89,18 +98,46 @@
                     "texture": "#side"
                 },
                 "east": {
-                    "texture": "#side"
-                },
-                "west": {
-                    "texture": "#side"
+                    "texture": "#attach"
                 },
                 "up": {
-                    "texture": "#side"
+                    "texture": "#top"
                 },
                 "down": {
-                    "texture": "#side"
+                    "texture": "#bottom"
                 }
             }
         }
-    ]
+    ],
+    "display": {
+        "gui": {
+            "rotation": [
+                30,
+                225,
+                0
+            ],
+            "translation": [
+                0,
+                0,
+                0
+            ],
+            "scale": [
+                0.62,
+                0.62,
+                0.62
+            ]
+        },
+        "fixed": {
+            "rotation": [
+                0,
+                180,
+                0
+            ],
+            "scale": [
+                0.8,
+                0.8,
+                0.8
+            ]
+        }
+    }
 }

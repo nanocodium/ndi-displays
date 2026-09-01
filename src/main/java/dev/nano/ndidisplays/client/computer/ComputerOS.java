@@ -91,10 +91,15 @@ public final class ComputerOS {
     private OsWindow resizing;
     private int dragDx;
     private int dragDy;
+    private OsWindow lastTitleClick;
+    private long lastTitleClickAt;
     private boolean dirty = true;
 
     int width = 640;
     int height = LOGICAL_H;
+    /** Logical→output pixel multiplier of the last render pass; apps hosting real surfaces
+     * (the browser) use it to run those surfaces at native sharpness. */
+    public int pixelScale = 2;
 
     record OsFile(String name, String kind, String data) {
     }
@@ -260,6 +265,15 @@ public final class ComputerOS {
                 } else if (x >= w.x + w.w - 24) {
                     w.minimized = true;
                 } else {
+                    // double-click the titlebar: maximise / restore
+                    long nowMs = System.currentTimeMillis();
+                    if (w == lastTitleClick && nowMs - lastTitleClickAt < 400L) {
+                        toggleMaximize(w);
+                        lastTitleClick = null;
+                        return;
+                    }
+                    lastTitleClick = w;
+                    lastTitleClickAt = nowMs;
                     dragging = w;
                     dragDx = x - w.x;
                     dragDy = y - w.y;
@@ -354,6 +368,26 @@ public final class ComputerOS {
         w.x = Math.min(56 + n * 16, Math.max(4, width - w.w - 8));
         w.y = Math.min(18 + n * 12, Math.max(2, height - TASKBAR_H - w.h - 4));
         windows.add(w);
+    }
+
+    private void toggleMaximize(OsWindow w) {
+        if (w.maximized) {
+            w.x = w.restoreX;
+            w.y = w.restoreY;
+            w.w = w.restoreW;
+            w.h = w.restoreH;
+            w.maximized = false;
+        } else {
+            w.restoreX = w.x;
+            w.restoreY = w.y;
+            w.restoreW = w.w;
+            w.restoreH = w.h;
+            w.x = 0;
+            w.y = 0;
+            w.w = width;
+            w.h = height - TASKBAR_H;
+            w.maximized = true;
+        }
     }
 
     private void close(OsWindow w) {
@@ -582,6 +616,11 @@ public final class ComputerOS {
         int w;
         int h;
         boolean minimized;
+        boolean maximized;
+        int restoreX;
+        int restoreY;
+        int restoreW;
+        int restoreH;
         int taskX;
         int taskW;
 

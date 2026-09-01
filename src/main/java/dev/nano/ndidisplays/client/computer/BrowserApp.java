@@ -14,10 +14,6 @@ import org.lwjgl.glfw.GLFW;
  */
 class BrowserApp extends OsApp {
 
-    /** Internal page resolution: browser windows are small, this keeps text legible. */
-    private static final int PAGE_W = 854;
-    private static final int PAGE_H = 480;
-
     private static final int BAR_H = 14;
 
     private final StringBuilder url = new StringBuilder("https://duckduckgo.com/");
@@ -25,6 +21,11 @@ class BrowserApp extends OsApp {
     private boolean navigate = true;
     private int viewW = 1;
     private int viewH = 1;
+    /** Chromium's surface size follows the window (at output sharpness), debounced so a drag
+     * resize does not storm the render process with reallocation on every frame. */
+    private int wantW = 854;
+    private int wantH = 480;
+    private long wantSince;
 
     BrowserApp(ComputerOS os) {
         super(os);
@@ -49,11 +50,30 @@ class BrowserApp extends OsApp {
         // Keyed by the computer's own block position: one Chromium per machine, closed with it.
         WebBrowsers.Session s = WebBrowsers.peek(os.pos);
         if (s == null && navigate) {
-            s = WebBrowsers.session(os.pos, url.toString(), PAGE_W, PAGE_H,
+            s = WebBrowsers.session(os.pos, url.toString(), wantW, wantH,
                     os.mc.level == null ? 0L : os.mc.level.getGameTime());
             navigate = false;
         }
         return s;
+    }
+
+    /** Track the window size; once it has been stable briefly, resize Chromium to match. */
+    private void trackSize() {
+        int dw = Math.max(320, viewW * os.pixelScale);
+        int dh = Math.max(180, viewH * os.pixelScale);
+        long now = System.currentTimeMillis();
+        if (Math.abs(dw - wantW) > 4 || Math.abs(dh - wantH) > 4) {
+            wantW = dw;
+            wantH = dh;
+            wantSince = now;
+            return;
+        }
+        WebBrowsers.Session s = WebBrowsers.peek(os.pos);
+        if (s != null && now - wantSince > 300L
+                && (s.width() != wantW || s.height() != wantH)) {
+            WebBrowsers.session(os.pos, url.toString(), wantW, wantH,
+                    os.mc.level == null ? 0L : os.mc.level.getGameTime());
+        }
     }
 
     private void go() {
@@ -66,7 +86,7 @@ class BrowserApp extends OsApp {
             url.setLength(0);
             url.append(typed);
         }
-        WebBrowsers.Session s = WebBrowsers.session(os.pos, typed, PAGE_W, PAGE_H,
+        WebBrowsers.Session s = WebBrowsers.session(os.pos, typed, wantW, wantH,
                 os.mc.level == null ? 0L : os.mc.level.getGameTime());
         if (s != null) {
             WebBrowsers.reload(s);
@@ -78,6 +98,7 @@ class BrowserApp extends OsApp {
     void render(GuiGraphics g, int w, int h) {
         viewW = w;
         viewH = h - BAR_H;
+        trackSize();
         // URL bar
         g.fill(0, 0, w, BAR_H, ComputerOS.C_WIN2);
         g.fill(0, 0, w - 26, BAR_H, urlFocused ? 0xFF101018 : ComputerOS.C_WIN2);
@@ -127,11 +148,13 @@ class BrowserApp extends OsApp {
     }
 
     private int pageX(int x) {
-        return x * PAGE_W / Math.max(1, viewW);
+        WebBrowsers.Session s = WebBrowsers.peek(os.pos);
+        return x * (s == null ? wantW : s.width()) / Math.max(1, viewW);
     }
 
     private int pageY(int y) {
-        return (y - BAR_H) * PAGE_H / Math.max(1, viewH);
+        WebBrowsers.Session s = WebBrowsers.peek(os.pos);
+        return (y - BAR_H) * (s == null ? wantH : s.height()) / Math.max(1, viewH);
     }
 
     private static int cefButton(int b) {
@@ -186,7 +209,7 @@ class BrowserApp extends OsApp {
     void scroll(double amount) {
         WebBrowsers.Session s = WebBrowsers.peek(os.pos);
         if (s != null) {
-            WebBrowsers.scroll(s, PAGE_W / 2, PAGE_H / 2, amount);
+            WebBrowsers.scroll(s, s.width() / 2, s.height() / 2, amount);
         }
     }
 

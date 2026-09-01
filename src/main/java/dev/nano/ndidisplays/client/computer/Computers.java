@@ -145,6 +145,7 @@ public final class Computers {
         int scale = Math.max(1, h / ComputerOS.LOGICAL_H);
         int lw = w / scale;
         int lh = h / scale;
+        e.os.pixelScale = scale;
 
         Matrix4f oldProjection = new Matrix4f(RenderSystem.getProjectionMatrix());
         VertexSorting oldSorting = RenderSystem.getVertexSorting();

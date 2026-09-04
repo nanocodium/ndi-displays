@@ -229,7 +229,21 @@ public final class ShimmerCompat {
         });
     }
 
-    private static void vertex(VertexConsumer vc, Matrix4f mat, Vec3 pos, float u, float v) {
+    /**
+     * All path-wall bloom quads in one post-entity callback and one RenderType, so a
+     * tessellated corner is the same mesh as the colour pass — not a second chord screen.
+     */
+    public static void submitBloomMesh(Matrix4f pose, ResourceLocation texture, float[] ledParams,
+                                       java.util.function.BiConsumer<Matrix4f, VertexConsumer> mesh) {
+        if (ClientSetup.ledWallBloomShader == null) {
+            return;
+        }
+        Matrix4f mat = new Matrix4f(pose);
+        RenderType type = BloomRenderType.of(texture, ledParams);
+        PostProcessing.BLOOM_UNREAL.postEntity(buffer -> mesh.accept(mat, buffer.getBuffer(type)));
+    }
+
+    static void vertex(VertexConsumer vc, Matrix4f mat, Vec3 pos, float u, float v) {
         vc.vertex(mat, (float) pos.x, (float) pos.y, (float) pos.z)
                 .uv(u, v)
                 .color(255, 255, 255, 255)

@@ -92,7 +92,7 @@ void main() {
 
     // --- Pixel structure. Fade it out as LEDs shrink below ~1 screen pixel so the
     // wall resolves into a smooth image at distance (no shimmer/moiré, like eyes do).
-    vec2 aa = fwidth(g) + vec2(1e-4);
+    vec2 aa = min(fwidth(g) + vec2(1e-4), vec2(32.0));
     float ledsPerPixel = max(aa.x, aa.y);
     float structFade = clamp((ledsPerPixel - 0.5) / 1.5, 0.0, 1.0);
 

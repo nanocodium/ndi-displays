@@ -90,7 +90,7 @@ void main() {
     vec2 f = g - cell;
 
     // --- Emitter mask. Centred strip within the cell; everything else is open air.
-    vec2 aa = fwidth(g) + vec2(1e-4);
+    vec2 aa = min(fwidth(g) + vec2(1e-4), vec2(32.0));
     vec2 halfSize = vec2(STRIP_W, STRIP_H) * 0.5;
     vec2 d = abs(f - 0.5);
     vec2 cover = (1.0 - smoothstep(halfSize - aa, halfSize + aa, d));

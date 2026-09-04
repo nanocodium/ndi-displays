@@ -173,10 +173,21 @@ public final class LedWallBaker {
         // v=0 at the wall's bottom.
         BufferBuilder builder = Tesselator.getInstance().getBuilder();
         builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
-        builder.vertex(-1.0F, -1.0F, 0.0F).uv(0.0F, 1.0F).color(255, 255, 255, 255).endVertex();
-        builder.vertex(1.0F, -1.0F, 0.0F).uv(1.0F, 1.0F).color(255, 255, 255, 255).endVertex();
-        builder.vertex(1.0F, 1.0F, 0.0F).uv(1.0F, 0.0F).color(255, 255, 255, 255).endVertex();
-        builder.vertex(-1.0F, 1.0F, 0.0F).uv(0.0F, 0.0F).color(255, 255, 255, 255).endVertex();
+        if (wall.isPath()) {
+            // Path walls (including 90° corners) bake the same UV strips the world mesh uses,
+            // so Iris/Oculus never samples a flat AABB that would flatten the turn.
+            LedWallRenderer.emitPath(wall, be.getBlockPos(), (bl, br, tr, tl, u0, u1, vB, vT) -> {
+                ndcUv(builder, u0, vB);
+                ndcUv(builder, u1, vB);
+                ndcUv(builder, u1, vT);
+                ndcUv(builder, u0, vT);
+            });
+        } else {
+            builder.vertex(-1.0F, -1.0F, 0.0F).uv(0.0F, 1.0F).color(255, 255, 255, 255).endVertex();
+            builder.vertex(1.0F, -1.0F, 0.0F).uv(1.0F, 1.0F).color(255, 255, 255, 255).endVertex();
+            builder.vertex(1.0F, 1.0F, 0.0F).uv(1.0F, 0.0F).color(255, 255, 255, 255).endVertex();
+            builder.vertex(-1.0F, 1.0F, 0.0F).uv(0.0F, 0.0F).color(255, 255, 255, 255).endVertex();
+        }
         BufferUploader.drawWithShader(builder.end());
 
         // Mipmaps supply the distance fade the live shader would otherwise compute.
@@ -184,6 +195,14 @@ public final class LedWallBaker {
         GL30C.glGenerateMipmap(GL11C.GL_TEXTURE_2D);
         GlStateManager._bindTexture(0);
         GlStateManager._glBindFramebuffer(GL30C.GL_FRAMEBUFFER, 0);
+    }
+
+    /** Maps wall UV (v=1 at the bottom) onto the baker's NDC fullscreen quad. */
+    private static void ndcUv(BufferBuilder builder, float u, float v) {
+        builder.vertex(u * 2.0F - 1.0F, 1.0F - 2.0F * v, 0.0F)
+                .uv(u, v)
+                .color(255, 255, 255, 255)
+                .endVertex();
     }
 
     private static void allocate(Baked baked, int width, int height) {

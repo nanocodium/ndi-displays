@@ -160,6 +160,15 @@ public class LedPanelBlock extends HorizontalDirectionalBlock implements EntityB
     }
 
     @Override
+    @SuppressWarnings("deprecation")
+    public void neighborChanged(BlockState state, Level level, BlockPos pos, Block neighbor, BlockPos fromPos, boolean movedByPiston) {
+        super.neighborChanged(state, level, pos, neighbor, fromPos, movedByPiston);
+        if (level.getBlockEntity(pos) instanceof LedPanelBlockEntity be) {
+            be.invalidateWallCache();
+        }
+    }
+
+    @Override
     @Nullable
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new LedPanelBlockEntity(pos, state);

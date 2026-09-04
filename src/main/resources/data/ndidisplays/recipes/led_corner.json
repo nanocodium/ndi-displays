@@ -1,0 +1,9 @@
+{
+    "type": "minecraft:crafting_shapeless",
+    "ingredients": [
+        { "item": "ndidisplays:led_panel" }
+    ],
+    "result": {
+        "item": "ndidisplays:led_corner"
+    }
+}

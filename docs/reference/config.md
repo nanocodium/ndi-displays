@@ -33,6 +33,33 @@ Values are `button:N`, `axis:N`, `unbound`, or stick tokens `left` / `right`. St
 
 Calibrate in the drone pad options / stick wizard. [Drone](/items/drone).
 
+## Screen lights
+
+Not a toml key. Content-coloured wash in front of LED walls (Shimmer) is a JVM flag, **off** by default — it reads as ugly ambient light on nearby architecture more often than as a video wall lighting a stage. Bloom on the cabinet itself is unaffected.
+
+```
+-Dndidisplays.screenLights=true
+```
+
+Add that to the client JVM arguments (launcher / `user_jvm_args.txt`). [LED Wall](/blocks/led-panel).
+
+## JVM flags (client)
+
+Dev / operator overrides. Gradle `runClient` also accepts `-PdebugCapture` and `-PperfLog`.
+
+| Property | Default | Meaning |
+|----------|---------|---------|
+| `ndidisplays.screenLights` | `false` | Shimmer colour wash from LED walls |
+| `ndidisplays.projectorShadowBias` | `0.06` | Projector shadow-map depth bias, metres |
+| `ndidisplays.captureLoad` | `0.5` | Max fraction of wall-clock time spent capturing rigs |
+| `ndidisplays.targetGameFps` | `50` | FPS the adaptive capture budget tries to protect |
+| `ndidisplays.maxCapturesPerFrame` | `4` | Ceiling for adaptive captures per game frame |
+| `ndidisplays.capturesPerFrame` | unset | Hard override; disables adaptive budgeting |
+| `ndidisplays.noCapture` | `false` | Disable every rig capture (screens still receive) |
+| `ndidisplays.debugCapture` | `false` | Log each rig's capture geometry once |
+| `ndidisplays.perfLog` | `false` | Log capture cost and delivered feed rates |
+| `ndidisplays.volumetricBeam` | `true` | Extra Lights volumetric beams on flown fixtures |
+
 # Server / common config
 
 File: `config/ndidisplays-common.toml` (common — the server is authoritative).

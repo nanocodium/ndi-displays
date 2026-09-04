@@ -1,6 +1,8 @@
 # Web Terminal
 
-A computer that renders a page and puts it on the network as an NDI source. Publishing as NDI rather than a bespoke texture means every LED wall, floor, and kinetic tile can take it.
+A dedicated browser box that renders a page and puts it on the network as an NDI source. Publishing as NDI rather than a bespoke texture means every LED wall, floor, and kinetic tile can take it.
+
+For a full desk OS (notes, paint, NDI monitor) plus an optional Browser app, use the [Computer](/blocks/computer). For a 1U browser in a bay, use the [equipment rack](/blocks/equipment-rack) web module.
 
 ## Registry ID
 

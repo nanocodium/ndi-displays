@@ -19,9 +19,21 @@ A healthy receive thread is logged as `NDI-Receive-<name>`. `Unknown frame type 
 
 Several clients have `broadcast.mode = ALWAYS`. Leave everyone on `AUTO` except the operator machine. See [Multiplayer](/guide/multiplayer).
 
-## Web Terminal is a black panel
+## Web Terminal / Computer Browser / rack web module is a black panel
 
-[MCEF](/reference/integrations) is not installed. The block still exists; the browser and NDI sender need MCEF on the broadcasting client.
+[MCEF](/reference/integrations) is not installed on the broadcasting client. The Computer OS (Notes, Paint, NDI Monitor, …) still runs without it.
+
+## Equipment rack is dark
+
+No [PDU](/blocks/equipment-rack) seated, or the breaker is off. Click the seated PDU to flip it. Decorative units do not power the frame.
+
+## Vision switcher / computer / cameras missing on the LAN
+
+Only the [broadcast](/guide/multiplayer) machine publishes (`AUTO` in singleplayer, `ALWAYS` on a dedicated server). Other clients receive.
+
+## Projector shows the grid but not the feed
+
+Pattern is still the alignment grid (factory default). Set **NDI Video** after the throw is framed. Far throw > 64 m is clamped; long throws cost more geometry.
 
 ## Linux screens stay black, nothing logged
 

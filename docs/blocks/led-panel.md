@@ -20,7 +20,7 @@ III
 
 ## Configuration
 
-Right-click any cabinet → **LED Wall Processor**: source, pitch, brightness, gamma, test patterns, input crop. **Apply to Wall** writes the merged rectangle. Full field list: [Video processor](/guide/processor).
+Right-click any cabinet → **LED Wall Processor**: source, pitch, brightness, gamma, test patterns, input crop. **Apply to Wall** writes every same-kind, same-facing neighbour reachable through shared edges — a clean rectangle **or** a shaped plan (cross, L, stairs). Full field list: [Video processor](/guide/processor).
 
 Eight facings (cardinals and 45°). [First wall](/guide/first-wall) for placement.
 
@@ -40,11 +40,11 @@ Every client with the Runtime pulls the feed itself. Server stores processor set
 
 ## Limits
 
-- Merge span **256** blocks (`WallScanner.MAX_SPAN`).
+- Merge span **256** on each axis. A shaped flood-fill stops at **8192** tiles and falls back to the rectangle rules.
 - Native feed capped at **3840×2160** per source ([Native resolution](/reference/native-resolution)).
 - Adjacent same-facing panels only; a 45° wing is a **second** wall unless a diagonal chamfer joins them.
 - A 90° L without a [corner cabinet](#90-turns) is two walls.
-- Emits light level 10. Emissive shader ignores world lighting.
+- No vanilla block light. The shader stays emissive (ignores world lighting). Optional Shimmer **screen lights** (colour wash on the floor) stay off unless `-Dndidisplays.screenLights=true` — see [Config](/reference/config#screen-lights).
 
 ## Integrations
 

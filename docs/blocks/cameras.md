@@ -1,12 +1,12 @@
 # Cameras
 
-Block rigs film the world and publish **real NDI sources**. Pick them up in OBS or vMix, or route them back onto an in-game wall (DJ cam on the IMAG).
+Block rigs film the world and publish **real NDI sources**. Pick them up in OBS or vMix, or route them back onto an in-game wall (DJ cam on the IMAG). Bodies are articulated OBJ meshes (fluid head, PTZ arm, boom, dolly column), not JSON cubes.
 
 Right-click any rig: source name, live on/off, 540p / 720p / 1080p, frame rate, FOV, pan / tilt, and motion extras. A red tally means the rig is live.
 
 Capture is client-side and budgeted (round-robin). Keep the number of **simultaneously live** rigs sensible. A rig only sees terrain the viewer's client has built — fine for a stage, not for filming unloaded chunks.
 
-Default name if the field is blank: `MC <KIND> <x>,<y>,<z>` where kind is `BROADCAST`, `PTZ`, `JIB`, or `TRACK`.
+Default name if the field is blank: `MC Cam|PTZ|Jib|Dolly <x>,<y>,<z>`.
 
 Handheld and shoulder are **items**: [Handheld](/items/handheld-camera), [Shoulder](/items/shoulder-camera). FPV: [Drone](/items/drone).
 
@@ -30,7 +30,7 @@ Right-click → camera GUI. Pan/tilt trim, zoom, resolution (960×540 / 1280×72
 
 ### NDI behavior
 
-**Send.** Default `MC BROADCAST x,y,z`. Logged as `NDI sender '<name>' online`.
+**Send.** Default `MC Cam x,y,z`. Logged as `NDI sender '<name>' online`.
 
 ### Multiplayer
 
@@ -98,7 +98,7 @@ Camera GUI plus **arm length** (default 5 m, max **24 m**), sweep range, period.
 
 ### NDI behavior
 
-**Send.** Default `MC JIB x,y,z`. Eye is at the boom tip.
+**Send.** Default `MC Jib x,y,z`. Eye is at the boom tip.
 
 ### Multiplayer
 
@@ -116,7 +116,7 @@ None required.
 
 ## Track Dolly
 
-Lay **Camera Track** (straight or curved, including closed rings). The dolly follows the rail and leans into bends. Open runs ping-pong; rings loop.
+Lay **Camera Track** (straight or curved, including closed rings). The dolly follows a Catmull-Rom rail, leans into bends, and the column telescopes with the model. The motion clock survives server lag. Open runs ping-pong; rings loop.
 
 ### Registry ID
 
@@ -128,11 +128,11 @@ See [Recipes](/reference/recipes) (`track_camera.json`).
 
 ### Configuration
 
-Camera GUI plus path speed. Needs a connected run of [Camera Track](#camera-track).
+Camera GUI plus path speed and **column** height (0–3 m above the stock pedestal; 0 is the low MILO stance). Needs a connected run of [Camera Track](#camera-track).
 
 ### NDI behavior
 
-**Send.** Default `MC TRACK x,y,z`.
+**Send.** Default `MC Dolly x,y,z`.
 
 ### Multiplayer
 

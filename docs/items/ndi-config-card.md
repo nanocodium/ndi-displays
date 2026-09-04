@@ -13,7 +13,7 @@ Shapeless: paper + redstone + iron nugget. [Recipes](/reference/recipes).
 ## Configuration
 
 - Sneak + right-click empty air → source picker (also card GUI).
-- Right-click a wall / floor / round / curve / winch tile → apply stored source.
+- Right-click a wall / floor / round / curve / winch tile / [projector](/blocks/projector) / [pro monitor](/blocks/pro-monitor) → apply stored source.
 - Sneak + click two [kinetic winches](/blocks/kinetic-winch) → park region; then stitch or full-frame per motor.
 - Bind a [Winch Park Monitor](/blocks/winch-park-monitor) the same way.
 - Stored source string on a [chain hoist](/blocks/chain-hoist) is treated as a **group name** (right-click the motor).

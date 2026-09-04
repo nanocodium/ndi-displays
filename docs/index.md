@@ -18,9 +18,9 @@ features:
   - title: In
     details: Live NDI from OBS, a media server, or another machine on the LAN.
   - title: Through
-    details: Walls, floors, curves, kinetic tiles, chain hoists, routers, and a processor GUI.
+    details: Walls, floors, curves, projectors, kinetic tiles, chain hoists, switchers, racks, and a processor GUI.
   - title: Out
-    details: Broadcast, PTZ, jib, dolly, handheld, and drone rigs as real NDI sources.
+    details: Broadcast, PTZ, jib, dolly, handheld, drone, computer, and switcher program as real NDI sources.
 ---
 
 Every client pulls NDI itself — no server transcode, no shared texture upload. Walls look like rental cabinets (pitch, subpixels, bezels, gamma). Cameras publish the world back onto the same network, so a jib can land on the IMAG wall in the same world.
@@ -30,6 +30,8 @@ Every client pulls NDI itself — no server transcode, no shared texture upload.
 - [Install the NDI Runtime](/guide/install) (Windows redistributable, Tools, SDK)
 - [Build a first LED wall](/guide/first-wall)
 - [Block catalog](/blocks/) generated from `NdiDisplays.java`
+- [Video Projector](/blocks/projector) — throw NDI onto the world
+- [Computer](/blocks/computer) · [Vision Switcher](/blocks/vision-switcher) · [Equipment Rack](/blocks/equipment-rack)
 - [Chain Hoist](/blocks/chain-hoist) — fly truss, SEF speakers, scenery
 - [Hoist Remote](/items/hoist-remote) — yellow belly-box, groups, e-stop
 - [Troubleshooting](/guide/troubleshooting) if the picker is empty or walls stay on colour bars

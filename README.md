@@ -16,7 +16,7 @@ protocol as OBS, Resolume, vMix, and a hardware LED processor.
 
 <br/>
 
-[Screens](#screens) · [Cameras](#cameras) · [Kinetics](#kinetics) · [Control room](#control-room) · [Requirements](#requirements) · [Usage](#usage) · [Build](#build)
+[Screens](#screens) · [Cameras](#cameras) · [Kinetics](#kinetics) · [Control room](#control-room) · [Requirements](#requirements) · [Usage](#usage) · [Build](#build) · [Changelog](CHANGELOG.md)
 
 </div>
 
@@ -261,6 +261,28 @@ corners) and either **stitch** it into one image or give every motor the
 full source.
 
 **Winch Park Monitor** binds to that selection and plots the motors.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### Chain Hoist
+A stage motor that flies an **isolated island of real blocks** — truss,
+fixtures, speakers, scenery. Each motor pays out its own chain, so
+raising one corner rakes the hang. A group command or the hoist remote
+keeps the attitude. Theatrical fixtures stay patched in flight.
+
+STOP holds the load in the air. It lands only when the hang is level.
+Server caps live in `config/ndidisplays-common.toml` under `[hoist]`.
+
+</td>
+<td width="50%" valign="top">
+
+### Hoist Remote
+Yellow belly-box: latched e-stop, group selector, UP / STOP / DOWN.
+Reach 192 blocks. `/hoist at` and `/hoist group` do the same from the
+console (permission 2).
 
 </td>
 </tr>

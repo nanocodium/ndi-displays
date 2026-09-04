@@ -13,3 +13,8 @@ eclipse/
 # Dev-only third-party mod jars (MCEF for the web terminal). Not ours to redistribute —
 # see README for where to get them.
 libs/
+
+# VitePress wiki (source is tracked; build output and deps are not)
+docs/node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/

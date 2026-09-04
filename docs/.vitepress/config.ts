@@ -10,6 +10,16 @@ export default defineConfig({
   sitemap: {
     hostname: 'https://wiki.nailec.fr'
   },
+  head: [
+    [
+      'script',
+      {
+        defer: '',
+        src: 'https://seo.streamlineagency.eu/script.js',
+        'data-website-id': '33e56770-2f40-4dc4-958f-22405662d2c0'
+      }
+    ]
+  ],
   themeConfig: {
     siteTitle: 'NDI Stage Displays',
     nav: [

@@ -1,0 +1,184 @@
+{
+    "__comment": "Stage chain hoist, original ndidisplays design: grid clamp plate, shackle, octagonal motor housing, pendant face, canvas chain bag with hazard band. The load fall exits the centre of the underside; the block entity renderer continues it downward and hangs the hook.",
+    "parent": "block/block",
+    "textures": {
+        "body": "ndidisplays:block/hoist_body",
+        "metal": "ndidisplays:block/hoist_metal",
+        "bag": "ndidisplays:block/hoist_bag",
+        "panel": "ndidisplays:block/hoist_panel",
+        "chain": "ndidisplays:block/chain_link",
+        "particle": "ndidisplays:block/hoist_body"
+    },
+    "elements": [
+        {
+            "__comment": "grid clamp plate",
+            "from": [4, 15, 4],
+            "to": [12, 16, 12],
+            "faces": {
+                "north": { "uv": [0, 7, 16, 9], "texture": "#metal" },
+                "south": { "uv": [0, 7, 16, 9], "texture": "#metal" },
+                "east":  { "uv": [0, 7, 16, 9], "texture": "#metal" },
+                "west":  { "uv": [0, 7, 16, 9], "texture": "#metal" },
+                "up":    { "uv": [0, 0, 16, 16], "texture": "#metal" },
+                "down":  { "uv": [0, 0, 16, 16], "texture": "#metal" }
+            }
+        },
+        {
+            "__comment": "shackle cheek, west",
+            "from": [6.6, 13.4, 7.1],
+            "to": [7.5, 15, 8.9],
+            "faces": {
+                "north": { "uv": [4, 4, 6, 8], "texture": "#metal" },
+                "south": { "uv": [4, 4, 6, 8], "texture": "#metal" },
+                "east":  { "uv": [6, 4, 10, 8], "texture": "#metal" },
+                "west":  { "uv": [6, 4, 10, 8], "texture": "#metal" },
+                "down":  { "uv": [4, 4, 6, 8], "texture": "#metal" }
+            }
+        },
+        {
+            "__comment": "shackle cheek, east",
+            "from": [8.5, 13.4, 7.1],
+            "to": [9.4, 15, 8.9],
+            "faces": {
+                "north": { "uv": [4, 4, 6, 8], "texture": "#metal" },
+                "south": { "uv": [4, 4, 6, 8], "texture": "#metal" },
+                "east":  { "uv": [6, 4, 10, 8], "texture": "#metal" },
+                "west":  { "uv": [6, 4, 10, 8], "texture": "#metal" },
+                "down":  { "uv": [4, 4, 6, 8], "texture": "#metal" }
+            }
+        },
+        {
+            "__comment": "shackle pin",
+            "from": [6.1, 13.8, 7.4],
+            "to": [9.9, 14.6, 8.6],
+            "faces": {
+                "north": { "uv": [3, 7, 13, 9], "texture": "#metal" },
+                "south": { "uv": [3, 7, 13, 9], "texture": "#metal" },
+                "east":  { "uv": [6, 7, 10, 9], "texture": "#metal" },
+                "west":  { "uv": [6, 7, 10, 9], "texture": "#metal" },
+                "up":    { "uv": [3, 7, 13, 9], "texture": "#metal" },
+                "down":  { "uv": [3, 7, 13, 9], "texture": "#metal" }
+            }
+        },
+        {
+            "__comment": "motor housing, straight half of the octagon",
+            "from": [3.5, 5, 5],
+            "to": [12.5, 13.4, 11],
+            "faces": {
+                "north": { "uv": [0, 0, 16, 15], "texture": "#body" },
+                "south": { "uv": [0, 0, 16, 15], "texture": "#body" },
+                "east":  { "uv": [3, 0, 13, 15], "texture": "#body" },
+                "west":  { "uv": [3, 0, 13, 15], "texture": "#body" },
+                "up":    { "uv": [0, 3, 16, 13], "texture": "#body" },
+                "down":  { "uv": [0, 3, 16, 13], "texture": "#body" }
+            }
+        },
+        {
+            "__comment": "motor housing, rotated half of the octagon",
+            "from": [5, 5, 3.5],
+            "to": [11, 13.4, 12.5],
+            "faces": {
+                "north": { "uv": [3, 0, 13, 15], "texture": "#body" },
+                "south": { "uv": [3, 0, 13, 15], "texture": "#body" },
+                "east":  { "uv": [0, 0, 16, 15], "texture": "#body" },
+                "west":  { "uv": [0, 0, 16, 15], "texture": "#body" },
+                "up":    { "uv": [3, 0, 13, 16], "texture": "#body" },
+                "down":  { "uv": [3, 0, 13, 16], "texture": "#body" }
+            }
+        },
+        {
+            "__comment": "top bearing cap under the shackle",
+            "from": [5.5, 13.4, 5.5],
+            "to": [10.5, 14, 10.5],
+            "faces": {
+                "north": { "uv": [3, 7, 13, 9], "texture": "#metal" },
+                "south": { "uv": [3, 7, 13, 9], "texture": "#metal" },
+                "east":  { "uv": [3, 7, 13, 9], "texture": "#metal" },
+                "west":  { "uv": [3, 7, 13, 9], "texture": "#metal" },
+                "up":    { "uv": [3, 3, 13, 13], "texture": "#metal" }
+            }
+        },
+        {
+            "__comment": "pendant face on the front",
+            "from": [5.5, 6.5, 3.1],
+            "to": [10.5, 9.5, 3.6],
+            "faces": {
+                "north": { "uv": [0, 0, 16, 16], "texture": "#panel" },
+                "east":  { "uv": [7, 6, 8, 10], "texture": "#body" },
+                "west":  { "uv": [7, 6, 8, 10], "texture": "#body" },
+                "up":    { "uv": [3, 7, 13, 8], "texture": "#body" },
+                "down":  { "uv": [3, 7, 13, 8], "texture": "#body" }
+            }
+        },
+        {
+            "__comment": "load-wheel throat where the chain leaves the housing",
+            "from": [6.5, 4, 6.5],
+            "to": [9.5, 5, 9.5],
+            "faces": {
+                "north": { "uv": [4, 7, 10, 9], "texture": "#metal" },
+                "south": { "uv": [4, 7, 10, 9], "texture": "#metal" },
+                "east":  { "uv": [4, 7, 10, 9], "texture": "#metal" },
+                "west":  { "uv": [4, 7, 10, 9], "texture": "#metal" },
+                "down":  { "uv": [4, 4, 10, 10], "texture": "#metal" }
+            }
+        },
+        {
+            "__comment": "chain bag, hanging off the east side",
+            "from": [10, -3.5, 5],
+            "to": [15.5, 4.5, 11],
+            "faces": {
+                "north": { "uv": [0, 0, 11, 16], "texture": "#bag" },
+                "south": { "uv": [0, 0, 11, 16], "texture": "#bag" },
+                "east":  { "uv": [0, 0, 12, 16], "texture": "#bag" },
+                "west":  { "uv": [0, 0, 12, 16], "texture": "#bag" },
+                "up":    { "uv": [2, 2, 14, 14], "texture": "#bag" },
+                "down":  { "uv": [2, 2, 14, 14], "texture": "#bag" }
+            }
+        },
+        {
+            "__comment": "bag strap up to the housing",
+            "from": [10.5, 4.5, 7.25],
+            "to": [12, 5.5, 8.75],
+            "faces": {
+                "north": { "uv": [5, 7, 9, 9], "texture": "#metal" },
+                "south": { "uv": [5, 7, 9, 9], "texture": "#metal" },
+                "east":  { "uv": [5, 7, 9, 9], "texture": "#metal" },
+                "west":  { "uv": [5, 7, 9, 9], "texture": "#metal" },
+                "up":    { "uv": [5, 5, 9, 9], "texture": "#metal" }
+            }
+        },
+        {
+            "__comment": "slack chain from the throat into the bag",
+            "from": [8.75, 1.5, 8],
+            "to": [11.75, 6.5, 8],
+            "shade": false,
+            "rotation": { "origin": [10.25, 4, 8], "axis": "z", "angle": -22.5 },
+            "faces": {
+                "north": { "uv": [3, 0, 0, 5], "texture": "#chain" },
+                "south": { "uv": [0, 0, 3, 5], "texture": "#chain" }
+            }
+        },
+        {
+            "__comment": "load fall inside the block, continued below by the renderer, quad A; shows the bottom of the link pattern so it flows into the first rendered link",
+            "from": [6.5, 0, 8],
+            "to": [9.5, 4, 8],
+            "shade": false,
+            "rotation": { "origin": [8, 8, 8], "axis": "y", "angle": 45 },
+            "faces": {
+                "north": { "uv": [3, 12, 0, 16], "texture": "#chain" },
+                "south": { "uv": [0, 12, 3, 16], "texture": "#chain" }
+            }
+        },
+        {
+            "__comment": "load fall inside the block, quad B",
+            "from": [8, 0, 6.5],
+            "to": [8, 4, 9.5],
+            "shade": false,
+            "rotation": { "origin": [8, 8, 8], "axis": "y", "angle": 45 },
+            "faces": {
+                "east": { "uv": [3, 12, 6, 16], "texture": "#chain" },
+                "west": { "uv": [6, 12, 3, 16], "texture": "#chain" }
+            }
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        " R ",
+        "IBI",
+        " I "
+    ],
+    "key": {
+        "R": { "item": "minecraft:redstone" },
+        "I": { "item": "minecraft:iron_nugget" },
+        "B": { "item": "minecraft:stone_button" }
+    },
+    "result": {
+        "item": "ndidisplays:hoist_remote",
+        "count": 1
+    }
+}

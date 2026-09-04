@@ -12,6 +12,9 @@ public final class NetworkHandler {
     /** Beyond normal reach, but generous enough for configuring a wall you are standing back from. */
     private static final double MAX_CONFIG_DISTANCE_SQR = 64.0 * 64.0;
 
+    /** A radio remote reaches across a venue; the chunk sweep bounds it in practice. */
+    private static final double MAX_REMOTE_DISTANCE_SQR = 192.0 * 192.0;
+
     private static final String PROTOCOL = "1";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
@@ -40,6 +43,27 @@ public final class NetworkHandler {
             return true;
         }
         return player.distanceToSqr(entity) <= MAX_CONFIG_DISTANCE_SQR;
+    }
+
+    /**
+     * Whether this player may run the motor at {@code pos} from a radio remote.
+     *
+     * Same permission rules as a pendant, but with the reach of an actual radio: a rigger
+     * runs a roof from the floor, and a motor two hundred blocks up is the normal case, not
+     * an exploit. The build and claim checks are what keep it honest.
+     */
+    public static boolean mayOperateRemote(ServerPlayer player, BlockPos pos) {
+        if (player.isSpectator() || !player.getAbilities().mayBuild) {
+            return false;
+        }
+        if (!player.level().isLoaded(pos)) {
+            return false;
+        }
+        if (player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5)
+                > MAX_REMOTE_DISTANCE_SQR) {
+            return false;
+        }
+        return player.level().mayInteract(player, pos);
     }
 
     public static boolean mayConfigure(ServerPlayer player, BlockPos pos) {
@@ -155,5 +179,17 @@ public final class NetworkHandler {
                 RackConfigPacket::encode,
                 RackConfigPacket::decode,
                 RackConfigPacket::handle);
+        CHANNEL.registerMessage(id++, ChainHoistCommandPacket.class,
+                ChainHoistCommandPacket::encode,
+                ChainHoistCommandPacket::decode,
+                ChainHoistCommandPacket::handle);
+        CHANNEL.registerMessage(id++, HoistRemotePacket.class,
+                HoistRemotePacket::encode,
+                HoistRemotePacket::decode,
+                HoistRemotePacket::handle);
+        CHANNEL.registerMessage(id++, HoistGroupListPacket.class,
+                HoistGroupListPacket::encode,
+                HoistGroupListPacket::decode,
+                HoistGroupListPacket::handle);
     }
 }

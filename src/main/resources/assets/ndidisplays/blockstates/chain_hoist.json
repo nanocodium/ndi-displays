@@ -1,0 +1,8 @@
+{
+    "variants": {
+        "facing=north": { "model": "ndidisplays:block/chain_hoist" },
+        "facing=east": { "model": "ndidisplays:block/chain_hoist", "y": 90 },
+        "facing=south": { "model": "ndidisplays:block/chain_hoist", "y": 180 },
+        "facing=west": { "model": "ndidisplays:block/chain_hoist", "y": 270 }
+    }
+}

@@ -413,7 +413,8 @@ public class NdiDisplays {
     public static final RegistryObject<CreativeModeTab> TAB = CREATIVE_TABS.register("main",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup." + MODID))
-                    .icon(() -> new ItemStack(LED_PANEL_ITEM.get()))
+                    // The LED panel is near-black on the tab's dark ground — an invisible tab.
+                    .icon(() -> new ItemStack(NDI_CONFIG_CARD_ITEM.get()))
                     .displayItems((params, output) -> {
                         output.accept(LED_PANEL_ITEM.get());
                         output.accept(BLOW_THROUGH_PANEL_ITEM.get());

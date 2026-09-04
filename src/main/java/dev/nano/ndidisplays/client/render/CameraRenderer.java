@@ -94,17 +94,17 @@ public class CameraRenderer implements BlockEntityRenderer<NdiCameraBlockEntity>
         mesh.render(pose, vc, light,
                 g -> g.startsWith("tripod") || g.startsWith("spreader"));
 
-        // The tripod column stands at z=-0.0984, not the block centre: pan about ITS axis,
+        // The tripod column stands at z=-0.0215, not the block centre: pan about ITS axis,
         // or the head sweeps a circle around the tripod instead of turning on it.
-        pose.translate(0.0, 0.0, -0.0984);
+        pose.translate(0.0, 0.0, -0.0215);
         pose.mulPose(Axis.YP.rotationDegrees(-be.getPan()));
-        pose.translate(0.0, 0.0, 0.0984);
+        pose.translate(0.0, 0.0, 0.0215);
         mesh.render(pose, vc, light, g -> g.startsWith("head_") || g.startsWith("pan_"));
 
         // tilt about the head drum axis
-        pose.translate(0.0, 0.975, -0.1134);
+        pose.translate(0.0, 0.975, -0.0365);
         pose.mulPose(Axis.XP.rotationDegrees(-be.getTilt()));
-        pose.translate(0.0, -0.975, 0.1134);
+        pose.translate(0.0, -0.975, 0.0365);
         mesh.render(pose, vc, light, g -> !g.startsWith("tripod") && !g.startsWith("spreader")
                 && !g.startsWith("head_") && !g.startsWith("pan_")
                 && !g.equals("tally_lamp") && !g.equals("battery_led") && !g.equals("side_led"));

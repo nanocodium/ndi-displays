@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0-beta.1] - 2026-09-04
+
 ### Added
 
 - **Chain hoist** (`ndidisplays:chain_hoist`) — a stage motor that flies an isolated island of real blocks (truss, scenery, Theatrical fixtures, LED cabinets, SEF). Each motor runs its own chain, so raising one corner rakes the hang. A group command or remote keeps the attitude. Theatrical fixtures stay patched and keep their beams in flight.
@@ -33,5 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Baseline of [nanocodium/ndi-displays](https://github.com/nanocodium/ndi-displays) `main` at the hoist branch point (`32d691b`): LED walls and floors, kinetic winches, cameras, drone, projector, computer, rack, and NDI I/O.
 
-[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/32d691b...HEAD
+[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.0-beta.1...HEAD
+[1.1.0-beta.1]: https://github.com/nanocodium/ndi-displays/compare/32d691b...HEAD
 [1.0.0]: https://github.com/nanocodium/ndi-displays/commit/32d691b

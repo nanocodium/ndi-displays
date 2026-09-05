@@ -115,6 +115,7 @@ No SEF fork is required. Official SEF is enough.
 
 A fixture that has left the world is no longer a DMX consumer, which would mean a rig going dark the moment it moves. So each fixture on the load gets a stand-in on the server, patched at **the address it took off from** — flying a truss does not re-patch it. It receives the same DMX frames it did on the deck, and its head position, colour, focus and intensity are sent to clients every tick, where the fixture's own renderer draws it at the flying position.
 
+- After detach, the real fixtures re-join the same network and address. You do not Apply each machine again.
 - Works with Theatrical Extra Lights' volumetric beams too, since the beam goes through Theatrical's own pipeline.
 - Beam length is re-traced as the load moves, so a beam does not punch through the stage floor on the way up.
 - No Theatrical, or a build whose API has moved: flying still works, the fixtures simply hold the look they took off with.

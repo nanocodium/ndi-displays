@@ -10,7 +10,7 @@ Without an NDI library the mod still loads. Walls show test patterns and the GUI
 
 Devolay loads **`Processing.NDI.Lib.x64.dll`**. That file comes from Vizrt’s **NDI Runtime** redistributable, not from the Minecraft jar.
 
-1. Install the official **[NDI Runtime](https://ndi.video/tools/ndi-runtime/)** for Windows.
+1. Download and install the official Windows **[NDI Runtime](http://ndi.link/NDIRedistV6)** (`ndi.link/NDIRedistV6`).
 2. Restart the game after installing.
 3. A healthy client logs `NDI runtime initialised`.
 
@@ -46,7 +46,7 @@ Restart the client after editing. Add other machine IPs as a comma-separated lis
 
 ## An NDI source on the LAN
 
-Easiest path: OBS + [DistroAV / obs-ndi](https://distroav.org/) → *Tools → NDI Output Settings*. Resolume, vMix, and hardware processors work the same.
+Easiest path: OBS + [DistroAV / obs-ndi](https://distroav.org/) → *Tools → DistroAV NDI output*. Resolume, vMix, and hardware processors work the same. Walkthroughs: [OBS, Resolume, and the wall](/guide/ndi-software).
 
 ## Optional mods
 

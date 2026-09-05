@@ -35,6 +35,7 @@ export default defineConfig({
         items: [
           { text: 'Install', link: '/guide/install' },
           { text: 'First wall', link: '/guide/first-wall' },
+          { text: 'OBS & Resolume', link: '/guide/ndi-software' },
           { text: 'Video processor', link: '/guide/processor' },
           { text: 'Multiplayer', link: '/guide/multiplayer' },
           { text: 'Troubleshooting', link: '/guide/troubleshooting' }

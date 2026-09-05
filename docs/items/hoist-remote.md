@@ -1,5 +1,7 @@
 # Hoist Remote
 
+![Hoist remote](/img/items/hoist_remote.png)
+
 Radio belly-box for [chain hoists](/blocks/chain-hoist). Right-click the air to open a yellow pendant: emergency stop, group selector, up / stop / down.
 
 The remote is a keypad. The server looks the motors up itself and applies the same safety checks as the block GUI.

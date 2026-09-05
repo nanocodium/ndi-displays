@@ -1,5 +1,7 @@
 # Curved LED Screen
 
+![Curved LED screen](/img/blocks/curved_screen.png)
+
 Cylindrical arc: radius, opening angle, height. 360° closes it into a full video column. Concave (audience inside) or convex (audience outside), with optional video repeat around the barrel.
 
 ## Registry ID

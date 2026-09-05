@@ -1,5 +1,7 @@
 # Video Projector
 
+![Video projector](/img/blocks/projector.png)
+
 Not a cabinet: a **light source with an image in it**. The block is the chassis; the picture is draped onto whatever world geometry the frustum hits — occlusion included — the way a real projector hits a cyc or a building.
 
 Placement aims it the way the player is looking (yaw and pitch). Fresh units come up on the **alignment grid**. Right-click opens the lens GUI.

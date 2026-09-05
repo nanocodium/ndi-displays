@@ -1,5 +1,7 @@
 # Blow-Through LED Panel
 
+![Blow-through LED panel](/img/blocks/blow_through_panel.png)
+
 Mesh / see-through cabinet for flying in front of a lighting rig. Dimmer than a solid module (less emitter area) and it does not block light or sight.
 
 Same processor, same NDI feed, same merge rules as the [solid wall](/blocks/led-panel).

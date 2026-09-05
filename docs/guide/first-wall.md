@@ -1,5 +1,7 @@
 # First wall
 
+![LED wall panel showing colour bars](/img/blocks/led_panel.png)
+
 1. Place a rectangle of [LED Wall Panels](/blocks/led-panel), all facing the same way. New cabinets show colour bars so you can see the wall is alive.
 2. Right-click any cabinet. The **LED Wall Processor** opens.
 3. Pick a discovered NDI source (or type a fragment of the name). Set pitch, brightness, gamma. Pattern → **NDI Video**. **Apply to Wall**.
@@ -11,7 +13,7 @@ The plan does not have to be a rectangle. Same-kind, same-facing cabinets that s
 
 Prefer a short distinctive fragment (`Arena - Composition`) over the full machine-prefixed name. Matching is exact first, then case-insensitive substring, so the short form survives a hostname change.
 
-Need the Runtime first? See [Install](/guide/install). Walls stay on colour bars if NDI is missing or the source name does not match — [Troubleshooting](/guide/troubleshooting).
+Need the Runtime first? See [Install](/guide/install). Need OBS or Resolume on the LAN first? See [OBS, Resolume, and the wall](/guide/ndi-software). Walls stay on colour bars if NDI is missing or the source name does not match — [Troubleshooting](/guide/troubleshooting).
 
 ## Angled walls
 

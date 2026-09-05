@@ -1,5 +1,7 @@
 # Shoulder Camera
 
+![Shoulder camera](/img/items/shoulder_camera.png)
+
 Chest-slot rig. Publishes `MC Shoulder <player>` while worn, leaving both hands free — ENG shoulder cam versus the handheld.
 
 ## Registry ID

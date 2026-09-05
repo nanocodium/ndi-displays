@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Wiki guide [OBS, Resolume, and the wall](docs/guide/ndi-software.md): DistroAV output, in-game source patch clip, Resolume Arena NDI.
+
 ## [1.1.0-beta.1] - 2026-09-04
 
 First public CurseForge beta. Ship **`ndidisplays-1.20.1-1.1.0-beta.1-all.jar`**.

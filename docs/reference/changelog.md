@@ -7,6 +7,10 @@ Current artifact: **`ndidisplays-1.20.1-1.1.0-beta.1-all.jar`** — Minecraft **
 
 ## [Unreleased]
 
+### Added
+
+- [OBS, Resolume, and the wall](/guide/ndi-software) — DistroAV output, in-game source patch clip, Resolume Arena NDI.
+
 ## [1.1.0-beta.1] - 2026-09-04
 
 First public CurseForge beta. Everything in this jar.

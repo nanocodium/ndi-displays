@@ -2,12 +2,12 @@
 
 ## Walls stuck on colour bars
 
-The mod loaded, NDI did not. Install the [Windows NDI Runtime](https://ndi.video/tools/ndi-runtime/), restart, look for `NDI runtime initialised` in the log. Pattern is still **Colour bars** until you set **NDI Video** and Apply.
+The mod loaded, NDI did not. Install the [Windows NDI Runtime](http://ndi.link/NDIRedistV6), restart, look for `NDI runtime initialised` in the log. Pattern is still **Colour bars** until you set **NDI Video** and Apply.
 
 ## Empty source picker / “source not found”
 
 - Runtime missing (above).
-- No NDI output on the LAN (OBS DistroAV not enabled).
+- No NDI output on the LAN (OBS DistroAV not enabled). See [OBS, Resolume, and the wall](/guide/ndi-software).
 - **Firewall** blocking NDI / mDNS (UDP 5353 and NDI data ports). Allow the game and NDI on Private networks.
 - **VLAN / Wi‑Fi isolation** — phones and PCs must share multicast/mDNS, or use a discovery server.
 - Linux: another process owns UDP 5353 and `avahi-daemon` is down. See [Install](/guide/install#linux).

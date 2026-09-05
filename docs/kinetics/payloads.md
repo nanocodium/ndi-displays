@@ -2,6 +2,29 @@
 
 Configured on the [Kinetic LED Winch](/blocks/kinetic-winch). Constants in `KineticWinchBlockEntity`.
 
+<div class="wiki-gallery">
+<figure>
+<img src="/img/kinetics/led_tile.png" alt="LED tile payload on a kinetic winch" />
+<figcaption>LED tile</figcaption>
+</figure>
+<figure>
+<img src="/img/kinetics/sphere.png" alt="Kinetic RGB sphere" />
+<figcaption>RGB sphere</figcaption>
+</figure>
+<figure>
+<img src="/img/kinetics/mirror_ball.png" alt="Mirror ball on a kinetic winch" />
+<figcaption>Mirror ball</figcaption>
+</figure>
+<figure>
+<img src="/img/kinetics/fixture.png" alt="Theatrical fixture on a kinetic winch" />
+<figcaption>Flown fixture</figcaption>
+</figure>
+<figure>
+<img src="/img/kinetics/slat.png" alt="LED slat on a kinetic winch" />
+<figcaption>LED slat</figcaption>
+</figure>
+</div>
+
 | Payload | Const | Video | Notes |
 |---------|-------|-------|--------|
 | LED Tile | `PAYLOAD_LED_TILE` (0) | Yes | Vertical or flat (sky-facing). Mesh = blow-through. Canvas stitch via `UvRegion`. |

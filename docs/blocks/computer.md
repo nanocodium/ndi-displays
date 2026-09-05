@@ -1,5 +1,7 @@
 # Computer
 
+![Computer](/img/blocks/computer.png)
+
 A placeable desk machine with its own **native OS** — wallpaper, icons, windows, taskbar, cursor — drawn with Minecraft GUI calls into a private framebuffer. That one texture feeds three consumers: the in-world monitor, the sit-down screen, and the NDI output.
 
 The OS is **not** a browser. Placement records the **owner**. Right-click sits down at the machine. A lock is decided on the **server**, so a locked computer stays locked no matter what a client claims.

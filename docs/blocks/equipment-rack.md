@@ -1,5 +1,7 @@
 # Equipment Rack
 
+![Equipment rack loaded with 1U units](/img/blocks/equipment_rack.png)
+
 A 19-inch frame with **six 1U slots**. Units are **items**: carry a web module across the stage, seat it, pull it back out. Each seated unit keeps its own config in the slot (a web module its URL, a PDU its breaker).
 
 **Power is the game.** The rack runs only while it holds a PDU that is switched **on**. No PDU, or PDU off, and every screen in the rack goes dark.

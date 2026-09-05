@@ -14,6 +14,8 @@ Handheld and shoulder are **items**: [Handheld](/items/handheld-camera), [Should
 
 ## Broadcast Camera
 
+![Broadcast camera](/img/blocks/broadcast_camera.png)
+
 Tripod ENG body: fluid head, pan bar, matte box, viewfinder. Fixed shot with pan / tilt trim and zoom.
 
 ### Registry ID
@@ -47,6 +49,8 @@ None required. Route through an [NDI Router](/blocks/ndi-router) for a stable OB
 ---
 
 ## PTZ Camera
+
+![PTZ camera](/img/blocks/ptz_camera.png)
 
 Single-arm broadcast PTZ. Pan and tilt ease to target at a configurable slew rate (default 45°/s). Piano-black stepped base, live tally on the head.
 
@@ -82,6 +86,8 @@ None required.
 
 ## Jib Camera
 
+![Jib camera](/img/blocks/jib_camera.png)
+
 Boom on a pedestal. The arm auto-sweeps; length, sweep range and period are configurable. The head hangs on the tip.
 
 ### Registry ID
@@ -115,6 +121,8 @@ None required.
 ---
 
 ## Track Dolly
+
+![Track dolly on camera track](/img/blocks/track_camera.png)
 
 Lay **Camera Track** (straight or curved, including closed rings). The dolly follows a Catmull-Rom rail, leans into bends, and the column telescopes with the model. The motion clock survives server lag. Open runs ping-pong; rings loop.
 

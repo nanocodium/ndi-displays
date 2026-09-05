@@ -1,5 +1,7 @@
 # LED Wall Panel
 
+![LED wall panel showing colour bars in a studio](/img/blocks/led_panel.png)
+
 Slim 1×1 m rental cabinet. Place a rectangle of same-facing panels and they merge into one wall — no support blocks; they hang as if they were rigged.
 
 ## Registry ID
@@ -25,6 +27,8 @@ Right-click any cabinet → **LED Wall Processor**: source, pitch, brightness, g
 Eight facings (cardinals and 45°). [First wall](/guide/first-wall) for placement.
 
 ## 90° turns
+
+![LED corner cabinet wrapping a 90° wall](/img/blocks/led_corner.png)
 
 A true 90° wrap is the **LED Corner Cabinet** (`ndidisplays:led_corner`): one block, a quarter-cylinder of radius 1, tessellated like the [curved screen](/blocks/curved-screen) (~5°). Shapeless craft: **1** LED panel → **1** corner. Place it between two cardinal runs; sneak-place for the inner (concave) form. The corner auto-orients from its neighbours.
 

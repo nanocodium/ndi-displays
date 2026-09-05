@@ -1,5 +1,7 @@
 # NDI Drone
 
+![NDI drone](/img/items/drone.png)
+
 Place the drone, link a remote, then fly it in FPV — you are in the gimbal. WASD strafes, space / sneak climb, mouse aims. The NDI source `MC Drone <id>` is the same view.
 
 Sneak-click the remote for waypoints (once / loop / ping-pong). Optional Xaero import.
@@ -10,6 +12,8 @@ Sneak-click the remote for waypoints (once / loop / ping-pong). Optional Xaero i
 |------|-----|
 | Drone | `ndidisplays:drone` |
 | Remote | `ndidisplays:drone_remote` |
+
+![Drone remote](/img/items/drone_remote.png)
 | Entity | `ndidisplays:drone` |
 
 ## Crafting

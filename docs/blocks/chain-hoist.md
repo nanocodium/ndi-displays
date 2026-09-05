@@ -1,5 +1,7 @@
 # Chain Hoist
 
+![Three chain hoists raking a flown truss](/img/hero/hoist_in_use.png)
+
 A stage motor that flies a **real block structure** — truss, scenery, SEF speakers, Theatrical fixtures, LED cabinets, or a pile of oak. Not a kinetic tile on a cable: the load leaves the world, travels as one rigid structure, and is placed back when the motor stops.
 
 Each motor runs its own chain, so a truss on several hoists can be **raked** by running one corner up. Theatrical fixtures on the load stay patched and keep running their cue, beams and all, for the whole flight. NDI video is the exception: a screen goes blank in the air and comes back when the load lands.

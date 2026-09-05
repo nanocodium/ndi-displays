@@ -2,6 +2,8 @@ package dev.nano.ndidisplays.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
@@ -22,19 +24,10 @@ import net.minecraft.world.entity.LivingEntity;
  * extra syncing. Only {@code body} carries cubes; every other humanoid part stays empty, and
  * the layer hides the ones it would otherwise draw.
  *
- * The texture is flat colour zones rather than a painted skin — each cube's UV net sits wholly
- * inside one zone, so geometry can be reshaped without repainting anything.
+ * The geometry is the shoulder_rig OBJ mesh drawn through {@link ObjPartMesh}; the armour
+ * texture camera_rig_layer_1.png is its material palette strip.
  */
 public class ShoulderRigModel extends HumanoidModel<LivingEntity> {
-
-    // Texture zone origins, matching the generated camera_rig_layer_1.png.
-    private static final int DARK = 0;      // (0,0)   body, lens, matte box
-    private static final int GREY_U = 64;   // (64,0)  handle, rods, shoulder pad
-    private static final int BATT_V = 64;   // (0,64)  battery brick
-    private static final int ORANGE_U = 64; // (64,64) battery accent
-    private static final int RED_U = 96;    // (96,64) REC lamp
-    private static final int YELLOW_V = 96; // (0,96)  lens scale ring
-    private static final int SCREEN_U = 64; // (64,96) monitor face
 
     public ShoulderRigModel(ModelPart root) {
         super(root);
@@ -53,69 +46,9 @@ public class ShoulderRigModel extends HumanoidModel<LivingEntity> {
         root.addOrReplaceChild("right_leg", CubeListBuilder.create(), PartPose.ZERO);
         root.addOrReplaceChild("left_leg", CubeListBuilder.create(), PartPose.ZERO);
 
-        // Everything hangs off the body. Player space: -x is the player's right, -z is
-        // forward, y grows downward from the neck. The rig sits over the right shoulder with
-        // the lens pointing forward, which is why every x below is negative.
-        CubeListBuilder rig = CubeListBuilder.create()
-
-                // --- shoulder pad and baseplate (the bit actually resting on them) ---
-                .texOffs(GREY_U, 0)
-                .addBox(-7.5F, -1.0F, -2.5F, 7.0F, 2.0F, 7.0F)      // pad over the trapezius
-                .texOffs(GREY_U, 12)
-                .addBox(-7.0F, -3.0F, -6.0F, 6.0F, 1.5F, 11.0F)     // dovetail baseplate
-
-                // --- camera body: the big block, sat on the plate ---
-                .texOffs(DARK, 0)
-                .addBox(-7.0F, -9.5F, -5.0F, 6.0F, 6.5F, 8.0F)
-                // side monitor panel (FPS / SHUTTER / EI readout)
-                .texOffs(SCREEN_U, 96)
-                .addBox(-7.6F, -8.5F, -3.5F, 0.7F, 3.5F, 5.0F)
-                // REC lamp
-                .texOffs(RED_U, BATT_V)
-                .addBox(-7.4F, -4.5F, -4.0F, 0.6F, 1.0F, 1.0F)
-
-                // --- lens: barrel forward of the body, scale ring, matte box ---
-                .texOffs(DARK, 20)
-                .addBox(-6.0F, -8.5F, -10.0F, 4.0F, 4.0F, 5.0F)     // PL barrel
-                .texOffs(DARK, YELLOW_V)
-                .addBox(-6.2F, -8.7F, -11.5F, 4.4F, 4.4F, 1.5F)     // focus scale ring
-                .texOffs(DARK, 30)
-                .addBox(-6.8F, -9.6F, -14.0F, 5.6F, 6.2F, 2.5F)     // matte box
-                .texOffs(GREY_U, 24)
-                .addBox(-7.4F, -11.2F, -14.0F, 6.8F, 1.6F, 0.8F)    // top french flag
-
-                // --- top handle on cheese-plate risers ---
-                .texOffs(GREY_U, 30)
-                .addBox(-6.4F, -11.0F, -9.0F, 0.9F, 1.5F, 0.9F)     // front riser
-                .texOffs(GREY_U, 30)
-                .addBox(-6.4F, -11.0F, 1.0F, 0.9F, 1.5F, 0.9F)      // rear riser
-                .texOffs(GREY_U, 34)
-                .addBox(-6.6F, -12.3F, -9.4F, 1.4F, 1.3F, 11.6F)    // handle bar
-
-                // --- top accessories: wireless video tx and its two antennas ---
-                .texOffs(DARK, 40)
-                .addBox(-5.0F, -12.0F, -1.0F, 3.0F, 1.8F, 3.0F)     // tx body
-                .texOffs(GREY_U, 40)
-                .addBox(-4.4F, -15.5F, -0.4F, 0.5F, 3.5F, 0.5F)     // antenna 1
-                .texOffs(GREY_U, 40)
-                .addBox(-3.2F, -15.5F, -0.4F, 0.5F, 3.5F, 0.5F)     // antenna 2
-
-                // --- V-mount battery hanging off the back, balancing the lens ---
-                .texOffs(DARK, BATT_V)
-                .addBox(-6.6F, -9.0F, 3.0F, 5.2F, 5.6F, 3.2F)
-                .texOffs(ORANGE_U, BATT_V)
-                .addBox(-6.8F, -8.0F, 3.4F, 0.4F, 1.6F, 2.4F)       // orange accent strip
-
-                // --- 15mm rods and the operator's handgrip under the lens ---
-                .texOffs(GREY_U, 46)
-                .addBox(-6.2F, -3.2F, -12.0F, 0.8F, 0.8F, 7.0F)     // rod, outboard
-                .texOffs(GREY_U, 46)
-                .addBox(-3.2F, -3.2F, -12.0F, 0.8F, 0.8F, 7.0F)     // rod, inboard
-                .texOffs(GREY_U, 50)
-                .addBox(-5.6F, -2.6F, -9.5F, 2.6F, 1.4F, 2.6F)      // rosette block
-                .texOffs(DARK, 50)
-                .addBox(-5.2F, -1.4F, -9.2F, 1.8F, 4.6F, 1.8F);     // handgrip
-
+        // The body part carries no cubes of its own: it only supplies the pose (body yaw, sneak
+        // lean, riding) that renderToBuffer hangs the OBJ rig off.
+        CubeListBuilder rig = CubeListBuilder.create();
         root.addOrReplaceChild("body", rig, PartPose.ZERO);
         return LayerDefinition.create(mesh, 128, 128);
     }
@@ -129,6 +62,7 @@ public class ShoulderRigModel extends HumanoidModel<LivingEntity> {
     public void setupAnim(LivingEntity entity, float limbSwing, float limbSwingAmount,
                           float ageInTicks, float netHeadYaw, float headPitch) {
         super.setupAnim(entity, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
+        this.posedFor = entity;
         this.rightArm.xRot = 0.0F;
         this.rightArm.yRot = 0.0F;
         this.rightArm.zRot = 0.0F;
@@ -137,11 +71,40 @@ public class ShoulderRigModel extends HumanoidModel<LivingEntity> {
         this.leftArm.zRot = 0.0F;
     }
 
+    /**
+     * Mesh scale: the source rig is life-size (0.63 m long); against a blocky player it has to
+     * be well over that to read at all. Placement follows the real thing: the pad on the
+     * shoulder, grips hanging in front of the chest, body outboard of the head, and the
+     * monitor arm swung round so the screen sits in front of the operator's right eye.
+     */
+    private static final float SCALE = 1.8F;
+
+    /** Placement of the mesh in body-model space: shared with the first-person monitor. */
+    public static void placeRig(PoseStack pose) {
+        pose.translate(-0.46F, 0.45F, -0.37F);
+        pose.mulPose(Axis.XP.rotationDegrees(180.0F));
+        pose.scale(SCALE, SCALE, SCALE);
+    }
+
+    /** The entity this model was last posed for; renderToBuffer is not told. */
+    private LivingEntity posedFor;
+
     @Override
     public void renderToBuffer(PoseStack pose, VertexConsumer vc, int light, int overlay,
                                float r, float g, float b, float a) {
-        // Only the body carries geometry; drawing it alone avoids the empty parts costing
-        // anything and keeps the player's own model untouched.
-        this.body.render(pose, vc, light, overlay, r, g, b, a);
+        // Follow the body part's pose, then place the mesh over the right shoulder. Mesh space
+        // is y-up with the lens at +Z; player model space is y-down with forward at -Z, so a
+        // half turn about X maps one onto the other (a proper rotation — no winding flip).
+        pose.pushPose();
+        this.body.translateAndRotate(pose);
+        placeRig(pose);
+        if (posedFor != null && posedFor == net.minecraft.client.Minecraft.getInstance().player) {
+            ShoulderRigFeed.noteWorn(pose);
+        }
+        ObjPartMesh mesh = ObjPartMesh.get("shoulder_rig");
+        mesh.render(pose, vc, light, n -> !n.equals("battery_led") && !n.equals("monitor_dot"));
+        mesh.render(pose, vc, LightTexture.FULL_BRIGHT,
+                n -> n.equals("battery_led") || n.equals("monitor_dot"));
+        pose.popPose();
     }
 }

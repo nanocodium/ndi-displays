@@ -28,6 +28,7 @@ public final class ClientSetup {
 
     /** Blow-through variant: alpha-blended, with the inter-emitter gaps discarded. */
     public static ShaderInstance ledWallTransparentShader;
+    public static ShaderInstance ledWallTransparentBloomShader;
 
     /** Projective texturing for the video projector: frame UVs arrive per vertex. */
     public static ShaderInstance projectorShader;
@@ -128,6 +129,11 @@ public final class ClientSetup {
                         new ResourceLocation(NdiDisplays.MODID, "led_wall_transparent"),
                         DefaultVertexFormat.POSITION_TEX_COLOR),
                 shader -> ledWallTransparentShader = shader);
+        event.registerShader(
+                new ShaderInstance(event.getResourceProvider(),
+                        new ResourceLocation(NdiDisplays.MODID, "led_wall_transparent_bloom"),
+                        DefaultVertexFormat.POSITION_TEX_COLOR),
+                shader -> ledWallTransparentBloomShader = shader);
         event.registerShader(
                 new ShaderInstance(event.getResourceProvider(),
                         new ResourceLocation(NdiDisplays.MODID, "projector"),

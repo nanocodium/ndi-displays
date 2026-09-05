@@ -1,6 +1,12 @@
-#version 150
+#version 330 core
 
-// Blow-through (transparent / mesh) LED wall simulation.
+// Blow-through (transparent / mesh) LED wall simulation — Shimmer bloom variant.
+//
+// Same optics as led_wall_transparent.fsh, written as an MRT shader for Shimmer's
+// post-entity pass: draw buffer 0 is the main framebuffer, draw buffer 1 the bloom
+// source. The strips are blended onto the screen exactly as the colour pass drew them
+// and their light lands in the bloom buffer, so the glow follows the lit strips and
+// nothing glows in the open gaps, which are discarded here as in the colour pass.
 //
 // Same optics as led_wall.fsh, but the inter-emitter area is genuinely open: those
 // fragments are discarded rather than shaded, so the world, and any lighting rig
@@ -23,7 +29,8 @@ uniform vec4 UvRegion;
 in vec2 texCoord0;
 in vec4 vertexColor;
 
-out vec4 fragColor;
+layout (location = 0) out vec4 fragColor;
+layout (location = 1) out vec4 bloomColor;
 
 /**
  * Emitter coverage of a blow-through cabinet. Real transparent LED is a grid of thin
@@ -143,4 +150,8 @@ void main() {
     // out at a distance. Coverage is a physical property of the cabinet, not of how far away
     // the viewer is standing.
     fragColor = vec4(col, coverage) * vertexColor * ColorModulator;
+    // Bloom source, blended by the same coverage so a half-covered pixel glows half as much.
+    // Gain above the solid wall's 0.4: a blow-through cabinet cannot get brighter through its
+    // open area, so its halo is what carries the picture against daylight.
+    bloomColor = vec4(fragColor.rgb * 0.7, coverage);
 }

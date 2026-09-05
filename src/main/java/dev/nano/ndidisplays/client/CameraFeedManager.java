@@ -550,6 +550,7 @@ public final class CameraFeedManager {
         CAPTURE_TARGETS.clear();
         CAPTURE_TARGET_LAST_USED.clear();
         captureTarget = null;
+        dropShoulderFrame();
     }
 
     /** Zoom for the capture pass: overrides the FOV while our view renders. */
@@ -1064,9 +1065,7 @@ public final class CameraFeedManager {
                 capturingShoulderRig = false;
             }
             if (wearingShoulderRig(player) && captureTarget != null) {
-                shoulderCaptureTex = captureTarget.getColorTextureId();
-                shoulderCaptureW = captureTarget.viewWidth;
-                shoulderCaptureH = captureTarget.viewHeight;
+                keepShoulderFrame(captureTarget);
             }
             readAndSend(handheldFeed, operatorFeedName(player),
                     HANDHELD_FPS, false, captureTarget.viewWidth, captureTarget.viewHeight);
@@ -1661,6 +1660,55 @@ public final class CameraFeedManager {
     private static int shoulderCaptureTex;
     private static int shoulderCaptureW;
     private static int shoulderCaptureH;
+    private static RenderTarget shoulderMonitor;
+
+    /**
+     * Copies the rig's frame into its own target. Capture targets are pooled by size, so the one
+     * the rig just rendered into is redrawn by the next capture of the same size; a monitor
+     * sampling it directly would show whichever feed went last.
+     */
+    private static void keepShoulderFrame(RenderTarget src) {
+        int w = src.viewWidth;
+        int h = src.viewHeight;
+        if (shoulderMonitor == null || shoulderMonitor.viewWidth != w
+                || shoulderMonitor.viewHeight != h) {
+            if (shoulderMonitor != null) {
+                shoulderMonitor.destroyBuffers();
+            }
+            shoulderMonitor = new com.mojang.blaze3d.pipeline.TextureTarget(
+                    w, h, false, Minecraft.ON_OSX);
+        }
+        com.mojang.blaze3d.platform.GlStateManager._glBindFramebuffer(
+                org.lwjgl.opengl.GL30.GL_READ_FRAMEBUFFER, src.frameBufferId);
+        com.mojang.blaze3d.platform.GlStateManager._glBindFramebuffer(
+                org.lwjgl.opengl.GL30.GL_DRAW_FRAMEBUFFER, shoulderMonitor.frameBufferId);
+        org.lwjgl.opengl.GL30.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h,
+                org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT, org.lwjgl.opengl.GL11.GL_NEAREST);
+        // Make the copy opaque. The sky pass leaves a strip around the horizon, between the sky
+        // dome and the below-horizon plane, that only the clear colour fills — fog-coloured with
+        // alpha 0 — and the textured shaders discard alpha-0 pixels, which showed the monitor's
+        // bare panel through the picture as a black bar along the horizon.
+        com.mojang.blaze3d.platform.GlStateManager._glBindFramebuffer(
+                org.lwjgl.opengl.GL30.GL_FRAMEBUFFER, shoulderMonitor.frameBufferId);
+        com.mojang.blaze3d.platform.GlStateManager._colorMask(false, false, false, true);
+        com.mojang.blaze3d.platform.GlStateManager._clearColor(0.0F, 0.0F, 0.0F, 1.0F);
+        com.mojang.blaze3d.platform.GlStateManager._clear(
+                org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT, Minecraft.ON_OSX);
+        com.mojang.blaze3d.platform.GlStateManager._colorMask(true, true, true, true);
+        com.mojang.blaze3d.platform.GlStateManager._glBindFramebuffer(
+                org.lwjgl.opengl.GL30.GL_FRAMEBUFFER, src.frameBufferId);
+        shoulderCaptureTex = shoulderMonitor.getColorTextureId();
+        shoulderCaptureW = w;
+        shoulderCaptureH = h;
+    }
+
+    private static void dropShoulderFrame() {
+        if (shoulderMonitor != null) {
+            shoulderMonitor.destroyBuffers();
+            shoulderMonitor = null;
+        }
+        shoulderCaptureTex = 0;
+    }
 
     // --- NDI PTZ control ---------------------------------------------------
     //

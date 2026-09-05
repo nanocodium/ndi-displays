@@ -29,10 +29,11 @@ out vec4 fragColor;
  * Emitter coverage of a blow-through cabinet. Real transparent LED is a grid of thin
  * strips: narrow in one axis, very open in the other. STRIP_W is the fraction of the
  * cell the emitter spans horizontally, STRIP_H vertically — the product is roughly the
- * opacity, so ~12% here and ~88% transparent, typical of a mesh product.
+ * opacity, so ~30% here and ~70% transparent — on the dense side for a mesh product, which
+ * is what keeps the picture readable in daylight against the cabinet bars behind it.
  */
 const float STRIP_W = 0.55;
-const float STRIP_H = 0.40;
+const float STRIP_H = 0.55;
 
 /**
  * Emitter drive, relative to a solid cabinet, in linear light and constant at every
@@ -43,7 +44,7 @@ const float STRIP_H = 0.40;
  * area actually covered and this gain; making either one distance-dependent makes the wall
  * change brightness as the camera moves, which is what an earlier version did.
  */
-const float EMITTER_GAIN = 2.6;
+const float EMITTER_GAIN = 4.2;
 
 float hash12(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);

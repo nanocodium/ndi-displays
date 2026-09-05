@@ -315,7 +315,7 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
 
         // First frame (or bake failure): flat approximation until the bake lands.
         float bright = be.getEffectiveBrightness();
-        float alpha = blowThrough ? 0.55F : 1.0F;
+        float alpha = blowThrough ? 0.8F : 1.0F;
         ResourceLocation tex;
         float cr = 1.0F;
         float cg = 1.0F;

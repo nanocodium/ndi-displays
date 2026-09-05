@@ -29,11 +29,12 @@ out vec4 fragColor;
  * Emitter coverage of a blow-through cabinet. Real transparent LED is a grid of thin
  * strips: narrow in one axis, very open in the other. STRIP_W is the fraction of the
  * cell the emitter spans horizontally, STRIP_H vertically — the product is roughly the
- * opacity, so ~30% here and ~70% transparent — on the dense side for a mesh product, which
- * is what keeps the picture readable in daylight against the cabinet bars behind it.
+ * opacity, so ~60% here and ~40% transparent. Denser than a real mesh product, deliberately:
+ * output colour clamps at white, so coverage is the only thing that can make the wall read
+ * bright in daylight, and at a third open it was hard to see at all.
  */
-const float STRIP_W = 0.55;
-const float STRIP_H = 0.55;
+const float STRIP_W = 0.80;
+const float STRIP_H = 0.75;
 
 /**
  * Emitter drive, relative to a solid cabinet, in linear light and constant at every

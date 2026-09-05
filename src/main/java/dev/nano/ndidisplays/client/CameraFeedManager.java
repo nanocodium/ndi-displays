@@ -1684,6 +1684,17 @@ public final class CameraFeedManager {
                 org.lwjgl.opengl.GL30.GL_DRAW_FRAMEBUFFER, shoulderMonitor.frameBufferId);
         org.lwjgl.opengl.GL30.glBlitFramebuffer(0, 0, w, h, 0, 0, w, h,
                 org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT, org.lwjgl.opengl.GL11.GL_NEAREST);
+        // Make the copy opaque. The sky pass leaves a strip around the horizon, between the sky
+        // dome and the below-horizon plane, that only the clear colour fills — fog-coloured with
+        // alpha 0 — and the textured shaders discard alpha-0 pixels, which showed the monitor's
+        // bare panel through the picture as a black bar along the horizon.
+        com.mojang.blaze3d.platform.GlStateManager._glBindFramebuffer(
+                org.lwjgl.opengl.GL30.GL_FRAMEBUFFER, shoulderMonitor.frameBufferId);
+        com.mojang.blaze3d.platform.GlStateManager._colorMask(false, false, false, true);
+        com.mojang.blaze3d.platform.GlStateManager._clearColor(0.0F, 0.0F, 0.0F, 1.0F);
+        com.mojang.blaze3d.platform.GlStateManager._clear(
+                org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT, Minecraft.ON_OSX);
+        com.mojang.blaze3d.platform.GlStateManager._colorMask(true, true, true, true);
         com.mojang.blaze3d.platform.GlStateManager._glBindFramebuffer(
                 org.lwjgl.opengl.GL30.GL_FRAMEBUFFER, src.frameBufferId);
         shoulderCaptureTex = shoulderMonitor.getColorTextureId();

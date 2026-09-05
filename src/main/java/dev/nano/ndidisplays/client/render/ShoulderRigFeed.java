@@ -134,9 +134,6 @@ public final class ShoulderRigFeed {
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
         RenderSystem.disableCull();
-        // The capture's sky carries alpha 0; leave the frame's alpha alone or it shows through
-        // as a hole wherever the picture has sky in it.
-        RenderSystem.colorMask(true, true, true, false);
         // Proud of the mesh's own screen face by a depth-buffer step, as the LED walls do.
         RenderSystem.polygonOffset(-1.0F, -10.0F);
         RenderSystem.enablePolygonOffset();
@@ -152,7 +149,6 @@ public final class ShoulderRigFeed {
         BufferUploader.drawWithShader(b.end());
         RenderSystem.polygonOffset(0.0F, 0.0F);
         RenderSystem.disablePolygonOffset();
-        RenderSystem.colorMask(true, true, true, true);
         RenderSystem.enableCull();
     }
 }

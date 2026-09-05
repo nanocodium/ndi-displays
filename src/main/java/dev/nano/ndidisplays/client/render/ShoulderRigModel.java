@@ -70,8 +70,13 @@ public class ShoulderRigModel extends HumanoidModel<LivingEntity> {
         this.leftArm.zRot = 0.0F;
     }
 
-    /** Mesh scale: the source rig is life-size (0.63 m long); Minecraft kit reads chunkier. */
-    private static final float SCALE = 1.2F;
+    /**
+     * Mesh scale: the source rig is life-size (0.63 m long); against a blocky player it has to
+     * be well over that to read at all. Placement follows the real thing: the pad on the
+     * shoulder, grips hanging in front of the chest, body outboard of the head, and the
+     * monitor arm swung round so the screen sits in front of the operator's right eye.
+     */
+    private static final float SCALE = 1.8F;
 
     @Override
     public void renderToBuffer(PoseStack pose, VertexConsumer vc, int light, int overlay,
@@ -81,7 +86,7 @@ public class ShoulderRigModel extends HumanoidModel<LivingEntity> {
         // half turn about X maps one onto the other (a proper rotation — no winding flip).
         pose.pushPose();
         this.body.translateAndRotate(pose);
-        pose.translate(-0.28F, 0.02F, -0.06F);
+        pose.translate(-0.40F, 0.32F, -0.37F);
         pose.mulPose(Axis.XP.rotationDegrees(180.0F));
         pose.scale(SCALE, SCALE, SCALE);
         ObjPartMesh mesh = ObjPartMesh.get("shoulder_rig");

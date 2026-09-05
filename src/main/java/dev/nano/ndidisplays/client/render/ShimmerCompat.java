@@ -197,13 +197,9 @@ public final class ShimmerCompat {
     private static java.lang.reflect.Field[] bloomQueues;
 
     public static void submitBloom(Matrix4f pose, Vec3 p00, Vec3 p10, Vec3 p11, Vec3 p01,
-                                   ResourceLocation texture, float[] ledParams) {
-        if (ClientSetup.ledWallBloomShader == null) {
-            return;
-        }
-        // The consumer is drained later in the same frame's post pass; copy the
-        // matrix since the PoseStack entry is reused after the BER returns.
-        submitBloomUv(pose, p00, p10, p11, p01, 0.0F, 1.0F, 1.0F, 0.0F, texture, ledParams);
+                                   ResourceLocation texture, float[] ledParams, boolean blowThrough) {
+        submitBloomUv(pose, p00, p10, p11, p01, 0.0F, 1.0F, 1.0F, 0.0F, texture, ledParams,
+                blowThrough);
     }
 
     /**
@@ -212,14 +208,15 @@ public final class ShimmerCompat {
      */
     public static void submitBloomUv(Matrix4f pose, Vec3 p00, Vec3 p10, Vec3 p11, Vec3 p01,
                                      float u0, float u1, float vBottom, float vTop,
-                                     ResourceLocation texture, float[] ledParams) {
-        if (ClientSetup.ledWallBloomShader == null) {
+                                     ResourceLocation texture, float[] ledParams,
+                                     boolean blowThrough) {
+        if (shader(blowThrough) == null) {
             return;
         }
         // The consumer is drained later in the same frame's post pass; copy the
         // matrix since the PoseStack entry is reused after the BER returns.
         Matrix4f mat = new Matrix4f(pose);
-        RenderType type = BloomRenderType.of(texture, ledParams);
+        RenderType type = BloomRenderType.of(texture, ledParams, blowThrough);
         PostProcessing.BLOOM_UNREAL.postEntity(buffer -> {
             VertexConsumer vc = buffer.getBuffer(type);
             vertex(vc, mat, p00, u0, vBottom);
@@ -234,13 +231,19 @@ public final class ShimmerCompat {
      * tessellated corner is the same mesh as the colour pass — not a second chord screen.
      */
     public static void submitBloomMesh(Matrix4f pose, ResourceLocation texture, float[] ledParams,
+                                       boolean blowThrough,
                                        java.util.function.BiConsumer<Matrix4f, VertexConsumer> mesh) {
-        if (ClientSetup.ledWallBloomShader == null) {
+        if (shader(blowThrough) == null) {
             return;
         }
         Matrix4f mat = new Matrix4f(pose);
-        RenderType type = BloomRenderType.of(texture, ledParams);
+        RenderType type = BloomRenderType.of(texture, ledParams, blowThrough);
         PostProcessing.BLOOM_UNREAL.postEntity(buffer -> mesh.accept(mat, buffer.getBuffer(type)));
+    }
+
+    /** Solid walls and blow-through cabinets bloom through different MRT shaders. */
+    private static ShaderInstance shader(boolean blowThrough) {
+        return blowThrough ? ClientSetup.ledWallTransparentBloomShader : ClientSetup.ledWallBloomShader;
     }
 
     static void vertex(VertexConsumer vc, Matrix4f mat, Vec3 pos, float u, float v) {
@@ -265,14 +268,16 @@ public final class ShimmerCompat {
          * captured parameter snapshot. Distinct instances also keep the buffer
          * source from merging walls into one batch under a single uniform set.
          */
-        static RenderType of(ResourceLocation texture, float[] p) {
+        static RenderType of(ResourceLocation texture, float[] p, boolean blowThrough) {
             CompositeState state = CompositeState.builder()
-                    .setShaderState(new ShaderStateShard(() -> ClientSetup.ledWallBloomShader))
+                    .setShaderState(new ShaderStateShard(() -> shader(blowThrough)))
                     .setTextureState(new TextureStateShard(texture, true, true))
-                    .setTransparencyState(NO_TRANSPARENCY)
+                    // Blow-through strips blend by coverage, as in their colour pass; a solid
+                    // wall replaces its pixels outright.
+                    .setTransparencyState(blowThrough ? TRANSLUCENT_TRANSPARENCY : NO_TRANSPARENCY)
                     .setCullState(NO_CULL)
                     .setTexturingState(new TexturingStateShard("ndidisplays_led_params", () -> {
-                        ShaderInstance shader = ClientSetup.ledWallBloomShader;
+                        ShaderInstance shader = shader(blowThrough);
                         if (shader != null) {
                             shader.safeGetUniform("LedParams").set(p[0], p[1], p[2], p[3]);
                             shader.safeGetUniform("LedParams2").set(p[4], p[5], p[6], p[7]);

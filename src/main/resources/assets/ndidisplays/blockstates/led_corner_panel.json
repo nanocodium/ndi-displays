@@ -1,0 +1,64 @@
+{
+    "variants": {
+        "facing=north,diagonal=false,convex=true": {
+            "model": "ndidisplays:block/led_corner_panel"
+        },
+        "facing=north,diagonal=true,convex=true": {
+            "model": "ndidisplays:block/led_corner_panel"
+        },
+        "facing=north,diagonal=false,convex=false": {
+            "model": "ndidisplays:block/led_corner_panel"
+        },
+        "facing=north,diagonal=true,convex=false": {
+            "model": "ndidisplays:block/led_corner_panel"
+        },
+        "facing=east,diagonal=false,convex=true": {
+            "model": "ndidisplays:block/led_corner_panel",
+            "y": 90
+        },
+        "facing=east,diagonal=true,convex=true": {
+            "model": "ndidisplays:block/led_corner_panel",
+            "y": 90
+        },
+        "facing=east,diagonal=false,convex=false": {
+            "model": "ndidisplays:block/led_corner_panel",
+            "y": 90
+        },
+        "facing=east,diagonal=true,convex=false": {
+            "model": "ndidisplays:block/led_corner_panel",
+            "y": 90
+        },
+        "facing=south,diagonal=false,convex=true": {
+            "model": "ndidisplays:block/led_corner_panel",
+            "y": 180
+        },
+        "facing=south,diagonal=true,convex=true": {
+            "model": "ndidisplays:block/led_corner_panel",
+            "y": 180
+        },
+        "facing=south,diagonal=false,convex=false": {
+            "model": "ndidisplays:block/led_corner_panel",
+            "y": 180
+        },
+        "facing=south,diagonal=true,convex=false": {
+            "model": "ndidisplays:block/led_corner_panel",
+            "y": 180
+        },
+        "facing=west,diagonal=false,convex=true": {
+            "model": "ndidisplays:block/led_corner_panel",
+            "y": 270
+        },
+        "facing=west,diagonal=true,convex=true": {
+            "model": "ndidisplays:block/led_corner_panel",
+            "y": 270
+        },
+        "facing=west,diagonal=false,convex=false": {
+            "model": "ndidisplays:block/led_corner_panel",
+            "y": 270
+        },
+        "facing=west,diagonal=true,convex=false": {
+            "model": "ndidisplays:block/led_corner_panel",
+            "y": 270
+        }
+    }
+}

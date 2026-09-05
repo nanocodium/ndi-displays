@@ -204,9 +204,9 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
         // camera-feed capture the main target is swapped out, so submitting bloom
         // would smear quads across the player's screen. Walls simply don't glow
         // on camera feeds.
-        // Blow-through walls are skipped: the MRT bloom variant is the opaque shader, so it
-        // would stamp a solid quad into the bloom buffer and glow the open gaps too.
-        if (SHIMMER_LOADED && !blowThrough && !dev.nano.ndidisplays.client.CameraFeedManager.isCapturing()) {
+        // Blow-through walls go through their own MRT variant, which discards the open gaps and
+        // blends the strips by coverage, so only the lit strips glow.
+        if (SHIMMER_LOADED && !dev.nano.ndidisplays.client.CameraFeedManager.isCapturing()) {
             // Re-draw the wall through Shimmer's post pass with the MRT variant of
             // the wall shader: identical pixels on screen, and the simulated LED
             // output lands in Shimmer's bloom buffer so the actual content glows.
@@ -221,7 +221,7 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
                     // Same tessellated mesh as the colour pass, in ONE bloom submit. A chord
                     // quad on top of the arc read as a second screen; 18 separate submits
                     // froze the client.
-                    ShimmerCompat.submitBloomMesh(mat, shimmerTex, bloomParams, (bmat, vc) ->
+                    ShimmerCompat.submitBloomMesh(mat, shimmerTex, bloomParams, blowThrough, (bmat, vc) ->
                             emitPath(wall, be.getBlockPos(), true, (bl, br, tr, tl, u0, u1, vB, vT) -> {
                                 ShimmerCompat.vertex(vc, bmat, bl, u0, vB);
                                 ShimmerCompat.vertex(vc, bmat, br, u1, vB);
@@ -229,7 +229,7 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
                                 ShimmerCompat.vertex(vc, bmat, tl, u0, vT);
                             }));
                 } else if (!wall.isShaped()) {
-                    ShimmerCompat.submitBloom(mat, p00, p10, p11, p01, shimmerTex, bloomParams);
+                    ShimmerCompat.submitBloom(mat, p00, p10, p11, p01, shimmerTex, bloomParams, blowThrough);
                 } else {
                     // Shaped: glow run by run so holes stay dark. Capped for pathological shapes
                     // (a checkerboard) — past the cap only the picture loses its bloom, not itself.
@@ -242,7 +242,7 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
                                     br.add(0.0, 1.0, 0.0), bl.add(0.0, 1.0, 0.0),
                                     run[0] / (float) w, run[1] / (float) w,
                                     1.0F - run[2] / (float) h, 1.0F - (run[2] + 1) / (float) h,
-                                    shimmerTex, bloomParams);
+                                    shimmerTex, bloomParams, blowThrough);
                         }
                     }
                 }

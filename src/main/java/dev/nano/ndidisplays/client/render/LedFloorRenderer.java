@@ -132,7 +132,7 @@ public class LedFloorRenderer implements BlockEntityRenderer<LedFloorBlockEntity
                         be.getGamma(), (float) mode, (float) pxPerBlock, ScreenVideo.ledVariance(CALIBRATION_VARIANCE),
                         crop.u0(), crop.v0(), crop.du(), crop.dv()};
                 if (!floor.isShaped()) {
-                    ShimmerCompat.submitBloom(mat, p00, p10, p11, p01, shimmerTex, bloomParams);
+                    ShimmerCompat.submitBloom(mat, p00, p10, p11, p01, shimmerTex, bloomParams, false);
                 } else {
                     java.util.List<int[]> runs = FloorScanner.runs(floor);
                     if (runs.size() <= 128) {
@@ -143,7 +143,7 @@ public class LedFloorRenderer implements BlockEntityRenderer<LedFloorBlockEntity
                                     run[0] / (float) floor.width(), run[1] / (float) floor.width(),
                                     1.0F - run[2] / (float) floor.depth(),
                                     1.0F - (run[2] + 1) / (float) floor.depth(),
-                                    shimmerTex, bloomParams);
+                                    shimmerTex, bloomParams, false);
                         }
                     }
                 }

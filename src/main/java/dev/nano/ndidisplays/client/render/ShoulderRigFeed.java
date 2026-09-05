@@ -32,8 +32,8 @@ import org.joml.Matrix4f;
  *
  * Third person: the armour layer draws the rig mesh, whose monitor_screen face is a blank
  * panel; it leaves its model matrix here and the level pass paints the live frame over that
- * face. First person: the player model is not drawn at all, so the monitor arm and screen are
- * rendered with the hands, fixed to the view and placed where the third-person rig puts them
+ * face. First person: the player model is not drawn at all, so the whole rig is rendered with
+ * the hands, fixed to the view and placed where the third-person rig puts them
  * relative to the eye. Operator mode already fills the screen with the lens view, so nothing is drawn then.
  */
 @Mod.EventBusSubscriber(modid = NdiDisplays.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE,
@@ -52,6 +52,10 @@ public final class ShoulderRigFeed {
 
     /** Eye height in body-model space (y down from the neck): 1.62 against a 1.501 neck. */
     private static final float EYE_Y = -(1.62F - 1.501F);
+
+    /** Self-lit parts: the record lamp, battery LED and the finder's tally dot. */
+    private static final java.util.Set<String> GLOW =
+            java.util.Set.of("monitor_dot", "battery_led", "record_btn");
 
     private static final Matrix4f WORN = new Matrix4f();
     private static boolean wornPending;
@@ -108,8 +112,10 @@ public final class ShoulderRigFeed {
         VertexConsumer vc = event.getMultiBufferSource()
                 .getBuffer(RenderType.entityCutoutNoCull(ATLAS));
         int light = event.getPackedLight();
-        mesh.render(pose, vc, light, n -> n.startsWith("monitor_") && !n.equals("monitor_dot"));
-        mesh.render(pose, vc, LightTexture.FULL_BRIGHT, n -> n.equals("monitor_dot"));
+        // The whole rig, not just the finder: the body and lens sit at the right edge of the
+        // view and the grips hang in below, as they do for an operator glancing down.
+        mesh.render(pose, vc, light, n -> !GLOW.contains(n));
+        mesh.render(pose, vc, LightTexture.FULL_BRIGHT, GLOW::contains);
         drawScreen(pose.last().pose());
         pose.popPose();
     }

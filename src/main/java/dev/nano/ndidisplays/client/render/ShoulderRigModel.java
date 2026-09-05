@@ -62,6 +62,7 @@ public class ShoulderRigModel extends HumanoidModel<LivingEntity> {
     public void setupAnim(LivingEntity entity, float limbSwing, float limbSwingAmount,
                           float ageInTicks, float netHeadYaw, float headPitch) {
         super.setupAnim(entity, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
+        this.posedFor = entity;
         this.rightArm.xRot = 0.0F;
         this.rightArm.yRot = 0.0F;
         this.rightArm.zRot = 0.0F;
@@ -78,6 +79,16 @@ public class ShoulderRigModel extends HumanoidModel<LivingEntity> {
      */
     private static final float SCALE = 1.8F;
 
+    /** Placement of the mesh in body-model space: shared with the first-person monitor. */
+    public static void placeRig(PoseStack pose) {
+        pose.translate(-0.46F, 0.45F, -0.37F);
+        pose.mulPose(Axis.XP.rotationDegrees(180.0F));
+        pose.scale(SCALE, SCALE, SCALE);
+    }
+
+    /** The entity this model was last posed for; renderToBuffer is not told. */
+    private LivingEntity posedFor;
+
     @Override
     public void renderToBuffer(PoseStack pose, VertexConsumer vc, int light, int overlay,
                                float r, float g, float b, float a) {
@@ -86,9 +97,10 @@ public class ShoulderRigModel extends HumanoidModel<LivingEntity> {
         // half turn about X maps one onto the other (a proper rotation — no winding flip).
         pose.pushPose();
         this.body.translateAndRotate(pose);
-        pose.translate(-0.40F, 0.32F, -0.37F);
-        pose.mulPose(Axis.XP.rotationDegrees(180.0F));
-        pose.scale(SCALE, SCALE, SCALE);
+        placeRig(pose);
+        if (posedFor != null && posedFor == net.minecraft.client.Minecraft.getInstance().player) {
+            ShoulderRigFeed.noteWorn(pose);
+        }
         ObjPartMesh mesh = ObjPartMesh.get("shoulder_rig");
         mesh.render(pose, vc, light, n -> !n.equals("battery_led") && !n.equals("monitor_dot"));
         mesh.render(pose, vc, LightTexture.FULL_BRIGHT,

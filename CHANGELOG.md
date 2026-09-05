@@ -7,9 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Upstream [nanocodium/ndi-displays](https://github.com/nanocodium/ndi-displays) `main` through `150b536` (merged here). Their post-1.1.0-beta.1 work was not in their changelog; it is recorded below.
+
 ### Added
 
 - Wiki guide [OBS, Resolume, and the wall](docs/guide/ndi-software.md): DistroAV output, in-game source patch clip, Resolume Arena NDI.
+- Sculpted **shoulder rig** mesh (worn + item): pad on the shoulder, screen at the eye, live NDI on the monitor in third and first person.
+- Sculpted **blow-through cabinet** mesh: rail profiles, strip bars behind the video face, rear brace. Dedicated Shimmer MRT bloom shader for the transparent wall.
+- Dedicated **broadcast camera** item mesh so the inventory slot is no longer empty.
+
+### Changed
+
+- First person shows the whole shoulder rig, not only the finder. The monitor copy is opaque (sky horizon had alpha 0).
+- Blow-through picture is brighter and taller against the cabinet bars; coverage ~60%; bloom goes through the transparent MRT, not a solid-wall pass.
+- Palette atlas strips are 16 px tall so the block atlas keeps its full mip chain.
+- Creative tab icon is the NDI configuration card (the LED panel read as empty on the dark tab).
+
+### Fixed
+
+- Chain hoist: Theatrical fixtures (and screens / winches on the same load) stay patched after detach. Place was loading NBT after `setLevel`, so the DMX consumer never re-joined the network.
+- Broadcast camera item inherited a particles-only block model and vanished in the inventory / JEI.
+- Shoulder first-person finder no longer hides the rest of the worn rig.
 
 ## [1.1.0-beta.1] - 2026-09-04
 

@@ -56,6 +56,21 @@ public final class ClientHooks {
         }
     }
 
+    public static void openChainHoistConfig(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level != null && level.getBlockEntity(pos)
+                instanceof dev.nano.ndidisplays.block.ChainHoistBlockEntity hoist) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.ChainHoistScreen(hoist));
+        }
+    }
+
+    /** Opens or refreshes the hoist radio remote from a server snapshot. */
+    public static void hoistRemoteState(
+            dev.nano.ndidisplays.net.HoistGroupListPacket msg) {
+        dev.nano.ndidisplays.client.gui.HoistRemoteScreen.accept(msg);
+    }
+
     public static void openNdiCardConfig(net.minecraft.world.InteractionHand hand) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {

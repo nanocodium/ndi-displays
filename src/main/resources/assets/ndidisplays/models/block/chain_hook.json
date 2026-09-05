@@ -1,0 +1,86 @@
+{
+    "__comment": "Compact forged-steel load hook. Origin is the load's top face: the tip sits on y=0 so the chain meets the block instead of hanging a metre short. The renderer places this model at -chainLength and draws links down to the eye.",
+    "textures": {
+        "hook": "ndidisplays:block/hoist_hook",
+        "metal": "ndidisplays:block/hoist_metal",
+        "particle": "ndidisplays:block/hoist_hook"
+    },
+    "elements": [
+        {
+            "__comment": "swivel eye — the last chain link terminates here",
+            "from": [7.2, 5.6, 7.2],
+            "to": [8.8, 7.6, 8.8],
+            "faces": {
+                "north": { "uv": [6, 4, 9, 8], "texture": "#metal" },
+                "south": { "uv": [6, 4, 9, 8], "texture": "#metal" },
+                "east":  { "uv": [6, 4, 9, 8], "texture": "#metal" },
+                "west":  { "uv": [6, 4, 9, 8], "texture": "#metal" },
+                "up":    { "uv": [6, 6, 9, 9], "texture": "#metal" },
+                "down":  { "uv": [6, 6, 9, 9], "texture": "#metal" }
+            }
+        },
+        {
+            "__comment": "swivel bearing collar",
+            "from": [6.8, 4.8, 6.8],
+            "to": [9.2, 5.6, 9.2],
+            "faces": {
+                "north": { "uv": [5, 7, 10, 9], "texture": "#metal" },
+                "south": { "uv": [5, 7, 10, 9], "texture": "#metal" },
+                "east":  { "uv": [5, 7, 10, 9], "texture": "#metal" },
+                "west":  { "uv": [5, 7, 10, 9], "texture": "#metal" },
+                "up":    { "uv": [5, 5, 10, 10], "texture": "#metal" },
+                "down":  { "uv": [5, 5, 10, 10], "texture": "#metal" }
+            }
+        },
+        {
+            "__comment": "hook shank",
+            "from": [7.25, 2.0, 7.25],
+            "to": [8.75, 4.8, 8.75],
+            "faces": {
+                "north": { "uv": [6, 2, 9, 12], "texture": "#hook" },
+                "south": { "uv": [6, 2, 9, 12], "texture": "#hook" },
+                "east":  { "uv": [6, 2, 9, 12], "texture": "#hook" },
+                "west":  { "uv": [6, 2, 9, 12], "texture": "#hook" }
+            }
+        },
+        {
+            "__comment": "hook bowl",
+            "from": [7.25, 0.6, 7.25],
+            "to": [8.75, 2.2, 8.75],
+            "rotation": { "origin": [8, 2.2, 8], "axis": "z", "angle": 22.5 },
+            "faces": {
+                "north": { "uv": [6, 8, 9, 13], "texture": "#hook" },
+                "south": { "uv": [6, 8, 9, 13], "texture": "#hook" },
+                "east":  { "uv": [6, 8, 9, 13], "texture": "#hook" },
+                "west":  { "uv": [6, 8, 9, 13], "texture": "#hook" },
+                "down":  { "uv": [6, 10, 9, 13], "texture": "#hook" }
+            }
+        },
+        {
+            "__comment": "hook tip, sitting on the load",
+            "from": [6.0, 0.0, 7.25],
+            "to": [7.6, 1.3, 8.75],
+            "rotation": { "origin": [7.6, 1.3, 8], "axis": "z", "angle": -22.5 },
+            "faces": {
+                "north": { "uv": [6, 10, 10, 13], "texture": "#hook" },
+                "south": { "uv": [6, 10, 10, 13], "texture": "#hook" },
+                "east":  { "uv": [6, 10, 9, 13], "texture": "#hook" },
+                "west":  { "uv": [6, 10, 9, 13], "texture": "#hook" },
+                "up":    { "uv": [6, 10, 10, 12], "texture": "#hook" },
+                "down":  { "uv": [6, 10, 10, 12], "texture": "#hook" }
+            }
+        },
+        {
+            "__comment": "safety latch",
+            "from": [6.6, 0.7, 7.7],
+            "to": [8.3, 1.15, 8.3],
+            "rotation": { "origin": [8.3, 1.15, 8], "axis": "z", "angle": -22.5 },
+            "faces": {
+                "north": { "uv": [6, 7, 10, 8], "texture": "#metal" },
+                "south": { "uv": [6, 7, 10, 8], "texture": "#metal" },
+                "up":    { "uv": [6, 7, 10, 8], "texture": "#metal" },
+                "down":  { "uv": [6, 7, 10, 8], "texture": "#metal" }
+            }
+        }
+    ]
+}

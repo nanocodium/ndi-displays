@@ -51,6 +51,19 @@ public final class ClientSetup {
                 dev.nano.ndidisplays.client.render.InvisibleEntityRenderer::new);
         event.registerEntityRenderer(NdiDisplays.DRONE.get(),
                 dev.nano.ndidisplays.client.render.DroneRenderer::new);
+        event.registerEntityRenderer(NdiDisplays.MOVING_RIG.get(),
+                dev.nano.ndidisplays.client.render.MovingRigRenderer::new);
+    }
+
+    /**
+     * The chain and hook are models without blocks, so nothing would bake them: they are
+     * drawn by the hoist's renderer, not placed in the world.
+     */
+    @SubscribeEvent
+    public static void onRegisterAdditionalModels(
+            net.minecraftforge.client.event.ModelEvent.RegisterAdditional event) {
+        event.register(dev.nano.ndidisplays.client.render.ChainHoistRenderer.CHAIN_LINK_MODEL);
+        event.register(dev.nano.ndidisplays.client.render.ChainHoistRenderer.CHAIN_HOOK_MODEL);
     }
 
     @SubscribeEvent
@@ -76,6 +89,8 @@ public final class ClientSetup {
         event.registerBlockEntityRenderer(NdiDisplays.CAMERA_BE.get(), ctx -> new CameraRenderer());
         event.registerBlockEntityRenderer(NdiDisplays.KINETIC_WINCH_BE.get(),
                 ctx -> new dev.nano.ndidisplays.client.render.KineticPanelRenderer());
+        event.registerBlockEntityRenderer(NdiDisplays.CHAIN_HOIST_BE.get(),
+                dev.nano.ndidisplays.client.render.ChainHoistRenderer::new);
         event.registerBlockEntityRenderer(NdiDisplays.ROUND_SCREEN_BE.get(),
                 ctx -> new dev.nano.ndidisplays.client.render.RoundScreenRenderer());
         event.registerBlockEntityRenderer(NdiDisplays.CURVED_SCREEN_BE.get(),

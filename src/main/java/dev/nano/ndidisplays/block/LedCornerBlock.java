@@ -3,10 +3,15 @@ package dev.nano.ndidisplays.block;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
  * A 90° corner LED cabinet: a quarter-cylinder screen of radius one block, wrapping a wall
@@ -27,6 +32,24 @@ public class LedCornerBlock extends LedPanelBlock {
     /** True = outside (convex) corner; false = inside (concave). */
     public static final BooleanProperty CONVEX = BooleanProperty.create("convex");
 
+    /**
+     * Convex facing=north wraps the NE corner: north-facing slab (south edge) + east-facing
+     * slab (west edge). Inner facing=north lines that same corner from inside: the two outer
+     * walls (north + east edges).
+     */
+    private static final VoxelShape CONVEX_NORTH = Shapes.or(
+            Block.box(0, 0, 14, 16, 16, 16),
+            Block.box(0, 0, 0, 2, 16, 14));
+    private static final VoxelShape INNER_NORTH = Shapes.or(
+            Block.box(0, 0, 0, 16, 16, 2),
+            Block.box(14, 0, 2, 16, 16, 16));
+    private static final VoxelShape CONVEX_EAST = rotateY(CONVEX_NORTH, 1);
+    private static final VoxelShape CONVEX_SOUTH = rotateY(CONVEX_NORTH, 2);
+    private static final VoxelShape CONVEX_WEST = rotateY(CONVEX_NORTH, 3);
+    private static final VoxelShape INNER_EAST = rotateY(INNER_NORTH, 1);
+    private static final VoxelShape INNER_SOUTH = rotateY(INNER_NORTH, 2);
+    private static final VoxelShape INNER_WEST = rotateY(INNER_NORTH, 3);
+
     public LedCornerBlock(Properties properties) {
         super(properties);
         registerDefaultState(defaultBlockState().setValue(CONVEX, true));
@@ -45,60 +68,77 @@ public class LedCornerBlock extends LedPanelBlock {
             return null;
         }
         boolean inner = ctx.getPlayer() != null && ctx.getPlayer().isShiftKeyDown();
+        // Facing comes from the click / look direction, like a flat panel. Snap only when
+        // BOTH wings of the L already exist (score >= 2); a single neighbour used to rotate
+        // the wrap onto another cell corner and shift the picture by a block.
         base = base.setValue(DIAGONAL, false).setValue(CONVEX, !inner);
+        return orientToNeighbours(ctx.getLevel(), ctx.getClickedPos(), base);
+    }
 
-        // Auto-orient: only one of the four rotations joins any given corner, so hunting for it
-        // by placement yaw was a lottery. Score each rotation by how many of its arc endpoints
-        // land on a neighbouring cabinet's face endpoint, and take the best; the yaw-derived
-        // facing stands only when nothing joins (a corner placed before its walls).
-        BlockPos cell = ctx.getClickedPos();
-        var level = ctx.getLevel();
-        BlockState best = base;
-        int bestScore = 0;
+    @Override
+    @SuppressWarnings("deprecation")
+    public void neighborChanged(BlockState state, Level level, BlockPos pos, Block neighbor, BlockPos fromPos, boolean movedByPiston) {
+        super.neighborChanged(state, level, pos, neighbor, fromPos, movedByPiston);
+        if (level.isClientSide) {
+            return;
+        }
+        BlockState next = orientToNeighbours(level, pos, state);
+        if (next != state) {
+            level.setBlock(pos, next, 3);
+        }
+    }
+
+    /**
+     * Rotate the wrap-corner so both arc endpoints land on neighbouring face endpoints.
+     * Score 0 or 1 leaves the player's facing alone.
+     */
+    private static BlockState orientToNeighbours(Level level, BlockPos cell, BlockState state) {
+        BlockState best = state;
+        int bestScore = endpointScore(level, cell, state);
         for (Direction f : Direction.Plane.HORIZONTAL) {
-            BlockState candidate = base.setValue(FACING, f);
-            double[] seg = pathSeg(cell, candidate, false);
-            int score = WallScanner.endpointNeighbours(level, cell, seg[0], seg[1])
-                    + WallScanner.endpointNeighbours(level, cell, seg[2], seg[3]);
+            BlockState candidate = state.setValue(FACING, f);
+            int score = endpointScore(level, cell, candidate);
             if (score > bestScore) {
                 bestScore = score;
                 best = candidate;
             }
         }
-        return best;
+        return bestScore >= 2 ? best : state;
     }
 
-    /**
-     * Re-orients when the world changes around it, so building order stops mattering: a corner
-     * placed before its walls snaps into the joining rotation the moment a wall arrives. Only
-     * ever rotates to a strictly better fit, so a settled corner never flaps.
-     */
+    private static int endpointScore(Level level, BlockPos cell, BlockState state) {
+        double[] seg = pathSeg(cell, state, false);
+        return WallScanner.endpointNeighbours(level, cell, seg[0], seg[1])
+                + WallScanner.endpointNeighbours(level, cell, seg[2], seg[3]);
+    }
+
     @Override
-    public void neighborChanged(BlockState state, net.minecraft.world.level.Level level, BlockPos pos,
-                                Block neighbor, BlockPos neighborPos, boolean moving) {
-        super.neighborChanged(state, level, pos, neighbor, neighborPos, moving);
-        if (level.isClientSide) {
-            return;
-        }
-        Direction bestF = state.getValue(FACING);
-        int bestScore = scoreFacing(level, pos, state, bestF);
-        for (Direction f : Direction.Plane.HORIZONTAL) {
-            int score = scoreFacing(level, pos, state, f);
-            if (score > bestScore) {
-                bestScore = score;
-                bestF = f;
-            }
-        }
-        if (bestF != state.getValue(FACING)) {
-            level.setBlock(pos, state.setValue(FACING, bestF), 3);
-        }
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext ctx) {
+        boolean convex = state.getValue(CONVEX);
+        return switch (state.getValue(FACING)) {
+            case EAST -> convex ? CONVEX_EAST : INNER_EAST;
+            case SOUTH -> convex ? CONVEX_SOUTH : INNER_SOUTH;
+            case WEST -> convex ? CONVEX_WEST : INNER_WEST;
+            default -> convex ? CONVEX_NORTH : INNER_NORTH;
+        };
     }
 
-    private static int scoreFacing(net.minecraft.world.level.Level level, BlockPos pos,
-                                   BlockState state, Direction f) {
-        double[] seg = pathSeg(pos, state.setValue(FACING, f), false);
-        return WallScanner.endpointNeighbours(level, pos, seg[0], seg[1])
-                + WallScanner.endpointNeighbours(level, pos, seg[2], seg[3]);
+    /** 90° clockwise steps of an XZ shape about the cell centre. */
+    private static VoxelShape rotateY(VoxelShape shape, int steps) {
+        VoxelShape out = Shapes.empty();
+        int s = Math.floorMod(steps, 4);
+        for (var box : shape.toAabbs()) {
+            double minX = box.minX, minZ = box.minZ, maxX = box.maxX, maxZ = box.maxZ;
+            for (int i = 0; i < s; i++) {
+                double nMinX = 1.0 - maxZ, nMinZ = minX, nMaxX = 1.0 - minZ, nMaxZ = maxX;
+                minX = nMinX;
+                minZ = nMinZ;
+                maxX = nMaxX;
+                maxZ = nMaxZ;
+            }
+            out = Shapes.or(out, Shapes.box(minX, box.minY, minZ, maxX, box.maxY, maxZ));
+        }
+        return out;
     }
 
     /**

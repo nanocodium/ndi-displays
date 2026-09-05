@@ -127,6 +127,12 @@ public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean 
                             round.applyNdiCard(source);
                         } else if (be instanceof dev.nano.ndidisplays.block.CurvedScreenBlockEntity curved) {
                             curved.applyNdiCard(source);
+                        } else if (be instanceof dev.nano.ndidisplays.block.ChainHoistBlockEntity hoist) {
+                            // A hoist has no video, so the card's name becomes its group:
+                            // select the mother grid, click once, and every motor over the
+                            // stage answers to one set of buttons.
+                            hoist.applyConfig(hoist.getMinChain(), hoist.getMaxChain(),
+                                    hoist.getSpeed(), source);
                         } else {
                             continue;
                         }

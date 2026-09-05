@@ -4,6 +4,7 @@ import dev.nano.ndidisplays.block.CameraKind;
 import dev.nano.ndidisplays.block.CameraTrackBlock;
 import dev.nano.ndidisplays.block.KineticWinchBlock;
 import dev.nano.ndidisplays.block.KineticWinchBlockEntity;
+import dev.nano.ndidisplays.block.LedCornerBlock;
 import dev.nano.ndidisplays.block.LedPanelBlock;
 import dev.nano.ndidisplays.block.LedPanelBlockEntity;
 import dev.nano.ndidisplays.block.NdiCameraBlock;
@@ -69,9 +70,24 @@ public class NdiDisplays {
     public static final RegistryObject<Item> BLOW_THROUGH_PANEL_ITEM = ITEMS.register("blow_through_panel",
             () -> new BlockItem(BLOW_THROUGH_PANEL.get(), new Item.Properties()));
 
+    /**
+     * 90° corner cabinet: a one-block quarter-cylinder that joins two cardinal LED runs into
+     * a single path wall. Sneak-place for the inner (concave) form.
+     */
+    public static final RegistryObject<Block> LED_CORNER = BLOCKS.register("led_corner",
+            () -> new LedCornerBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 0)));
+
+    public static final RegistryObject<Item> LED_CORNER_ITEM = ITEMS.register("led_corner",
+            () -> new BlockItem(LED_CORNER.get(), new Item.Properties()));
+
     public static final RegistryObject<BlockEntityType<LedPanelBlockEntity>> LED_PANEL_BE = BLOCK_ENTITIES.register("led_panel",
             () -> BlockEntityType.Builder.of(LedPanelBlockEntity::new,
-                    LED_PANEL.get(), BLOW_THROUGH_PANEL.get()).build(null));
+                    LED_PANEL.get(), BLOW_THROUGH_PANEL.get(), LED_CORNER.get()).build(null));
 
     /**
      * Walkable LED floor tile. Adjacent same-facing tiles merge into one video
@@ -111,6 +127,28 @@ public class NdiDisplays {
     public static final RegistryObject<BlockEntityType<KineticWinchBlockEntity>> KINETIC_WINCH_BE =
             BLOCK_ENTITIES.register("kinetic_winch",
                     () -> BlockEntityType.Builder.of(KineticWinchBlockEntity::new, KINETIC_WINCH.get()).build(null));
+
+    /**
+     * Chain hoist: the rigging motor. Unlike the kinetic winch, which flies a rendered
+     * LED tile, this one picks up real blocks — a truss grid, a PA hang, a scenery
+     * piece — and flies the lot.
+     */
+    public static final RegistryObject<Block> CHAIN_HOIST = BLOCKS.register("chain_hoist",
+            () -> new dev.nano.ndidisplays.block.ChainHoistBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()));
+
+    public static final RegistryObject<Item> CHAIN_HOIST_ITEM = ITEMS.register("chain_hoist",
+            () -> new BlockItem(CHAIN_HOIST.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<
+            dev.nano.ndidisplays.block.ChainHoistBlockEntity>> CHAIN_HOIST_BE =
+            BLOCK_ENTITIES.register("chain_hoist",
+                    () -> BlockEntityType.Builder.of(
+                            dev.nano.ndidisplays.block.ChainHoistBlockEntity::new,
+                            CHAIN_HOIST.get()).build(null));
 
     /**
      * Circular LED screen: one mount block rendering a video disc of configurable
@@ -270,6 +308,13 @@ public class NdiDisplays {
     public static final RegistryObject<Item> NDI_CONFIG_CARD_ITEM = ITEMS.register("ndi_config_card",
             () -> new dev.nano.ndidisplays.item.NdiConfigCardItem(new Item.Properties().stacksTo(1)));
 
+    /**
+     * Radio remote for chain hoists: emergency stop, group selector, up / stop / down.
+     * Right-click a motor to patch it into the remote's selected group.
+     */
+    public static final RegistryObject<Item> HOIST_REMOTE_ITEM = ITEMS.register("hoist_remote",
+            () -> new dev.nano.ndidisplays.item.HoistRemoteItem(new Item.Properties().stacksTo(1)));
+
     /** Placeable NDI drone: right-click the ground, then fly it from a linked remote. */
     public static final RegistryObject<Item> DRONE_ITEM = ITEMS.register("drone",
             () -> new dev.nano.ndidisplays.item.DroneItem(new Item.Properties().stacksTo(1)));
@@ -417,9 +462,11 @@ public class NdiDisplays {
                     .icon(() -> new ItemStack(NDI_CONFIG_CARD_ITEM.get()))
                     .displayItems((params, output) -> {
                         output.accept(LED_PANEL_ITEM.get());
+                        output.accept(LED_CORNER_ITEM.get());
                         output.accept(BLOW_THROUGH_PANEL_ITEM.get());
                         output.accept(LED_FLOOR_ITEM.get());
                         output.accept(KINETIC_WINCH_ITEM.get());
+                        output.accept(CHAIN_HOIST_ITEM.get());
                         output.accept(ROUND_SCREEN_ITEM.get());
                         output.accept(PROJECTOR_ITEM.get());
                         output.accept(CURVED_SCREEN_ITEM.get());
@@ -433,6 +480,7 @@ public class NdiDisplays {
                         output.accept(HANDHELD_CAMERA_ITEM.get());
                         output.accept(SHOULDER_CAMERA_ITEM.get());
                         output.accept(NDI_CONFIG_CARD_ITEM.get());
+                        output.accept(HOIST_REMOTE_ITEM.get());
                         output.accept(NDI_ROUTER_ITEM.get());
                         output.accept(WEB_TERMINAL_ITEM.get());
                         output.accept(COMPUTER_ITEM.get());
@@ -479,6 +527,24 @@ public class NdiDisplays {
                     .updateInterval(1)
                     .build("drone"));
 
+    /**
+     * A structure in flight. It carries the only copy of the load's blocks and NBT while
+     * a chain hoist moves it, so it is saved with the world and never summonable — the
+     * hoist creates it, the hoist lands it.
+     */
+    public static final RegistryObject<net.minecraft.world.entity.EntityType<
+            dev.nano.ndidisplays.entity.MovingRigEntity>> MOVING_RIG =
+            ENTITIES.register("moving_rig", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<dev.nano.ndidisplays.entity.MovingRigEntity>of(
+                            dev.nano.ndidisplays.entity.MovingRigEntity::new,
+                            net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(1.0F, 1.0F)
+                    .clientTrackingRange(16)
+                    .updateInterval(1)
+                    .fireImmune()
+                    .noSummon()
+                    .build("moving_rig"));
+
     public NdiDisplays() {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         BLOCKS.register(modBus);
@@ -489,5 +555,10 @@ public class NdiDisplays {
         NetworkHandler.init();
         net.minecraftforge.fml.ModLoadingContext.get().registerConfig(
                 net.minecraftforge.fml.config.ModConfig.Type.CLIENT, ClientConfig.SPEC);
+        // Rigging limits are the server's call: a flown load has to obey the same caps for
+        // everyone on it.
+        net.minecraftforge.fml.ModLoadingContext.get().registerConfig(
+                net.minecraftforge.fml.config.ModConfig.Type.COMMON,
+                dev.nano.ndidisplays.hoist.HoistConfig.SPEC);
     }
 }

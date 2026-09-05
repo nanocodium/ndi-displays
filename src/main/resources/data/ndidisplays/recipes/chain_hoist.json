@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "III",
+        "CPC",
+        " C "
+    ],
+    "key": {
+        "I": { "item": "minecraft:iron_ingot" },
+        "C": { "item": "minecraft:chain" },
+        "P": { "item": "minecraft:piston" }
+    },
+    "result": {
+        "item": "ndidisplays:chain_hoist",
+        "count": 1
+    }
+}

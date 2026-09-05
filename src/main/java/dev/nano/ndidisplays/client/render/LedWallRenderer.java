@@ -39,6 +39,11 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
     private static final float THICKNESS = 2.0F / 16.0F;
     /** Offset of the emissive surface in front of the cabinet face, avoids z-fighting. */
     private static final float SURFACE_EPSILON = 0.002F;
+    /**
+     * Quarter-arc tessellation, matching {@code CurvedScreenRenderer.SEGMENT_STEP} (5°).
+     * 90° / 5° = 18 quads — a polygon at 6 facets still reads as a chamfer.
+     */
+    static final int ARC_DIV = Math.max(16, Math.round(90.0F / 5.0F));
     /** Fraction of each LED cell that is dark bezel on each side. */
     private static final float PIXEL_GAP = 0.15F;
     /** Per-LED brightness calibration spread (fraction, peak to peak). */
@@ -213,13 +218,16 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
                         be.getGamma(), (float) mode, (float) pxPerBlock, CALIBRATION_VARIANCE,
                         crop.u0(), crop.v0(), crop.du(), crop.dv()};
                 if (wall.isPath()) {
-                    final int[] budget = {160};
-                    emitPath(wall, be.getBlockPos(), (bl, br, tr, tl, u0, u1, vB, vT) -> {
-                        if (budget[0]-- > 0) {
-                            ShimmerCompat.submitBloomUv(mat, bl, br, tr, tl, u0, u1, vB, vT,
-                                    shimmerTex, bloomParams);
-                        }
-                    });
+                    // Same tessellated mesh as the colour pass, in ONE bloom submit. A chord
+                    // quad on top of the arc read as a second screen; 18 separate submits
+                    // froze the client.
+                    ShimmerCompat.submitBloomMesh(mat, shimmerTex, bloomParams, (bmat, vc) ->
+                            emitPath(wall, be.getBlockPos(), true, (bl, br, tr, tl, u0, u1, vB, vT) -> {
+                                ShimmerCompat.vertex(vc, bmat, bl, u0, vB);
+                                ShimmerCompat.vertex(vc, bmat, br, u1, vB);
+                                ShimmerCompat.vertex(vc, bmat, tr, u1, vT);
+                                ShimmerCompat.vertex(vc, bmat, tl, u0, vT);
+                            }));
                 } else if (!wall.isShaped()) {
                     ShimmerCompat.submitBloom(mat, p00, p10, p11, p01, shimmerTex, bloomParams);
                 } else {
@@ -422,18 +430,23 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
      * columns of different orientation meet exactly at their shared corner.
      */
     static void emitPath(WallScanner.WallInfo wall, BlockPos anchorPos, PathQuad out) {
+        emitPath(wall, anchorPos, true, out);
+    }
+
+    static void emitPath(WallScanner.WallInfo wall, BlockPos anchorPos, boolean tessellateArcs,
+                         PathQuad out) {
         int w = wall.width();
         int h = wall.height();
         for (int i = 0; i < w; i++) {
             double[] seg = WallScanner.pathSegment(wall, i);
             double[] arc = WallScanner.pathArc(wall, i);
             // Horizontal subsegments {x0, z0, x1, z1, uFrac0, uFrac1}: one for a straight
-            // cabinet, six around a corner cabinet's quarter-arc.
-            java.util.List<double[]> subs = new java.util.ArrayList<>(6);
-            if (arc == null) {
+            // cabinet, ARC_DIV (~5°) around a corner cabinet's quarter-arc.
+            java.util.List<double[]> subs = new java.util.ArrayList<>(ARC_DIV);
+            if (arc == null || !tessellateArcs) {
                 subs.add(new double[]{seg[0], seg[1], seg[2], seg[3], 0.0, 1.0});
             } else {
-                int div = 6;
+                int div = ARC_DIV;
                 double a0 = Math.atan2(seg[1] - arc[1], seg[0] - arc[0]);
                 double a1 = Math.atan2(seg[3] - arc[1], seg[2] - arc[0]);
                 double d = a1 - a0;
@@ -446,8 +459,13 @@ public class LedWallRenderer implements BlockEntityRenderer<LedPanelBlockEntity>
                 for (int k = 0; k < div; k++) {
                     double t0 = a0 + d * k / div;
                     double t1 = a0 + d * (k + 1) / div;
-                    subs.add(new double[]{arc[0] + Math.cos(t0), arc[1] + Math.sin(t0),
-                            arc[0] + Math.cos(t1), arc[1] + Math.sin(t1),
+                    // Pin the first/last vertices to the scanner endpoints so the arc meets
+                    // adjacent flats exactly — cos/sin drift was leaving a seam and overlap.
+                    double x0 = k == 0 ? seg[0] : arc[0] + Math.cos(t0);
+                    double z0 = k == 0 ? seg[1] : arc[1] + Math.sin(t0);
+                    double x1 = k == div - 1 ? seg[2] : arc[0] + Math.cos(t1);
+                    double z1 = k == div - 1 ? seg[3] : arc[1] + Math.sin(t1);
+                    subs.add(new double[]{x0, z0, x1, z1,
                             k / (double) div, (k + 1) / (double) div});
                 }
             }

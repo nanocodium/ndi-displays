@@ -128,13 +128,34 @@ public final class ScreenLights {
             for (int i = 0; i < cols; i++) {
                 int ci = Math.min(w - 1, (int) ((i + 0.5) / cols * w));
                 double[] seg = WallScanner.pathSegment(wall, ci);
-                // Normal from the segment chord, so corner cabinets (no PanelFacing) work too.
-                double dxs = seg[2] - seg[0];
-                double dzs = seg[3] - seg[1];
-                double len = Math.max(1.0E-6, Math.sqrt(dxs * dxs + dzs * dzs));
-                Vec3 n = new Vec3(-dzs / len, 0.0, dxs / len);
-                double mx = (seg[0] + seg[2]) * 0.5 + n.x * PUSH_OUT;
-                double mz = (seg[1] + seg[3]) * 0.5 + n.z * PUSH_OUT;
+                double[] arc = WallScanner.pathArc(wall, ci);
+                double mx;
+                double mz;
+                if (arc != null) {
+                    // Radial at the arc midpoint — a chord normal would sit the light on the
+                    // flat cut of the quarter-cylinder, washing the inside of the turn.
+                    double a0 = Math.atan2(seg[1] - arc[1], seg[0] - arc[0]);
+                    double a1 = Math.atan2(seg[3] - arc[1], seg[2] - arc[0]);
+                    double d = a1 - a0;
+                    while (d > Math.PI) {
+                        d -= 2.0 * Math.PI;
+                    }
+                    while (d < -Math.PI) {
+                        d += 2.0 * Math.PI;
+                    }
+                    double mid = a0 + d * 0.5;
+                    double cos = Math.cos(mid);
+                    double sin = Math.sin(mid);
+                    mx = arc[0] + cos + cos * arc[2] * PUSH_OUT;
+                    mz = arc[1] + sin + sin * arc[2] * PUSH_OUT;
+                } else {
+                    // Normal from the segment chord, so corner cabinets (no PanelFacing) work too.
+                    double dxs = seg[2] - seg[0];
+                    double dzs = seg[3] - seg[1];
+                    double len = Math.max(1.0E-6, Math.sqrt(dxs * dxs + dzs * dzs));
+                    mx = (seg[0] + seg[2]) * 0.5 + (-dzs / len) * PUSH_OUT;
+                    mz = (seg[1] + seg[3]) * 0.5 + (dxs / len) * PUSH_OUT;
+                }
                 for (int j = 0; j < rows; j++) {
                     int k = j * cols + i;
                     double up = h * (1.0 - (j + 0.5) / rows);

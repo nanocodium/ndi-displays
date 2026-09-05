@@ -345,7 +345,7 @@ public final class WallScanner {
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 BlockPos cell = from.offset(dx, 0, dz);
-                if (cell.equals(exclude)) {
+                if (cell.equals(from) || cell.equals(exclude)) {
                     continue;
                 }
                 BlockState st = stateIfLoaded(level, cell);

@@ -16,7 +16,7 @@ protocol as OBS, Resolume, vMix, and a hardware LED processor.
 
 <br/>
 
-[Screens](#screens) · [Cameras](#cameras) · [Kinetics](#kinetics) · [Control room](#control-room) · [Requirements](#requirements) · [Usage](#usage) · [Build](#build)
+[Screens](#screens) · [Cameras](#cameras) · [Kinetics](#kinetics) · [Control room](#control-room) · [Requirements](#requirements) · [Usage](#usage) · [Build](#build) · [Changelog](CHANGELOG.md)
 
 </div>
 
@@ -38,13 +38,15 @@ Live NDI from OBS, a media server, or another machine on the LAN.
 <td width="33%" valign="top">
 
 **Through**
-Walls, floors, curves, kinetic tiles, routers, and a processor GUI.
+Walls, floors, curves, projectors, kinetic tiles, switchers, racks,
+and a processor GUI.
 
 </td>
 <td width="33%" valign="top">
 
 **Out**
-Broadcast, PTZ, jib, dolly, handheld, and drone rigs as real NDI sources.
+Broadcast, PTZ, jib, dolly, handheld, drone, computer, and switcher
+program as real NDI sources.
 
 </td>
 </tr>
@@ -108,6 +110,26 @@ Every screen can crop an **input window** out of the incoming frame — full
 frame or a sub-rectangle — so one NDI source can feed several walls with
 different cuts.
 
+Same-kind cabinets that share an edge are **one screen**, even when the
+plan is not a rectangle (cross, L, stairs).
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### Video Projector
+A lens, not a cabinet. It drapes NDI onto world geometry — throw, keystone,
+lens shift, feather, additive overlap. Fresh units come up on the
+alignment grid. Shadows use a 2048 map.
+
+</td>
+<td width="50%" valign="top">
+
+### LED Corner
+Quarter-cylinder wrap between two cardinal runs. Craft from one panel.
+Sneak-place for the inner corner. Without it, a 90° L is two walls.
+
 </td>
 </tr>
 </table>
@@ -132,7 +154,7 @@ real LED processor:
 
 - Gamma 1.8–2.8, brightness in % (≈ nits), linear light
 - Structure fades out below ~1 LED per screen pixel (no moiré)
-- Emissive surface, ignores world lighting, emits block light
+- Emissive surface, ignores world lighting (no vanilla block light)
 - Colour bars, alignment grid, RGB/white, pixel checker
 - Optional <a href="https://www.curseforge.com/minecraft/mc-mods/shimmer">Shimmer</a> bloom from the live feed
 
@@ -264,6 +286,28 @@ full source.
 
 </td>
 </tr>
+<tr>
+<td width="50%" valign="top">
+
+### Chain Hoist
+A stage motor that flies an **isolated island of real blocks** — truss,
+fixtures, speakers, scenery. Each motor pays out its own chain, so
+raising one corner rakes the hang. A group command or the hoist remote
+keeps the attitude. Theatrical fixtures stay patched in flight.
+
+STOP holds the load in the air. It lands only when the hang is level.
+Server caps live in `config/ndidisplays-common.toml` under `[hoist]`.
+
+</td>
+<td width="50%" valign="top">
+
+### Hoist Remote
+Yellow belly-box: latched e-stop, group selector, UP / STOP / DOWN.
+Reach 192 blocks. `/hoist at` and `/hoist group` do the same from the
+console (permission 2).
+
+</td>
+</tr>
 </table>
 
 <h3>DMX (optional Theatrical)</h3>
@@ -341,6 +385,38 @@ winch mode (linked / twin), and stitch on/off to the whole selection.
 ### Winch Park Monitor
 Control-room plot of a bound park: motor grid, selection size, live
 layout. Bind it with the card the same way you select a region.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### Vision Switcher
+Eight inputs, program / preview, CUT and AUTO (mix / dip / wipe). Output
+<code>MC Switcher &lt;name&gt;</code> is composited on the broadcast GPU.
+
+</td>
+<td width="50%" valign="top">
+
+### Pro Monitor
+Single-feed desk panel. Sibling of the multiview. Card applies a source.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### Computer
+Placeable desk OS (Notes, Files, Paint, Music, NDI Monitor, Terminal).
+Publishes <code>MC Computer &lt;name&gt;</code>. Owner lock is server-side.
+Browser app needs MCEF.
+
+</td>
+<td width="50%" valign="top">
+
+### Equipment Rack
+Six 1U slots. Units are items (web, PDU, switch, patch, recorder, sync,
+blank, rack router). The frame runs only while a PDU is seated and on.
 
 </td>
 </tr>
@@ -518,7 +594,7 @@ Two jars land in `build/libs/`:
 <td width="50%" valign="top">
 
 **Ship this**
-`ndidisplays-1.20.1-1.0.0-all.jar`
+`ndidisplays-1.20.1-1.1.0-beta.1-all.jar`
 
 Devolay is bundled via jarJar.
 
@@ -526,7 +602,7 @@ Devolay is bundled via jarJar.
 <td width="50%" valign="top">
 
 **Do not ship**
-`ndidisplays-1.20.1-1.0.0.jar`
+`ndidisplays-1.20.1-1.1.0-beta.1.jar`
 
 No NDI bindings. Devolay will fail at runtime.
 

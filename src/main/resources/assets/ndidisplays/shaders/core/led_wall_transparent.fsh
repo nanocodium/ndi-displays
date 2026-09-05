@@ -126,21 +126,14 @@ void main() {
     col = pow(max(col, vec3(0.0)), vec3(1.0 / 2.2));
     col *= LedParams.w;
 
-    // Alpha *is* the coverage, at every distance. This is what keeps the wall's brightness
-    // constant as the camera moves, and it is worth being precise about why.
-    //
-    // What reaches the screen is alpha * colour, so the light a patch of wall contributes is
-    // its mean alpha times the emitter drive. Up close, coverage is the anti-aliased strip
-    // mask: ~1 inside a strip, 0 in the open air between them, averaging STRIP_W * STRIP_H
-    // over any area bigger than a cell. Far away, a cell is smaller than a pixel and
-    // coverage is exactly that same average. So the mean is identical in both regimes and
-    // only the *structure* changes — visible strips resolve into an even haze, which is all
-    // structFade was ever meant to do.
-    //
-    // Interpolating alpha toward 1 near the camera (as an earlier version did) broke that:
-    // it made near strips fully opaque *and* separately boosted the far gain to compensate
-    // for the coverage it had just cancelled, so the wall read punchy up close and washed
-    // out at a distance. Coverage is a physical property of the cabinet, not of how far away
-    // the viewer is standing.
-    fragColor = vec4(col, coverage) * vertexColor * ColorModulator;
+    // Emitters are opaque. Up close a strip pixel is solid picture and the gaps between
+    // strips are discarded, so the world shows through the open area. Once a cell is smaller
+    // than a screen pixel the strips cannot be resolved and the wall reads as a solid
+    // picture at full brightness rather than as a 60% haze: alpha follows the anti-aliased
+    // strip edge only, never the average coverage. An earlier version used coverage as alpha
+    // so the mean light stayed constant with distance, but that made the picture dim at any
+    // distance where strips blur — the colour clamps at white, so it could not be driven
+    // harder to compensate. Brightness wins over the far-field haze here.
+    float alpha = mix(clamp(mask / max(STRIP_W * STRIP_H, 1e-3), 0.0, 1.0), 1.0, structFade);
+    fragColor = vec4(col, alpha) * vertexColor * ColorModulator;
 }

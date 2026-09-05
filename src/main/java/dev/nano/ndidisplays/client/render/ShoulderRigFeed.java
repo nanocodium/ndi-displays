@@ -18,7 +18,6 @@ import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraftforge.api.distmarker.Dist;
@@ -34,9 +33,8 @@ import org.joml.Matrix4f;
  * Third person: the armour layer draws the rig mesh, whose monitor_screen face is a blank
  * panel; it leaves its model matrix here and the level pass paints the live frame over that
  * face. First person: the player model is not drawn at all, so the monitor arm and screen are
- * rendered with the hands, fixed to the body (they pitch and yaw against the view as the
- * operator looks around) and placed exactly where the third-person rig puts them relative to
- * the eye. Operator mode already fills the screen with the lens view, so nothing is drawn then.
+ * rendered with the hands, fixed to the view and placed where the third-person rig puts them
+ * relative to the eye. Operator mode already fills the screen with the lens view, so nothing is drawn then.
  */
 @Mod.EventBusSubscriber(modid = NdiDisplays.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE,
         value = Dist.CLIENT)
@@ -96,18 +94,12 @@ public final class ShoulderRigFeed {
         if (!wearing(player) || !mc.options.getCameraType().isFirstPerson()) {
             return;
         }
-        float pt = event.getPartialTick();
-        float pitch = player.getViewXRot(pt);
-        float headYaw = player.getViewYRot(pt);
-        float bodyYaw = Mth.rotLerp(pt, player.yBodyRotO, player.yBodyRot);
-
         PoseStack pose = event.getPoseStack();
         pose.pushPose();
-        // Camera space -> body space about the eye: undo the head's pitch and its lead over the
-        // body, then a half turn about Z (model x and y both run the other way), then the eye
-        // offset, then the same placement the worn model uses.
-        pose.mulPose(Axis.XP.rotationDegrees(pitch));
-        pose.mulPose(Axis.YP.rotationDegrees(Mth.wrapDegrees(headYaw - bodyYaw)));
+        // Camera space -> body space about the eye. The monitor rides with the view rather than
+        // the body: a real operator's eye stays on the finder however they turn, and a screen
+        // that swung out of shot every time they looked round was useless. A half turn about Z
+        // (model x and y both run the other way), then the eye offset, then the worn placement.
         pose.mulPose(Axis.ZP.rotationDegrees(180.0F));
         pose.translate(0.0F, -EYE_Y, 0.0F);
         ShoulderRigModel.placeRig(pose);
@@ -142,6 +134,9 @@ public final class ShoulderRigFeed {
         RenderSystem.depthMask(true);
         RenderSystem.disableBlend();
         RenderSystem.disableCull();
+        // The capture's sky carries alpha 0; leave the frame's alpha alone or it shows through
+        // as a hole wherever the picture has sky in it.
+        RenderSystem.colorMask(true, true, true, false);
         // Proud of the mesh's own screen face by a depth-buffer step, as the LED walls do.
         RenderSystem.polygonOffset(-1.0F, -10.0F);
         RenderSystem.enablePolygonOffset();
@@ -157,6 +152,7 @@ public final class ShoulderRigFeed {
         BufferUploader.drawWithShader(b.end());
         RenderSystem.polygonOffset(0.0F, 0.0F);
         RenderSystem.disablePolygonOffset();
+        RenderSystem.colorMask(true, true, true, true);
         RenderSystem.enableCull();
     }
 }

@@ -1,5 +1,5 @@
 {
-    "__comment": "Blow-through cabinet: aluminium frame, 40 LED strip bars and the rear electronics spine; the strips sit just behind the wall's video face at z=14/16. The rear brace mast and arms stay and reach about 0.3 into the block behind; the floor stand and stacking hardware are dropped, a wall tile has neither.",
+    "__comment": "Blow-through cabinet: aluminium frame, 40 LED strip bars and the rear electronics spine; the strips sit just behind the wall's video face at z=14/16. The whole cabinet is kept: rear brace reaching about 0.3 into the block behind, floor foot, and the stacking lugs and guide cones that interlock with the tiles above and below.",
     "loader": "forge:obj",
     "model": "ndidisplays:meshes/blow_through_panel.obj",
     "flip_v": true,

@@ -3,11 +3,13 @@
 This page follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The same notes live in [`CHANGELOG.md`](https://github.com/nanocodium/ndi-displays/blob/main/CHANGELOG.md) at the repo root.
 
-Current artifact: **`ndidisplays-1.20.1-1.1.0-beta.1-all.jar`** — Minecraft **1.20.1**, Forge **47.x**, Java 17.
+Current artifact: **`ndidisplays-1.20.1-1.1.1-beta.1-all.jar`** — Minecraft **1.20.1**, Forge **47.x**, Java 17.
 
 ## [Unreleased]
 
-Upstream `main` through `150b536`. Nanocodium did not list these in their changelog; they are recorded here.
+## [1.1.1-beta.1] - 2026-09-06
+
+Second CurseForge beta. Includes upstream `main` through `150b536`.
 
 ### Added
 
@@ -74,6 +76,7 @@ First public CurseForge beta. Everything in this jar.
 
 Upstream `main` at `32d691b` before this beta. Notes for that tree now live under [1.1.0-beta.1].
 
-[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.0-beta.1...HEAD
-[1.1.0-beta.1]: https://github.com/nanocodium/ndi-displays/compare/32d691b...HEAD
+[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.1-beta.1...HEAD
+[1.1.1-beta.1]: https://github.com/nanocodium/ndi-displays/compare/1.1.0-beta.1...HEAD
+[1.1.0-beta.1]: https://github.com/nanocodium/ndi-displays/compare/32d691b...1.1.0-beta.1
 [1.0.0]: https://github.com/nanocodium/ndi-displays/commit/32d691b

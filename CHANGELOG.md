@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Upstream [nanocodium/ndi-displays](https://github.com/nanocodium/ndi-displays) `main` through `150b536` (merged here). Their post-1.1.0-beta.1 work was not in their changelog; it is recorded below.
+## [1.1.1-beta.1] - 2026-09-06
+
+Second CurseForge beta. Ship **`ndidisplays-1.20.1-1.1.1-beta.1-all.jar`**. Includes [nanocodium/ndi-displays](https://github.com/nanocodium/ndi-displays) `main` through `150b536` (their post-1.1.0-beta.1 work was not in their changelog).
 
 ### Added
 
@@ -84,6 +86,7 @@ First public CurseForge beta. Ship **`ndidisplays-1.20.1-1.1.0-beta.1-all.jar`**
 
 Upstream [nanocodium/ndi-displays](https://github.com/nanocodium/ndi-displays) `main` at `32d691b` before this beta. Notes for that tree now live under [1.1.0-beta.1].
 
-[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.0-beta.1...HEAD
-[1.1.0-beta.1]: https://github.com/nanocodium/ndi-displays/compare/32d691b...HEAD
+[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.1-beta.1...HEAD
+[1.1.1-beta.1]: https://github.com/nanocodium/ndi-displays/compare/1.1.0-beta.1...HEAD
+[1.1.0-beta.1]: https://github.com/nanocodium/ndi-displays/compare/32d691b...1.1.0-beta.1
 [1.0.0]: https://github.com/nanocodium/ndi-displays/commit/32d691b

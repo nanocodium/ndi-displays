@@ -2,7 +2,7 @@
 
 Minecraft **1.20.1**, **Forge 47.x**, Java 17. Put the **`-all`** jar on every **client that should see video** and on the **server** (blocks must be registered). The server never opens NDI.
 
-Ship **`ndidisplays-1.20.1-1.1.0-beta.1-all.jar`**. The thin jar without `-all` has no Devolay bindings and will fail at runtime.
+Ship **`ndidisplays-1.20.1-1.1.1-beta.1-all.jar`**. The thin jar without `-all` has no Devolay bindings and will fail at runtime.
 
 Without an NDI library the mod still loads. Walls show test patterns and the GUI reports that NDI is missing.
 

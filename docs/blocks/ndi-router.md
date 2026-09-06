@@ -1,5 +1,7 @@
 # NDI Router
 
+![NDI router](/img/blocks/ndi_router.png)
+
 Publishes a **stable output name** and forwards whichever source is patched to it. Uses NDI routing — no decode, no re-encode, no extra GPU cost.
 
 Rename the output once in OBS; re-patch the router when the show changes.

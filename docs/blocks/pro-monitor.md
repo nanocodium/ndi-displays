@@ -1,5 +1,7 @@
 # Pro Monitor
 
+![Pro monitor](/img/blocks/pro_monitor.png)
+
 Production monitor: a desk display that shows **one** NDI source on its panel — the [multiview](/blocks/multiview)'s single-feed sibling, for director's desks, green rooms, and gallery walls.
 
 Pure receiver: source name and brightness. No LED pitch, no bezels.

@@ -198,6 +198,9 @@ public final class RigStructure {
             level.updateNeighborsAt(pos, state.getBlock());
         }
 
+        // NBT is loaded after setLevel, so Theatrical never saw the real network id.
+        HoistFixtureCompat.reattachLanded(level, this, newOrigin);
+
         return complete;
     }
 

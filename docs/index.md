@@ -25,10 +25,15 @@ features:
 
 Every client pulls NDI itself — no server transcode, no shared texture upload. Walls look like rental cabinets (pitch, subpixels, bezels, gamma). Cameras publish the world back onto the same network, so a jib can land on the IMAG wall in the same world.
 
+![Control room with mixing desk and an NDI wall](/img/hero/recording_studio.png)
+
+![Stage with LED tiles flown on kinetic winches](/img/hero/stage_winch_leds.png)
+
 ## Start here
 
 - [Install the NDI Runtime](/guide/install) (Windows redistributable, Tools, SDK)
 - [Build a first LED wall](/guide/first-wall)
+- [OBS, Resolume, and the wall](/guide/ndi-software) — DistroAV output, patch a cabinet, Arena NDI
 - [Block catalog](/blocks/) generated from `NdiDisplays.java`
 - [Video Projector](/blocks/projector) — throw NDI onto the world
 - [Computer](/blocks/computer) · [Vision Switcher](/blocks/vision-switcher) · [Equipment Rack](/blocks/equipment-rack)

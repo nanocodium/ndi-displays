@@ -1,5 +1,7 @@
 # Handheld Camera
 
+![Handheld camera](/img/items/handheld_camera.png)
+
 Item, not a block. While held, the client publishes the player's view as `MC Handheld <player>`. Several players can each carry one.
 
 ## Registry ID

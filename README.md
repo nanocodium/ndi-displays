@@ -594,7 +594,7 @@ Two jars land in `build/libs/`:
 <td width="50%" valign="top">
 
 **Ship this**
-`ndidisplays-1.20.1-1.1.0-beta.1-all.jar`
+`ndidisplays-1.20.1-1.1.1-beta.1-all.jar`
 
 Devolay is bundled via jarJar.
 
@@ -602,7 +602,7 @@ Devolay is bundled via jarJar.
 <td width="50%" valign="top">
 
 **Do not ship**
-`ndidisplays-1.20.1-1.1.0-beta.1.jar`
+`ndidisplays-1.20.1-1.1.1-beta.1.jar`
 
 No NDI bindings. Devolay will fail at runtime.
 

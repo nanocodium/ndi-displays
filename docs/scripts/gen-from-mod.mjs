@@ -31,8 +31,38 @@ const PAGE_BY_ID = {
   equipment_rack: '/blocks/equipment-rack'
 }
 
+/** Catalog thumbnails in docs/public/img/. Missing ids render as an em dash. */
+const IMAGE_BY_ID = {
+  led_panel: '/img/blocks/led_panel.png',
+  led_corner: '/img/blocks/led_corner.png',
+  blow_through_panel: '/img/blocks/blow_through_panel.png',
+  led_floor: '/img/blocks/led_floor.png',
+  kinetic_winch: '/img/kinetics/led_tile.png',
+  chain_hoist: '/img/hero/hoist_in_use.png',
+  round_screen: '/img/blocks/round_screen.png',
+  curved_screen: '/img/blocks/curved_screen.png',
+  multiview: '/img/blocks/multiview.png',
+  broadcast_camera: '/img/blocks/broadcast_camera.png',
+  ptz_camera: '/img/blocks/ptz_camera.png',
+  jib_camera: '/img/blocks/jib_camera.png',
+  track_camera: '/img/blocks/track_camera.png',
+  ndi_router: '/img/blocks/ndi_router.png',
+  web_terminal: '/img/blocks/web_terminal.png',
+  projector: '/img/blocks/projector.png',
+  computer: '/img/blocks/computer.png',
+  vision_switcher: '/img/blocks/vision_switcher.png',
+  pro_monitor: '/img/blocks/pro_monitor.png',
+  equipment_rack: '/img/blocks/equipment_rack.png'
+}
+
 function titleFromId(id) {
   return id.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}
+
+function catalogThumb(id) {
+  const src = IMAGE_BY_ID[id]
+  if (!src) return '—'
+  return `<img src="${src}" alt="${titleFromId(id)}" width="96" />`
 }
 
 function itemLabel(entry) {
@@ -77,7 +107,7 @@ async function parseBlockIds() {
 async function writeBlockCatalog(ids) {
   const rows = ids.map((id) => {
     const href = PAGE_BY_ID[id] ?? `/blocks/${id.replace(/_/g, '-')}`
-    return `| \`ndidisplays:${id}\` | [${titleFromId(id)}](${href}) |`
+    return `| ${catalogThumb(id)} | \`ndidisplays:${id}\` | [${titleFromId(id)}](${href}) |`
   })
   const body = `---
 title: Blocks
@@ -92,8 +122,8 @@ Registered in \`NdiDisplays.java\` via \`BLOCKS.register("…")\` (not \`BLOCKS.
 
 **${ids.length}** block${ids.length === 1 ? '' : 's'} in the current source.
 
-| Registry ID | Wiki |
-|-------------|------|
+| | Registry ID | Wiki |
+|---|-------------|------|
 ${rows.join('\n')}
 
 Creative tab: **NDI Stage Displays**. Server registers every block; NDI I/O is client-only.

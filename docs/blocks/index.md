@@ -11,29 +11,29 @@ Registered in `NdiDisplays.java` via `BLOCKS.register("…")` (not `BLOCKS.regis
 
 **22** blocks in the current source.
 
-| Registry ID | Wiki |
-|-------------|------|
-| `ndidisplays:led_panel` | [Led Panel](/blocks/led-panel) |
-| `ndidisplays:blow_through_panel` | [Blow Through Panel](/blocks/blow-through-panel) |
-| `ndidisplays:led_corner` | [Led Corner](/blocks/led-panel#90-turns) |
-| `ndidisplays:led_floor` | [Led Floor](/blocks/led-floor) |
-| `ndidisplays:kinetic_winch` | [Kinetic Winch](/blocks/kinetic-winch) |
-| `ndidisplays:chain_hoist` | [Chain Hoist](/blocks/chain-hoist) |
-| `ndidisplays:projector` | [Projector](/blocks/projector) |
-| `ndidisplays:round_screen` | [Round Screen](/blocks/round-screen) |
-| `ndidisplays:curved_screen` | [Curved Screen](/blocks/curved-screen) |
-| `ndidisplays:multiview` | [Multiview](/blocks/multiview) |
-| `ndidisplays:winch_park_monitor` | [Winch Park Monitor](/blocks/winch-park-monitor) |
-| `ndidisplays:broadcast_camera` | [Broadcast Camera](/blocks/cameras#broadcast-camera) |
-| `ndidisplays:ptz_camera` | [Ptz Camera](/blocks/cameras#ptz-camera) |
-| `ndidisplays:jib_camera` | [Jib Camera](/blocks/cameras#jib-camera) |
-| `ndidisplays:track_camera` | [Track Camera](/blocks/cameras#track-dolly) |
-| `ndidisplays:camera_track` | [Camera Track](/blocks/cameras#camera-track) |
-| `ndidisplays:ndi_router` | [Ndi Router](/blocks/ndi-router) |
-| `ndidisplays:computer` | [Computer](/blocks/computer) |
-| `ndidisplays:vision_switcher` | [Vision Switcher](/blocks/vision-switcher) |
-| `ndidisplays:pro_monitor` | [Pro Monitor](/blocks/pro-monitor) |
-| `ndidisplays:equipment_rack` | [Equipment Rack](/blocks/equipment-rack) |
-| `ndidisplays:web_terminal` | [Web Terminal](/blocks/web-terminal) |
+| | Registry ID | Wiki |
+|---|-------------|------|
+| <img src="/img/blocks/led_panel.png" alt="Led Panel" width="96" /> | `ndidisplays:led_panel` | [Led Panel](/blocks/led-panel) |
+| <img src="/img/blocks/blow_through_panel.png" alt="Blow Through Panel" width="96" /> | `ndidisplays:blow_through_panel` | [Blow Through Panel](/blocks/blow-through-panel) |
+| <img src="/img/blocks/led_corner.png" alt="Led Corner" width="96" /> | `ndidisplays:led_corner` | [Led Corner](/blocks/led-panel#90-turns) |
+| <img src="/img/blocks/led_floor.png" alt="Led Floor" width="96" /> | `ndidisplays:led_floor` | [Led Floor](/blocks/led-floor) |
+| <img src="/img/kinetics/led_tile.png" alt="Kinetic Winch" width="96" /> | `ndidisplays:kinetic_winch` | [Kinetic Winch](/blocks/kinetic-winch) |
+| <img src="/img/hero/hoist_in_use.png" alt="Chain Hoist" width="96" /> | `ndidisplays:chain_hoist` | [Chain Hoist](/blocks/chain-hoist) |
+| <img src="/img/blocks/projector.png" alt="Projector" width="96" /> | `ndidisplays:projector` | [Projector](/blocks/projector) |
+| <img src="/img/blocks/round_screen.png" alt="Round Screen" width="96" /> | `ndidisplays:round_screen` | [Round Screen](/blocks/round-screen) |
+| <img src="/img/blocks/curved_screen.png" alt="Curved Screen" width="96" /> | `ndidisplays:curved_screen` | [Curved Screen](/blocks/curved-screen) |
+| <img src="/img/blocks/multiview.png" alt="Multiview" width="96" /> | `ndidisplays:multiview` | [Multiview](/blocks/multiview) |
+| — | `ndidisplays:winch_park_monitor` | [Winch Park Monitor](/blocks/winch-park-monitor) |
+| <img src="/img/blocks/broadcast_camera.png" alt="Broadcast Camera" width="96" /> | `ndidisplays:broadcast_camera` | [Broadcast Camera](/blocks/cameras#broadcast-camera) |
+| <img src="/img/blocks/ptz_camera.png" alt="Ptz Camera" width="96" /> | `ndidisplays:ptz_camera` | [Ptz Camera](/blocks/cameras#ptz-camera) |
+| <img src="/img/blocks/jib_camera.png" alt="Jib Camera" width="96" /> | `ndidisplays:jib_camera` | [Jib Camera](/blocks/cameras#jib-camera) |
+| <img src="/img/blocks/track_camera.png" alt="Track Camera" width="96" /> | `ndidisplays:track_camera` | [Track Camera](/blocks/cameras#track-dolly) |
+| — | `ndidisplays:camera_track` | [Camera Track](/blocks/cameras#camera-track) |
+| <img src="/img/blocks/ndi_router.png" alt="Ndi Router" width="96" /> | `ndidisplays:ndi_router` | [Ndi Router](/blocks/ndi-router) |
+| <img src="/img/blocks/computer.png" alt="Computer" width="96" /> | `ndidisplays:computer` | [Computer](/blocks/computer) |
+| <img src="/img/blocks/vision_switcher.png" alt="Vision Switcher" width="96" /> | `ndidisplays:vision_switcher` | [Vision Switcher](/blocks/vision-switcher) |
+| <img src="/img/blocks/pro_monitor.png" alt="Pro Monitor" width="96" /> | `ndidisplays:pro_monitor` | [Pro Monitor](/blocks/pro-monitor) |
+| <img src="/img/blocks/equipment_rack.png" alt="Equipment Rack" width="96" /> | `ndidisplays:equipment_rack` | [Equipment Rack](/blocks/equipment-rack) |
+| <img src="/img/blocks/web_terminal.png" alt="Web Terminal" width="96" /> | `ndidisplays:web_terminal` | [Web Terminal](/blocks/web-terminal) |
 
 Creative tab: **NDI Stage Displays**. Server registers every block; NDI I/O is client-only.

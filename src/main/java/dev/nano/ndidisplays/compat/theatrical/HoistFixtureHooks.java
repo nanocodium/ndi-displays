@@ -1,7 +1,9 @@
 package dev.nano.ndidisplays.compat.theatrical;
 
+import dev.imabad.theatrical.blockentities.light.BaseDMXConsumerLightBlockEntity;
 import dev.imabad.theatrical.blockentities.light.BaseLightBlockEntity;
 import dev.imabad.theatrical.blocks.light.BaseLightBlock;
+import dev.imabad.theatrical.networks.TheatricalNetworkData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -64,6 +66,30 @@ final class HoistFixtureHooks {
 
     static void releaseProxy(BlockEntity proxy) {
         proxy.setRemoved();
+    }
+
+    /**
+     * Puts a landed fixture back on its Theatrical network.
+     *
+     * {@code setBlock} creates the block entity and {@code setLevel} registers it while
+     * the tag is still empty (null network). {@link BlockEntity#load} then restores the
+     * real universe / address / network id, but Theatrical never re-adds the consumer
+     * from {@code read}. The operator has to open every fixture and Apply. Calling this
+     * after load is the same add Theatrical would have done if the tag had been there
+     * first.
+     */
+    static void reattach(BlockEntity be) {
+        if (!(be instanceof BaseDMXConsumerLightBlockEntity light)) {
+            return;
+        }
+        if (light.getLevel() == null || light.getLevel().isClientSide) {
+            return;
+        }
+        var network = TheatricalNetworkData.getInstance(light.getLevel().getServer().overworld())
+                .getNetwork(light.getNetworkId());
+        if (network != null) {
+            network.dmx().addConsumer(light.getBlockPos(), light);
+        }
     }
 
     /** Live head state, or null when this proxy is not a light. */

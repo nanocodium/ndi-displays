@@ -1,5 +1,7 @@
 # Vision Switcher
 
+![Vision switcher](/img/blocks/vision_switcher.png)
+
 ATEM-style desk: **eight NDI inputs**, a **program** bus and a **preview** bus, and real transitions. Right-click sits at the panel. The program output broadcasts whether or not anyone is at the desk.
 
 CUT swaps the buses instantly. AUTO runs the selected transition (mix, dip to black, or wipe) over the set rate, then program and preview have traded places — flip-flop, like the hardware.

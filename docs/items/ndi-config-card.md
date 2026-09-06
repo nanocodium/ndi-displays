@@ -1,5 +1,7 @@
 # NDI Configuration Card
 
+![NDI configuration card](/img/items/ndi_config_card.png)
+
 Sneak + right-click in the air to pick a source. Right-click a screen to apply it. Sneak + click two winches to bound a park, then apply source, winch mode (linked / twin), and stitch on/off to the whole selection.
 
 ## Registry ID

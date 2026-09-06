@@ -1,5 +1,7 @@
 # Round LED Screen
 
+![Round LED screen showing colour bars](/img/blocks/round_screen.png)
+
 A single mount that draws a video disc of configurable radius. Same processor workflow as the walls, without building a circle out of cabinets.
 
 ## Registry ID

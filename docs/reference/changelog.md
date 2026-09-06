@@ -3,9 +3,33 @@
 This page follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The same notes live in [`CHANGELOG.md`](https://github.com/nanocodium/ndi-displays/blob/main/CHANGELOG.md) at the repo root.
 
-Current artifact: **`ndidisplays-1.20.1-1.1.0-beta.1-all.jar`** — Minecraft **1.20.1**, Forge **47.x**, Java 17.
+Current artifact: **`ndidisplays-1.20.1-1.1.1-beta.1-all.jar`** — Minecraft **1.20.1**, Forge **47.x**, Java 17.
 
 ## [Unreleased]
+
+## [1.1.1-beta.1] - 2026-09-06
+
+Second CurseForge beta. Includes upstream `main` through `150b536`.
+
+### Added
+
+- [OBS, Resolume, and the wall](/guide/ndi-software) — DistroAV output, in-game source patch clip, Resolume Arena NDI.
+- Sculpted [shoulder camera](/items/shoulder-camera) (worn + item, live monitor in first person).
+- Sculpted [blow-through](/blocks/blow-through-panel) cabinet + dedicated Shimmer bloom pass.
+- Broadcast camera item mesh (inventory / tab).
+
+### Changed
+
+- First person shows the whole shoulder rig. Monitor copy is opaque.
+- Blow-through is brighter against the bars; bloom uses the transparent MRT.
+- Palette strips are 16 px (full atlas mip chain).
+- Creative tab icon is the NDI configuration card.
+
+### Fixed
+
+- Chain hoist: fixtures keep their Theatrical patch after detach (no per-fixture Apply).
+- Broadcast camera no longer invisible in the inventory.
+- Shoulder first-person view no longer hides the worn rig.
 
 ## [1.1.0-beta.1] - 2026-09-04
 
@@ -52,6 +76,7 @@ First public CurseForge beta. Everything in this jar.
 
 Upstream `main` at `32d691b` before this beta. Notes for that tree now live under [1.1.0-beta.1].
 
-[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.0-beta.1...HEAD
-[1.1.0-beta.1]: https://github.com/nanocodium/ndi-displays/compare/32d691b...HEAD
+[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.1-beta.1...HEAD
+[1.1.1-beta.1]: https://github.com/nanocodium/ndi-displays/compare/1.1.0-beta.1...HEAD
+[1.1.0-beta.1]: https://github.com/nanocodium/ndi-displays/compare/32d691b...1.1.0-beta.1
 [1.0.0]: https://github.com/nanocodium/ndi-displays/commit/32d691b

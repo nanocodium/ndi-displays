@@ -1,5 +1,7 @@
 # Chain Hoist
 
+![Three chain hoists raking a flown truss](/img/hero/hoist_in_use.png)
+
 A stage motor that flies a **real block structure** — truss, scenery, SEF speakers, Theatrical fixtures, LED cabinets, or a pile of oak. Not a kinetic tile on a cable: the load leaves the world, travels as one rigid structure, and is placed back when the motor stops.
 
 Each motor runs its own chain, so a truss on several hoists can be **raked** by running one corner up. Theatrical fixtures on the load stay patched and keep running their cue, beams and all, for the whole flight. NDI video is the exception: a screen goes blank in the air and comes back when the load lands.
@@ -113,6 +115,7 @@ No SEF fork is required. Official SEF is enough.
 
 A fixture that has left the world is no longer a DMX consumer, which would mean a rig going dark the moment it moves. So each fixture on the load gets a stand-in on the server, patched at **the address it took off from** — flying a truss does not re-patch it. It receives the same DMX frames it did on the deck, and its head position, colour, focus and intensity are sent to clients every tick, where the fixture's own renderer draws it at the flying position.
 
+- After detach, the real fixtures re-join the same network and address. You do not Apply each machine again.
 - Works with Theatrical Extra Lights' volumetric beams too, since the beam goes through Theatrical's own pipeline.
 - Beam length is re-traced as the load moves, so a beam does not punch through the stage floor on the way up.
 - No Theatrical, or a build whose API has moved: flying still works, the fixtures simply hold the look they took off with.

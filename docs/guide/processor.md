@@ -2,7 +2,7 @@
 
 Every screen (wall, floor, round, curve, kinetic tile) can crop an **input window** out of the incoming frame — full frame or a sub-rectangle — so one NDI source can feed several walls with different cuts. The [projector](/blocks/projector) uses a separate lens GUI (throw / keystone), not this processor.
 
-Right-click a cabinet or mount → processor GUI.
+Right-click a cabinet or mount → processor GUI. Putting OBS or Resolume on the LAN: [OBS, Resolume, and the wall](/guide/ndi-software).
 
 ## Common fields
 

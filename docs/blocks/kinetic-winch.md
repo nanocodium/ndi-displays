@@ -1,5 +1,7 @@
 # Kinetic LED Winch
 
+![Kinetic LED spheres flown as a colour wave](/img/hero/kinetic_led_ball.png)
+
 A ceiling motor that flies a payload on rendered cables — Freedom Stage “floating sky”, not a teleport. Motion is trapezoidal: accelerate, cruise, decelerate.
 
 ## Registry ID
@@ -17,6 +19,8 @@ Right-click → **Winch** GUI: payload type, height, speed, dimmer, orientation 
 [NDI Configuration Card](/items/ndi-config-card): sneak-click two winches to bound a park, then apply source, linked/twin, and stitch.
 
 Payloads: [Payloads](/kinetics/payloads). Channel maps: [DMX](/kinetics/dmx).
+
+![LED tiles flown on kinetic winches over a stage](/img/hero/stage_winch_leds.png)
 
 ## NDI behavior
 

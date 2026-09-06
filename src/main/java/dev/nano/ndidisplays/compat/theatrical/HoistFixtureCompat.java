@@ -169,6 +169,38 @@ public final class HoistFixtureCompat {
     }
 
     /**
+     * Re-patches every Theatrical consumer in a load that has just been placed.
+     *
+     * {@link RigStructure#placeAt} loads NBT after {@code setLevel}, so fixtures, screens
+     * and winches come back with the right address in memory and nobody listening. Same
+     * bug Create hits on disassembly; they re-register from {@code read}, we do it here
+     * so this Theatrical build does not have to change.
+     */
+    public static void reattachLanded(net.minecraft.world.level.Level level,
+                                      RigStructure structure, BlockPos newOrigin) {
+        if (!active() || level == null || level.isClientSide || structure == null) {
+            return;
+        }
+        try {
+            for (RigStructure.Entry entry : structure.entries()) {
+                BlockEntity be = level.getBlockEntity(newOrigin.offset(entry.offset()));
+                if (be == null) {
+                    continue;
+                }
+                HoistFixtureHooks.reattach(be);
+                if (be instanceof dev.nano.ndidisplays.block.DmxScreen screen) {
+                    TheatricalCompat.registerScreen(screen);
+                }
+                if (be instanceof dev.nano.ndidisplays.block.KineticWinchBlockEntity winch) {
+                    TheatricalCompat.register(winch);
+                }
+            }
+        } catch (RuntimeException | LinkageError e) {
+            markBroken(e);
+        }
+    }
+
+    /**
      * Hands the fixtures back to the world. Called before the load is placed, so the real
      * block entities register themselves cleanly rather than fighting a stale proxy for the
      * same DMX address.

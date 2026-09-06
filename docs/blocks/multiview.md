@@ -1,5 +1,7 @@
 # Multiview Monitor
 
+![Multiview monitor](/img/blocks/multiview.png)
+
 2×2 or 3×3 mosaic of NDI sources for the video engineer. Direct video, no LED simulation. Click a cell, then pick its source.
 
 ## Registry ID

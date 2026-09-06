@@ -1,5 +1,7 @@
 # LED Floor Tile
 
+![LED floor tiles](/img/blocks/led_floor.png)
+
 Walkable module on the XZ plane. Adjacent same-facing tiles stitch into one floor canvas — colour bars, grids, or live video underfoot.
 
 ## Registry ID

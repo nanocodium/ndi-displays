@@ -8,7 +8,7 @@ Capture is client-side and budgeted (round-robin). Keep the number of **simultan
 
 Default name if the field is blank: `MC Cam|PTZ|Jib|Dolly <x>,<y>,<z>`.
 
-Handheld and shoulder are **items**: [Handheld](/items/handheld-camera), [Shoulder](/items/shoulder-camera). FPV: [Drone](/items/drone).
+Handheld and shoulder are **items**: [Handheld](/items/handheld-camera), [Shoulder](/items/shoulder-camera). FPV: [Drone](/items/drone). Ceiling spidercam: [Active Cam](/blocks/active-cam).
 
 ---
 

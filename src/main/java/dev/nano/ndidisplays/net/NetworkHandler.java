@@ -191,5 +191,25 @@ public final class NetworkHandler {
                 HoistGroupListPacket::encode,
                 HoistGroupListPacket::decode,
                 HoistGroupListPacket::handle);
+        CHANNEL.registerMessage(id++, BindActiveCamRigPacket.class,
+                BindActiveCamRigPacket::encode,
+                BindActiveCamRigPacket::decode,
+                BindActiveCamRigPacket::handle);
+        CHANNEL.registerMessage(id++, ActiveCamInputPacket.class,
+                ActiveCamInputPacket::encode,
+                ActiveCamInputPacket::decode,
+                ActiveCamInputPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateActiveCamConfigPacket.class,
+                UpdateActiveCamConfigPacket::encode,
+                UpdateActiveCamConfigPacket::decode,
+                UpdateActiveCamConfigPacket::handle);
+        CHANNEL.registerMessage(id++, ActiveCamActionPacket.class,
+                ActiveCamActionPacket::encode,
+                ActiveCamActionPacket::decode,
+                ActiveCamActionPacket::handle);
+        CHANNEL.registerMessage(id++, ActiveCamSnapshotPacket.class,
+                ActiveCamSnapshotPacket::encode,
+                ActiveCamSnapshotPacket::decode,
+                ActiveCamSnapshotPacket::handle);
     }
 }

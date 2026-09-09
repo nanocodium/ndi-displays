@@ -2,6 +2,10 @@ package dev.nano.ndidisplays.block;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -16,7 +20,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 /**
  * A 90° corner LED cabinet: a quarter-cylinder screen of radius one block, wrapping a wall
  * around a corner. Convex ({@code CONVEX=true}) wraps an outside corner; the inner variant
- * lines an inside corner. Placed with sneak for the inner form.
+ * lines an inside corner. Two items place the two forms; sneak + empty hand flips a placed one.
  *
  * The geometry is what makes it slot into path walls with no special cases: a quarter circle of
  * radius 1 whose endpoints are two diagonal cell corners is tangent, at those exact corners, to
@@ -67,12 +71,36 @@ public class LedCornerBlock extends LedPanelBlock {
         if (base == null) {
             return null;
         }
-        boolean inner = ctx.getPlayer() != null && ctx.getPlayer().isShiftKeyDown();
         // Facing comes from the click / look direction, like a flat panel. Snap only when
         // BOTH wings of the L already exist (score >= 2); a single neighbour used to rotate
         // the wrap onto another cell corner and shift the picture by a block.
-        base = base.setValue(DIAGONAL, false).setValue(CONVEX, !inner);
+        // CONVEX is set by LedCornerItem (outer vs inner), not sneak — sneak is used to
+        // place against a neighbour without opening the processor.
+        base = base.setValue(DIAGONAL, false);
         return orientToNeighbours(ctx.getLevel(), ctx.getClickedPos(), base);
+    }
+
+    @Override
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
+                                 InteractionHand hand, net.minecraft.world.phys.BlockHitResult hit) {
+        if (player.isShiftKeyDown() && player.getItemInHand(hand).isEmpty()) {
+            if (!level.isClientSide) {
+                BlockState next = state.setValue(CONVEX, !state.getValue(CONVEX));
+                level.setBlock(pos, next, 3);
+                if (level.getBlockEntity(pos) instanceof LedPanelBlockEntity be) {
+                    be.invalidateWallCache();
+                }
+            }
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
+        return super.use(state, level, pos, player, hand, hit);
+    }
+
+    @Override
+    public ItemStack getCloneItemStack(BlockGetter level, BlockPos pos, BlockState state) {
+        return new ItemStack(state.getValue(CONVEX)
+                ? dev.nano.ndidisplays.NdiDisplays.LED_CORNER_ITEM.get()
+                : dev.nano.ndidisplays.NdiDisplays.LED_INNER_CORNER_ITEM.get());
     }
 
     @Override

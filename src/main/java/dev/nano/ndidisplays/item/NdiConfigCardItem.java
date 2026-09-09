@@ -1,5 +1,6 @@
 package dev.nano.ndidisplays.item;
 
+import dev.nano.ndidisplays.block.CameraWinchBlock;
 import dev.nano.ndidisplays.block.KineticWinchBlock;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -42,6 +43,71 @@ public class NdiConfigCardItem extends Item {
     public static final String TAG_WINCH_MODE = "winchMode";
     /** When true, region apply stitches the park into one canvas; false = full source per motor. */
     public static final String TAG_AUTOMAP = "autoMapCanvas";
+    /** Sequential Camera Winch corners for an Active Cam bind (`camWinch0` … `camWinch3`). */
+    public static final String TAG_CAM_WINCH = "camWinch";
+
+    public static boolean hasCameraWinches(ItemStack stack) {
+        return cameraWinches(stack) != null;
+    }
+
+    @Nullable
+    public static BlockPos[] cameraWinches(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        if (tag == null) {
+            return null;
+        }
+        BlockPos[] out = new BlockPos[4];
+        for (int i = 0; i < 4; i++) {
+            String key = TAG_CAM_WINCH + i;
+            if (!tag.contains(key)) {
+                return null;
+            }
+            out[i] = BlockPos.of(tag.getLong(key));
+        }
+        return out;
+    }
+
+    public static int cameraWinchCount(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        if (tag == null) {
+            return 0;
+        }
+        int n = 0;
+        for (int i = 0; i < 4; i++) {
+            if (tag.contains(TAG_CAM_WINCH + i)) {
+                n++;
+            }
+        }
+        return n;
+    }
+
+    public static void addCameraWinch(ItemStack stack, BlockPos pos) {
+        CompoundTag tag = stack.getOrCreateTag();
+        for (int i = 0; i < 4; i++) {
+            if (tag.contains(TAG_CAM_WINCH + i)
+                    && BlockPos.of(tag.getLong(TAG_CAM_WINCH + i)).equals(pos)) {
+                return;
+            }
+        }
+        int slot = cameraWinchCount(stack);
+        if (slot >= 4) {
+            for (int i = 0; i < 4; i++) {
+                tag.remove(TAG_CAM_WINCH + i);
+            }
+            slot = 0;
+        }
+        tag.putLong(TAG_CAM_WINCH + slot, pos.asLong());
+    }
+
+    public static void clearCameraWinches(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        if (tag == null) {
+            return;
+        }
+        for (int i = 0; i < 4; i++) {
+            tag.remove(TAG_CAM_WINCH + i);
+        }
+    }
 
     public static final int WINCH_MODE_KEEP = 0;
     public static final int WINCH_MODE_LINKED = 1;
@@ -119,14 +185,22 @@ public class NdiConfigCardItem extends Item {
         }
         Level level = context.getLevel();
         BlockPos pos = context.getClickedPos();
-        if (!(level.getBlockState(pos).getBlock() instanceof KineticWinchBlock)) {
+        if (!(level.getBlockState(pos).getBlock() instanceof KineticWinchBlock)
+                && !(level.getBlockState(pos).getBlock() instanceof CameraWinchBlock)) {
             return InteractionResult.PASS;
         }
         if (!level.isClientSide) {
-            setSelectionPos(context.getItemInHand(), level, TAG_POS1, pos);
-            player.displayClientMessage(Component.translatable(
-                    "item.ndidisplays.ndi_config_card.pos1",
-                    pos.getX(), pos.getY(), pos.getZ()), true);
+            if (level.getBlockState(pos).getBlock() instanceof CameraWinchBlock) {
+                addCameraWinch(context.getItemInHand(), pos);
+                int n = cameraWinchCount(context.getItemInHand());
+                player.displayClientMessage(Component.translatable(
+                        "item.ndidisplays.ndi_config_card.cam_winch", n, pos.getX(), pos.getY(), pos.getZ()), true);
+            } else {
+                setSelectionPos(context.getItemInHand(), level, TAG_POS1, pos);
+                player.displayClientMessage(Component.translatable(
+                        "item.ndidisplays.ndi_config_card.pos1",
+                        pos.getX(), pos.getY(), pos.getZ()), true);
+            }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
@@ -176,6 +250,11 @@ public class NdiConfigCardItem extends Item {
         } else if (pos1 != null) {
             tooltip.add(Component.translatable("item.ndidisplays.ndi_config_card.selection_partial")
                     .withStyle(ChatFormatting.YELLOW));
+        }
+        int cams = cameraWinchCount(stack);
+        if (cams > 0) {
+            tooltip.add(Component.translatable("item.ndidisplays.ndi_config_card.cam_winches", cams)
+                    .withStyle(ChatFormatting.LIGHT_PURPLE));
         }
         tooltip.add(Component.translatable("item.ndidisplays.ndi_config_card.desc")
                 .withStyle(ChatFormatting.GRAY));

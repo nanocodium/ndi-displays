@@ -30,7 +30,14 @@ Eight facings (cardinals and 45°). [First wall](/guide/first-wall) for placemen
 
 ![LED corner cabinet wrapping a 90° wall](/img/blocks/led_corner.png)
 
-A true 90° wrap is the **LED Corner Cabinet** (`ndidisplays:led_corner`): one block, a quarter-cylinder of radius 1, tessellated like the [curved screen](/blocks/curved-screen) (~5°). Shapeless craft: **1** LED panel → **1** corner. Place it between two cardinal runs; sneak-place for the inner (concave) form. The corner auto-orients from its neighbours.
+A true 90° wrap is the **LED Corner Cabinet**: one block, a quarter-cylinder of radius 1, tessellated like the [curved screen](/blocks/curved-screen) (~5°).
+
+| Item | ID | Shape |
+|------|----|--------|
+| Outer | `ndidisplays:led_corner` | Convex — curve bulges out (outside of an L) |
+| Inner | `ndidisplays:led_inner_corner` | Concave — curve goes in (inside of a room corner) |
+
+Shapeless: **1** LED panel → outer corner. Outer ↔ inner swap in the grid. Sneak + empty hand on a placed cabinet flips the two. The corner auto-orients from its neighbours.
 
 The 45° **chamfer** is still the diagonal panel (`DIAGONAL`) — a flat cut, not a curve. Two cardinal flats in an L **without** a corner cabinet stay **two** screens; they do not merge across the gap.
 

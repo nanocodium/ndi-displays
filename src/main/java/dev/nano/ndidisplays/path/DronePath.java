@@ -54,7 +54,9 @@ public final class DronePath {
 
     private final List<Waypoint> points = new ArrayList<>();
     private Mode mode = Mode.ONCE;
+    private boolean downLook;
     private boolean playing;
+    private boolean paused;
     private boolean reverse;
     private double travelled;
     private int holdLeft;
@@ -78,7 +80,24 @@ public final class DronePath {
     }
 
     public boolean isPlaying() {
-        return playing;
+        return playing && !paused;
+    }
+
+    public boolean isPaused() {
+        return paused;
+    }
+
+    /** Active Cam: same spline, but pitch can look straight down at the stage. */
+    public void setDownLook(boolean downLook) {
+        this.downLook = downLook;
+    }
+
+    public void addCam(Waypoint waypoint) {
+        if (points.size() >= MAX_WAYPOINTS) {
+            return;
+        }
+        points.add(sanitizeCam(waypoint));
+        rebuild();
     }
 
     public boolean isEmpty() {
@@ -93,7 +112,7 @@ public final class DronePath {
         if (points.size() >= MAX_WAYPOINTS) {
             return;
         }
-        points.add(sanitize(waypoint));
+        points.add(clamp(waypoint));
         rebuild();
     }
 
@@ -129,6 +148,7 @@ public final class DronePath {
             return;
         }
         playing = true;
+        paused = false;
         reverse = false;
         travelled = 0.0;
         holdLeft = 0;
@@ -136,8 +156,15 @@ public final class DronePath {
         rebuild();
     }
 
+    public void pause() {
+        if (playing) {
+            paused = !paused;
+        }
+    }
+
     public void stop() {
         playing = false;
+        paused = false;
         reverse = false;
         travelled = 0.0;
         holdLeft = 0;
@@ -149,7 +176,7 @@ public final class DronePath {
      * (stopped, holding, or not enough points).
      */
     public Sample tick() {
-        if (!playing || points.size() < 2 || length <= 1.0e-4) {
+        if (!playing || paused || points.size() < 2 || length <= 1.0e-4) {
             return null;
         }
         if (holdLeft > 0) {
@@ -212,7 +239,9 @@ public final class DronePath {
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
         tag.putString("mode", mode.name());
+        tag.putBoolean("downLook", downLook);
         tag.putBoolean("playing", playing);
+        tag.putBoolean("paused", paused);
         tag.putBoolean("reverse", reverse);
         tag.putDouble("travelled", travelled);
         tag.putInt("holdLeft", holdLeft);
@@ -239,14 +268,16 @@ public final class DronePath {
         } catch (IllegalArgumentException ignored) {
             mode = Mode.ONCE;
         }
+        downLook = tag.getBoolean("downLook");
         playing = tag.getBoolean("playing");
+        paused = tag.getBoolean("paused");
         reverse = tag.getBoolean("reverse");
         travelled = tag.getDouble("travelled");
         holdLeft = tag.getInt("holdLeft");
         ListTag list = tag.getList("points", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size() && points.size() < MAX_WAYPOINTS; i++) {
             CompoundTag n = list.getCompound(i);
-            points.add(sanitize(new Waypoint(
+            points.add(clamp(new Waypoint(
                     new Vec3(n.getDouble("x"), n.getDouble("y"), n.getDouble("z")),
                     n.getFloat("yaw"), n.getFloat("pitch"),
                     n.getFloat("speed"), n.getInt("hold"))));
@@ -296,6 +327,20 @@ public final class DronePath {
                 Clamps.f(waypoint.gimbalPitch, -85.0F, 30.0F, 0.0F),
                 Clamps.f(waypoint.speed, 0.25F, 16.0F, 4.0F),
                 Clamps.i(waypoint.holdTicks, 0, 200));
+    }
+
+    /** Same as {@link #sanitize} but pitch can look straight down (Active Cam). */
+    public static Waypoint sanitizeCam(Waypoint waypoint) {
+        Vec3 pos = waypoint.pos == null ? Vec3.ZERO : waypoint.pos;
+        return new Waypoint(pos,
+                Clamps.f(waypoint.gimbalYaw, -180.0F, 180.0F, 0.0F),
+                Clamps.f(waypoint.gimbalPitch, -89.0F, 89.0F, 0.0F),
+                Clamps.f(waypoint.speed, 0.5F, 25.0F, 10.0F),
+                Clamps.i(waypoint.holdTicks, 0, 200));
+    }
+
+    private Waypoint clamp(Waypoint waypoint) {
+        return downLook ? sanitizeCam(waypoint) : sanitize(waypoint);
     }
 
     private void rebuild() {

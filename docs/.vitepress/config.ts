@@ -27,6 +27,7 @@ export default defineConfig({
       { text: 'Blocks', link: '/blocks/' },
       { text: 'Kinetics', link: '/kinetics/payloads' },
       { text: 'Reference', link: '/reference/recipes' },
+      { text: 'For Devs', link: '/devs/' },
       { text: 'GitHub', link: 'https://github.com/nanocodium/ndi-displays' }
     ],
     sidebar: [
@@ -52,6 +53,9 @@ export default defineConfig({
           { text: 'Curved LED Screen', link: '/blocks/curved-screen' },
           { text: 'Cameras', link: '/blocks/cameras' },
           { text: 'Kinetic LED Winch', link: '/blocks/kinetic-winch' },
+          { text: 'Camera Winch', link: '/blocks/camera-winch' },
+          { text: 'Active Cam', link: '/blocks/active-cam' },
+          { text: 'Active Cam Controller', link: '/blocks/active-cam-controller' },
           { text: 'Chain Hoist', link: '/blocks/chain-hoist' },
           { text: 'Video Projector', link: '/blocks/projector' },
           { text: 'Winch Park Monitor', link: '/blocks/winch-park-monitor' },
@@ -89,6 +93,14 @@ export default defineConfig({
           { text: 'Client config', link: '/reference/config' },
           { text: 'Integrations', link: '/reference/integrations' },
           { text: 'Changelog', link: '/reference/changelog' }
+        ]
+      },
+      {
+        text: 'For developers',
+        items: [
+          { text: 'Overview', link: '/devs/' },
+          { text: 'Contributing', link: '/devs/contributing' },
+          { text: 'Interop & API', link: '/devs/interop' }
         ]
       }
     ],

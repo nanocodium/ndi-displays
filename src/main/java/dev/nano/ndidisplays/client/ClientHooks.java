@@ -233,6 +233,15 @@ public final class ClientHooks {
         mc.setScreen(new dev.nano.ndidisplays.client.gui.DroneConfigScreen(drone));
     }
 
+    public static void openActiveCamController(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level != null && level.getBlockEntity(pos)
+                instanceof dev.nano.ndidisplays.block.ActiveCamControllerBlockEntity ctrl) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.ActiveCamControllerScreen(ctrl));
+        }
+    }
+
     public static DroneEntity findDrone(Level level, java.util.UUID id) {
         if (id == null || !(level instanceof net.minecraft.client.multiplayer.ClientLevel client)) {
             return null;

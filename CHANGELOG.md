@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **LED inner corner** (`ndidisplays:led_inner_corner`) — concave quarter-cylinder for in-corners. Same block as the outer cabinet (`convex=false`). Swap recipes; sneak + empty hand flips a placed one.
 - Camera range is configurable: `cameraRange` (blocks) and `cameraRangeUnlimited` in the client config, with a slider and switch on the mod's options page. Cameras past the range stop sending until the player returns.
+- **Active Cam** (2D Spidercam): four Camera Winches, gondola, controller, FPV and drone-style waypoints.
+- Wiki **For developers** (`docs/devs/`): contributing, Keep a Changelog rules, interop contract for Theatrical / Extra Lights / SEF. Root `CONTRIBUTING.md` points at it.
 
 ## [1.1.1-beta.1] - 2026-09-06
 

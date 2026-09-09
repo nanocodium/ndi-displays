@@ -40,6 +40,17 @@ public final class ClientConfig {
     public static final ForgeConfigSpec.ConfigValue<String> DRONE_PAD_LOOK_STICK;
     public static final ForgeConfigSpec.ConfigValue<String> DRONE_PAD_GUID;
     public static final ForgeConfigSpec.BooleanValue DRONE_PAD_INVERT_LOOK_Y;
+    public static final ForgeConfigSpec.ConfigValue<String> ACTIVE_CAM_PAD_RECORD;
+    public static final ForgeConfigSpec.ConfigValue<String> ACTIVE_CAM_PAD_ESTOP;
+    public static final ForgeConfigSpec.ConfigValue<String> ACTIVE_CAM_PAD_MENU;
+    public static final ForgeConfigSpec.ConfigValue<String> ACTIVE_CAM_PAD_PLAY;
+    public static final ForgeConfigSpec.ConfigValue<String> ACTIVE_CAM_PAD_STOP;
+    public static final ForgeConfigSpec.ConfigValue<String> ACTIVE_CAM_PAD_MOVE_STICK;
+    public static final ForgeConfigSpec.ConfigValue<String> ACTIVE_CAM_PAD_LOOK_STICK;
+    public static final ForgeConfigSpec.ConfigValue<String> ACTIVE_CAM_PAD_ZOOM_IN;
+    public static final ForgeConfigSpec.ConfigValue<String> ACTIVE_CAM_PAD_ZOOM_OUT;
+    public static final ForgeConfigSpec.ConfigValue<String> ACTIVE_CAM_PAD_GUID;
+    public static final ForgeConfigSpec.BooleanValue ACTIVE_CAM_PAD_INVERT_LOOK_Y;
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -83,6 +94,21 @@ public final class ClientConfig {
         DRONE_PAD_LOOK_STICK = builder.define("lookStick", "right");
         DRONE_PAD_GUID = builder.define("joystickGuid", "");
         DRONE_PAD_INVERT_LOOK_Y = builder.define("invertLookY", false);
+        builder.pop();
+
+        builder.comment("Active Cam / Spidercam gamepad. Separate from drone_pad so both can be bound.")
+                .push("active_cam_pad");
+        ACTIVE_CAM_PAD_RECORD = builder.define("record", "button:0");
+        ACTIVE_CAM_PAD_ESTOP = builder.define("estop", "button:1");
+        ACTIVE_CAM_PAD_MENU = builder.define("menu", "button:7");
+        ACTIVE_CAM_PAD_PLAY = builder.define("pathPlay", "unbound");
+        ACTIVE_CAM_PAD_STOP = builder.define("pathStop", "unbound");
+        ACTIVE_CAM_PAD_MOVE_STICK = builder.define("moveStick", "left");
+        ACTIVE_CAM_PAD_LOOK_STICK = builder.define("lookStick", "right");
+        ACTIVE_CAM_PAD_ZOOM_IN = builder.define("zoomIn", "axis:5");
+        ACTIVE_CAM_PAD_ZOOM_OUT = builder.define("zoomOut", "axis:4");
+        ACTIVE_CAM_PAD_GUID = builder.define("joystickGuid", "");
+        ACTIVE_CAM_PAD_INVERT_LOOK_Y = builder.define("invertLookY", false);
         builder.pop();
         SPEC = builder.build();
     }

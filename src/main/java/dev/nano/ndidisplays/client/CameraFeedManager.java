@@ -7,6 +7,7 @@ import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.logging.LogUtils;
 import dev.nano.ndidisplays.NdiDisplays;
+import dev.nano.ndidisplays.block.ActiveCamControllerBlockEntity;
 import dev.nano.ndidisplays.block.NdiCameraBlockEntity;
 import dev.nano.ndidisplays.entity.DroneEntity;
 import dev.nano.ndidisplays.client.ndi.NdiManager;
@@ -164,6 +165,7 @@ public final class CameraFeedManager {
 
     private static final Map<BlockPos, Feed> FEEDS = new ConcurrentHashMap<>();
     private static final Map<java.util.UUID, Feed> DRONE_FEEDS = new ConcurrentHashMap<>();
+    private static final Map<BlockPos, Feed> ACTIVE_CAM_FEEDS = new ConcurrentHashMap<>();
 
     /**
      * One capture target per output resolution, keyed by packed width/height. Rigs can run
@@ -310,6 +312,8 @@ public final class CameraFeedManager {
 
         /** Set when this feed is a flying drone rather than a block rig. */
         DroneEntity drone;
+        /** Set when this feed is an Active Cam gondola. */
+        ActiveCamControllerBlockEntity activeCam;
 
         Feed(NdiCameraBlockEntity be) {
             this.be = be;
@@ -395,6 +399,26 @@ public final class CameraFeedManager {
         if (feed != null) {
             feed.release();
         }
+    }
+
+    public static void registerActiveCam(ActiveCamControllerBlockEntity be) {
+        ACTIVE_CAM_FEEDS.compute(be.getBlockPos(), (pos, old) -> {
+            if (old != null) {
+                old.activeCam = be;
+                return old;
+            }
+            Feed feed = new Feed(null);
+            feed.activeCam = be;
+            return feed;
+        });
+    }
+
+    public static void unregisterActiveCam(ActiveCamControllerBlockEntity be) {
+        Feed feed = ACTIVE_CAM_FEEDS.remove(be.getBlockPos());
+        if (feed != null) {
+            feed.release();
+        }
+        ActiveCamClientState.remove(be.getBlockPos());
     }
 
     public static void register(NdiCameraBlockEntity be) {
@@ -484,6 +508,12 @@ public final class CameraFeedManager {
                 names.add(drone.getEffectiveSourceName());
             }
         }
+        for (Feed feed : ACTIVE_CAM_FEEDS.values()) {
+            ActiveCamControllerBlockEntity cam = feed.activeCam;
+            if (cam != null && !cam.isRemoved() && cam.isLive()) {
+                names.add(cam.getEffectiveSourceName());
+            }
+        }
         names.sort(String::compareToIgnoreCase);
         return names;
     }
@@ -507,6 +537,14 @@ public final class CameraFeedManager {
         DRONE_FEEDS.entrySet().removeIf(entry -> {
             DroneEntity drone = entry.getValue().drone;
             if (drone == null || drone.isRemoved() || drone.level() != level) {
+                entry.getValue().release();
+                return true;
+            }
+            return false;
+        });
+        ACTIVE_CAM_FEEDS.entrySet().removeIf(entry -> {
+            ActiveCamControllerBlockEntity cam = entry.getValue().activeCam;
+            if (cam == null || cam.isRemoved() || cam.getLevel() != level) {
                 entry.getValue().release();
                 return true;
             }
@@ -556,6 +594,8 @@ public final class CameraFeedManager {
         }
         DRONE_FEEDS.values().forEach(Feed::release);
         DRONE_FEEDS.clear();
+        ACTIVE_CAM_FEEDS.values().forEach(Feed::release);
+        ACTIVE_CAM_FEEDS.clear();
         CAPTURE_TARGETS.values().forEach(RenderTarget::destroyBuffers);
         CAPTURE_TARGETS.clear();
         CAPTURE_TARGET_LAST_USED.clear();
@@ -685,6 +725,10 @@ public final class CameraFeedManager {
                 DRONE_FEEDS.values().forEach(Feed::release);
                 DRONE_FEEDS.clear();
             }
+            if (!ACTIVE_CAM_FEEDS.isEmpty()) {
+                ACTIVE_CAM_FEEDS.values().forEach(Feed::release);
+                ACTIVE_CAM_FEEDS.clear();
+            }
             // Web terminals and the handheld broadcast from this path too, so a host handover
             // must take them off air the same way — otherwise their senders and native staging
             // buffers survive as ghost sources the network can still see. The browsers stay:
@@ -754,7 +798,7 @@ public final class CameraFeedManager {
         }
         // Drones are scheduled inside the budget loop below, against the rigs, so a live
         // 60 fps drone shares the frame's capture slots instead of taking every one of them.
-        if (FEEDS.isEmpty() && DRONE_FEEDS.isEmpty()) {
+        if (FEEDS.isEmpty() && DRONE_FEEDS.isEmpty() && ACTIVE_CAM_FEEDS.isEmpty()) {
             return;
         }
 
@@ -828,7 +872,18 @@ public final class CameraFeedManager {
             // Drones compete for the same slot: the most-overdue of either population wins, so
             // one fast drone shares the budget with the rigs instead of starving them.
             Feed dueDrone = findDueDrone(player, now);
-            if (dueDrone != null && (due == null || droneDueAt(dueDrone) <= due.nextDue)) {
+            Feed dueActive = findDueActiveCam(player, now);
+            double rigAt = due == null ? Double.POSITIVE_INFINITY : due.nextDue;
+            double droneAt = dueDrone == null ? Double.POSITIVE_INFINITY : droneDueAt(dueDrone);
+            double camAt = dueActive == null ? Double.POSITIVE_INFINITY : activeCamDueAt(dueActive);
+            if (dueActive != null && camAt <= droneAt && camAt <= rigAt) {
+                long camT0 = System.nanoTime();
+                captureActiveCam(mc, dueActive, now);
+                capturesThisSecond++;
+                captureMsAvg += ((System.nanoTime() - camT0) / 1_000_000.0 - captureMsAvg) * 0.1;
+                continue;
+            }
+            if (dueDrone != null && droneAt <= rigAt) {
                 long droneT0 = System.nanoTime();
                 captureDrone(mc, dueDrone, now);
                 capturesThisSecond++;
@@ -1147,6 +1202,68 @@ public final class CameraFeedManager {
                     captureTarget.viewWidth, captureTarget.viewHeight);
         } catch (Throwable t) {
             LOGGER.warn("[ndidisplays] drone capture failed: {}", t.toString());
+            due.viewersCheckedAt = now + 2.0;
+        }
+    }
+
+    private static Feed findDueActiveCam(LocalPlayer player, double now) {
+        Feed due = null;
+        double bestDue = Double.MAX_VALUE;
+        for (Feed feed : ACTIVE_CAM_FEEDS.values()) {
+            ActiveCamControllerBlockEntity cam = feed.activeCam;
+            if (cam == null || cam.isRemoved() || !cam.isLive()) {
+                feed.closeSender();
+                continue;
+            }
+            var pose = ActiveCamClientState.interpolated(cam.getBlockPos(), framePartialTick);
+            if (pose == null) {
+                pose = cam.pose();
+            }
+            double dx = pose.x - player.getX();
+            double dy = pose.y - player.getY();
+            double dz = pose.z - player.getZ();
+            if (dx * dx + dy * dy + dz * dz > cameraRangeSqr()) {
+                continue;
+            }
+            double next = activeCamDueAt(feed);
+            if (now >= next && next < bestDue) {
+                bestDue = next;
+                due = feed;
+            }
+        }
+        return due;
+    }
+
+    private static double activeCamDueAt(Feed feed) {
+        int fps = feed.activeCam == null ? 30 : feed.activeCam.getFps();
+        return feed.viewersCheckedAt + 1.0 / Math.max(1, fps);
+    }
+
+    private static void captureActiveCam(Minecraft mc, Feed due, double now) {
+        ActiveCamControllerBlockEntity cam = due.activeCam;
+        due.viewersCheckedAt = now;
+        try {
+            completePendingReadback(due);
+            int width = cam.getWidth();
+            int height = cam.getHeight();
+            captureTarget = acquireCaptureTarget(width, height);
+            var pose = ActiveCamClientState.interpolated(cam.getBlockPos(), framePartialTick);
+            if (pose == null) {
+                pose = cam.pose();
+            }
+            capturingActiveCam = cam.getBlockPos();
+            beginCapturingSource(cam.getEffectiveSourceName());
+            try {
+                renderView(mc, new NdiCameraBlockEntity.ViewState(pose.position(), pose.pan, pose.tilt),
+                        pose.fov);
+            } finally {
+                endCapturingSource();
+                capturingActiveCam = null;
+            }
+            readAndSend(due, cam.getEffectiveSourceName(), cam.getFps(), false,
+                    captureTarget.viewWidth, captureTarget.viewHeight);
+        } catch (Throwable t) {
+            LOGGER.warn("[ndidisplays] active cam capture failed: {}", t.toString());
             due.viewersCheckedAt = now + 2.0;
         }
     }
@@ -1638,9 +1755,14 @@ public final class CameraFeedManager {
 
     private static boolean capturingShoulderRig;
     private static DroneEntity capturingDrone;
+    private static BlockPos capturingActiveCam;
 
     public static boolean isCapturingDrone(DroneEntity drone) {
         return capturingDrone != null && capturingDrone == drone;
+    }
+
+    public static boolean isCapturingActiveCam(BlockPos controller) {
+        return capturingActiveCam != null && capturingActiveCam.equals(controller);
     }
 
     public static boolean isHidingDroneRider(net.minecraft.world.entity.player.Player player) {

@@ -9,7 +9,7 @@ outline: deep
 
 Registered in `NdiDisplays.java` via `BLOCKS.register("…")` (not `BLOCKS.register(modBus)`).
 
-**22** blocks in the current source.
+**24** blocks in the current source.
 
 | | Registry ID | Wiki |
 |---|-------------|------|
@@ -18,6 +18,8 @@ Registered in `NdiDisplays.java` via `BLOCKS.register("…")` (not `BLOCKS.regis
 | <img src="/img/blocks/led_corner.png" alt="Led Corner" width="96" /> | `ndidisplays:led_corner` | [Led Corner](/blocks/led-panel#90-turns) |
 | <img src="/img/blocks/led_floor.png" alt="Led Floor" width="96" /> | `ndidisplays:led_floor` | [Led Floor](/blocks/led-floor) |
 | <img src="/img/kinetics/led_tile.png" alt="Kinetic Winch" width="96" /> | `ndidisplays:kinetic_winch` | [Kinetic Winch](/blocks/kinetic-winch) |
+| — | `ndidisplays:camera_winch` | [Camera Winch](/blocks/camera-winch) |
+| — | `ndidisplays:active_cam_controller` | [Active Cam Controller](/blocks/active-cam-controller) |
 | <img src="/img/hero/hoist_in_use.png" alt="Chain Hoist" width="96" /> | `ndidisplays:chain_hoist` | [Chain Hoist](/blocks/chain-hoist) |
 | <img src="/img/blocks/projector.png" alt="Projector" width="96" /> | `ndidisplays:projector` | [Projector](/blocks/projector) |
 | <img src="/img/blocks/round_screen.png" alt="Round Screen" width="96" /> | `ndidisplays:round_screen` | [Round Screen](/blocks/round-screen) |

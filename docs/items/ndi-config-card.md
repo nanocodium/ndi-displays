@@ -18,6 +18,7 @@ Shapeless: paper + redstone + iron nugget. [Recipes](/reference/recipes).
 - Right-click a wall / floor / round / curve / winch tile / [projector](/blocks/projector) / [pro monitor](/blocks/pro-monitor) → apply stored source.
 - Sneak + click two [kinetic winches](/blocks/kinetic-winch) → park region; then stitch or full-frame per motor.
 - Bind a [Winch Park Monitor](/blocks/winch-park-monitor) the same way.
+- Sneak + right-click four [Camera Winches](/blocks/camera-winch), then the [Active Cam Controller](/blocks/active-cam-controller), to bind a Spidercam rig.
 - Stored source string on a [chain hoist](/blocks/chain-hoist) is treated as a **group name** (right-click the motor).
 
 ## NDI behavior

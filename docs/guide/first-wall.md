@@ -21,4 +21,4 @@ Panels have eight orientations. Facing a cardinal gives a square cabinet; facing
 
 Build a 45° wall as a staircase — one block diagonally each time — and the cabinets meet corner to corner. A straight run and a 45° wing are **two** walls with their own sources unless a diagonal cabinet bridges them.
 
-For a **smooth 90°** wrap, place an [LED Corner Cabinet](/blocks/led-panel#90-turns) (`ndidisplays:led_corner`) between the two cardinal runs. Craft it from one LED panel. Sneak-place for the inner corner. Two flats in an L with **no** corner stay two screens.
+For a **smooth 90°** wrap, place an [LED Corner Cabinet](/blocks/led-panel#90-turns) between the two cardinal runs. Outer item for an outside L, inner item (`led_inner_corner`) when the curve must go into the room. Craft from one LED panel (then swap outer ↔ inner). Two flats in an L with **no** corner stay two screens.

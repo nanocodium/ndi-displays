@@ -37,6 +37,24 @@ Values are `button:N`, `axis:N`, `unbound`, or stick tokens `left` / `right`. St
 
 Calibrate in the drone pad options / stick wizard. [Drone](/items/drone).
 
+## `[active_cam_pad]`
+
+Separate from `drone_pad` so both can stay bound. [Active Cam](/blocks/active-cam).
+
+| Key | Default |
+|-----|---------|
+| `record` | `button:0` |
+| `estop` | `button:1` |
+| `menu` | `button:7` |
+| `pathPlay` | `unbound` |
+| `pathStop` | `unbound` |
+| `moveStick` | `left` |
+| `lookStick` | `right` |
+| `zoomIn` | `axis:5` |
+| `zoomOut` | `axis:4` |
+| `joystickGuid` | `""` (empty) |
+| `invertLookY` | `false` |
+
 ## Screen lights
 
 Not a toml key. Content-coloured wash in front of LED walls (Shimmer) is a JVM flag, **off** by default — it reads as ugly ambient light on nearby architecture more often than as a video wall lighting a stage. Bloom on the cabinet itself is unaffected.

@@ -72,7 +72,7 @@ public class NdiDisplays {
 
     /**
      * 90° corner cabinet: a one-block quarter-cylinder that joins two cardinal LED runs into
-     * a single path wall. Sneak-place for the inner (concave) form.
+     * a single path wall. Outer item = convex wrap; inner item = concave in-corner.
      */
     public static final RegistryObject<Block> LED_CORNER = BLOCKS.register("led_corner",
             () -> new LedCornerBlock(BlockBehaviour.Properties.of()
@@ -83,7 +83,10 @@ public class NdiDisplays {
                     .lightLevel(state -> 0)));
 
     public static final RegistryObject<Item> LED_CORNER_ITEM = ITEMS.register("led_corner",
-            () -> new BlockItem(LED_CORNER.get(), new Item.Properties()));
+            () -> new dev.nano.ndidisplays.item.LedCornerItem(LED_CORNER.get(), new Item.Properties(), true));
+
+    public static final RegistryObject<Item> LED_INNER_CORNER_ITEM = ITEMS.register("led_inner_corner",
+            () -> new dev.nano.ndidisplays.item.LedCornerItem(LED_CORNER.get(), new Item.Properties(), false));
 
     public static final RegistryObject<BlockEntityType<LedPanelBlockEntity>> LED_PANEL_BE = BLOCK_ENTITIES.register("led_panel",
             () -> BlockEntityType.Builder.of(LedPanelBlockEntity::new,
@@ -127,6 +130,39 @@ public class NdiDisplays {
     public static final RegistryObject<BlockEntityType<KineticWinchBlockEntity>> KINETIC_WINCH_BE =
             BLOCK_ENTITIES.register("kinetic_winch",
                     () -> BlockEntityType.Builder.of(KineticWinchBlockEntity::new, KINETIC_WINCH.get()).build(null));
+
+    public static final RegistryObject<Block> CAMERA_WINCH = BLOCKS.register("camera_winch",
+            () -> new dev.nano.ndidisplays.block.CameraWinchBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()));
+
+    public static final RegistryObject<Item> CAMERA_WINCH_ITEM = ITEMS.register("camera_winch",
+            () -> new BlockItem(CAMERA_WINCH.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.CameraWinchBlockEntity>> CAMERA_WINCH_BE =
+            BLOCK_ENTITIES.register("camera_winch",
+                    () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.CameraWinchBlockEntity::new,
+                            CAMERA_WINCH.get()).build(null));
+
+    public static final RegistryObject<Block> ACTIVE_CAM_CONTROLLER = BLOCKS.register("active_cam_controller",
+            () -> new dev.nano.ndidisplays.block.ActiveCamControllerBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.4F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 6)));
+
+    public static final RegistryObject<Item> ACTIVE_CAM_CONTROLLER_ITEM = ITEMS.register("active_cam_controller",
+            () -> new BlockItem(ACTIVE_CAM_CONTROLLER.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<
+            dev.nano.ndidisplays.block.ActiveCamControllerBlockEntity>> ACTIVE_CAM_CONTROLLER_BE =
+            BLOCK_ENTITIES.register("active_cam_controller",
+                    () -> BlockEntityType.Builder.of(
+                            dev.nano.ndidisplays.block.ActiveCamControllerBlockEntity::new,
+                            ACTIVE_CAM_CONTROLLER.get()).build(null));
 
     /**
      * Chain hoist: the rigging motor. Unlike the kinetic winch, which flies a rendered
@@ -463,9 +499,12 @@ public class NdiDisplays {
                     .displayItems((params, output) -> {
                         output.accept(LED_PANEL_ITEM.get());
                         output.accept(LED_CORNER_ITEM.get());
+                        output.accept(LED_INNER_CORNER_ITEM.get());
                         output.accept(BLOW_THROUGH_PANEL_ITEM.get());
                         output.accept(LED_FLOOR_ITEM.get());
                         output.accept(KINETIC_WINCH_ITEM.get());
+                        output.accept(CAMERA_WINCH_ITEM.get());
+                        output.accept(ACTIVE_CAM_CONTROLLER_ITEM.get());
                         output.accept(CHAIN_HOIST_ITEM.get());
                         output.accept(ROUND_SCREEN_ITEM.get());
                         output.accept(PROJECTOR_ITEM.get());
@@ -526,6 +565,18 @@ public class NdiDisplays {
                     .clientTrackingRange(64)
                     .updateInterval(1)
                     .build("drone"));
+
+    public static final RegistryObject<net.minecraft.world.entity.EntityType<
+            dev.nano.ndidisplays.entity.ActiveCamGondolaEntity>> ACTIVE_CAM =
+            ENTITIES.register("active_cam", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<dev.nano.ndidisplays.entity.ActiveCamGondolaEntity>of(
+                            dev.nano.ndidisplays.entity.ActiveCamGondolaEntity::new,
+                            net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(0.9F, 0.4F)
+                    .clientTrackingRange(64)
+                    .updateInterval(1)
+                    .fireImmune()
+                    .build("active_cam"));
 
     /**
      * A structure in flight. It carries the only copy of the load's blocks and NBT while

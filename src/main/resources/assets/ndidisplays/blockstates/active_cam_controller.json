@@ -1,0 +1,8 @@
+{
+    "variants": {
+        "facing=north": { "model": "ndidisplays:block/active_cam_controller" },
+        "facing=east": { "model": "ndidisplays:block/active_cam_controller", "y": 90 },
+        "facing=south": { "model": "ndidisplays:block/active_cam_controller", "y": 180 },
+        "facing=west": { "model": "ndidisplays:block/active_cam_controller", "y": 270 }
+    }
+}

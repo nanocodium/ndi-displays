@@ -7,6 +7,13 @@ Current artifact: **`ndidisplays-1.20.1-1.1.1-beta.1-all.jar`** — Minecraft **
 
 ## [Unreleased]
 
+### Added
+
+- [Active Cam](/blocks/active-cam) (2D Spidercam): four [Camera Winches](/blocks/camera-winch), gondola, [controller](/blocks/active-cam-controller), FPV and drone-style waypoints.
+- [LED inner corner](/blocks/led-panel#90-turns) (`led_inner_corner`) — concave wrap for room corners.
+- Camera range slider (`cameraRange` / `cameraRangeUnlimited`) on the client options page.
+- [For developers](/devs/) — [contributing](/devs/contributing), [interop & API](/devs/interop).
+
 ## [1.1.1-beta.1] - 2026-09-06
 
 Second CurseForge beta. Includes upstream `main` through `150b536`.

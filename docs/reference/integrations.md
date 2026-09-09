@@ -13,3 +13,5 @@ All optional. The mod loads without them.
 `mods.toml` marks shimmer, theatrical, xaerominimap, and xaeroworldmap as **non-mandatory**. MCEF is a dev/runtime extra (not listed there); see the repo `libs/` note.
 
 DMX channel maps: [DMX](/kinetics/dmx).
+
+Other mod authors: do not re-implement NDI or LED cabinets. Read [Interop & API](/devs/interop) and [Contributing](/devs/contributing).

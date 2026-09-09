@@ -5,8 +5,24 @@
             "rolls": 1,
             "entries": [
                 {
-                    "type": "minecraft:item",
-                    "name": "ndidisplays:led_corner"
+                    "type": "minecraft:alternatives",
+                    "children": [
+                        {
+                            "type": "minecraft:item",
+                            "name": "ndidisplays:led_inner_corner",
+                            "conditions": [
+                                {
+                                    "condition": "minecraft:block_state_property",
+                                    "block": "ndidisplays:led_corner",
+                                    "properties": { "convex": "false" }
+                                }
+                            ]
+                        },
+                        {
+                            "type": "minecraft:item",
+                            "name": "ndidisplays:led_corner"
+                        }
+                    ]
                 }
             ],
             "conditions": [

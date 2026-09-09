@@ -9,13 +9,15 @@ outline: deep
 
 Crafts from `src/main/resources/data/ndidisplays/recipes/`. This table is regenerated on every `npm run docs:gen` / `docs:build`.
 
-**28** recipe files.
+**32** recipe files.
 
 | File | Type | Pattern | Keys / ingredients | Result |
 |------|------|---------|--------------------|--------|
+| `active_cam_controller` | shaped | IGI / RCR / III | I=`minecraft:iron_ingot`, G=`minecraft:glass_pane`, R=`minecraft:redstone`, C=`minecraft:comparator` | `ndidisplays:active_cam_controller` |
 | `blow_through_panel` | shaped | IGI / G G / IGI | I=`minecraft:iron_ingot`, G=`minecraft:glowstone_dust` | `ndidisplays:blow_through_panel ×8` |
 | `broadcast_camera` | shaped | IGI / IRI /  I  | I=`minecraft:iron_ingot`, G=`minecraft:glass`, R=`minecraft:redstone` | `ndidisplays:broadcast_camera` |
 | `camera_track` | shaped | III / SSS | I=`minecraft:iron_ingot`, S=`minecraft:smooth_stone` | `ndidisplays:camera_track ×8` |
+| `camera_winch` | shaped | III / SPS /  I  | I=`minecraft:iron_ingot`, S=`minecraft:string`, P=`minecraft:piston` | `ndidisplays:camera_winch` |
 | `chain_hoist` | shaped | III / CPC /  C  | I=`minecraft:iron_ingot`, C=`minecraft:chain`, P=`minecraft:piston` | `ndidisplays:chain_hoist` |
 | `computer` | shaped | III / IPI / IRI | I=`minecraft:iron_ingot`, P=`ndidisplays:led_panel`, R=`minecraft:redstone` | `ndidisplays:computer` |
 | `curved_screen` | shaped | L L /  R  / L L | L=`ndidisplays:led_panel`, R=`minecraft:redstone` | `ndidisplays:curved_screen` |
@@ -26,8 +28,10 @@ Crafts from `src/main/resources/data/ndidisplays/recipes/`. This table is regene
 | `hoist_remote` | shaped |  R  / IBI /  I  | R=`minecraft:redstone`, I=`minecraft:iron_nugget`, B=`minecraft:stone_button` | `ndidisplays:hoist_remote` |
 | `jib_camera` | shaped |   C / II  / RI  | I=`minecraft:iron_ingot`, C=`ndidisplays:broadcast_camera`, R=`minecraft:redstone` | `ndidisplays:jib_camera` |
 | `kinetic_winch` | shaped | III / SPS /  L  | I=`minecraft:iron_ingot`, S=`minecraft:string`, P=`minecraft:piston`, L=`ndidisplays:led_panel` | `ndidisplays:kinetic_winch` |
+| `led_corner_from_inner` | shapeless | — | `ndidisplays:led_inner_corner` | `ndidisplays:led_corner` |
 | `led_corner` | shapeless | — | `ndidisplays:led_panel` | `ndidisplays:led_corner` |
 | `led_floor` | shaped | III / GRG / III | I=`minecraft:iron_ingot`, G=`minecraft:glowstone_dust`, R=`minecraft:black_concrete` | `ndidisplays:led_floor ×8` |
+| `led_inner_corner` | shapeless | — | `ndidisplays:led_corner` | `ndidisplays:led_inner_corner` |
 | `led_panel` | shaped | III / GRG / III | I=`minecraft:iron_ingot`, G=`minecraft:glowstone_dust`, R=`minecraft:redstone_block` | `ndidisplays:led_panel ×8` |
 | `multiview` | shaped | GGG / GRG / GGG | G=`minecraft:glass_pane`, R=`ndidisplays:led_panel` | `ndidisplays:multiview` |
 | `ndi_config_card` | shapeless | — | `minecraft:paper`, `minecraft:redstone`, `minecraft:iron_nugget` | `ndidisplays:ndi_config_card` |

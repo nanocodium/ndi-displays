@@ -95,10 +95,10 @@ jobs:
           cat "$LOG"
           STATUS=$(sed -n 's/^COMPILE_STATUS=//p' "$LOG" | tail -1)
           mkdir -p thirdparty
-          cp "$LOG" thirdparty/arm64-build.log
+          cp "$LOG" thirdparty/arm64-build.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add thirdparty/arm64-build.log
+          git add thirdparty/arm64-build.txt
           git commit -q -m "Devolay arm64 build log (status ${STATUS:-unknown})" && git push
           test "$STATUS" = "0"
 
@@ -128,7 +128,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm -q --ignore-unmatch thirdparty/arm64-build.log
+          git rm -q --ignore-unmatch thirdparty/arm64-build.txt
           git add thirdparty/
           git commit -m "Devolay ${DEVOLAY_TAG} repacked with a macOS arm64 native" || echo "nothing to commit"
           git push

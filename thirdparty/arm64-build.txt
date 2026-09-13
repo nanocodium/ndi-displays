@@ -2,9 +2,9 @@
 + curl -sSL -o deps/filesystem.hpp https://github.com/gulrak/filesystem/releases/download/v1.3.2/filesystem.hpp
 + ls -la deps
 total 320
-drwxr-xr-x   3 runner  staff      96 Sep 13 12:45 .
-drwxr-xr-x  23 runner  staff     736 Sep 13 12:45 ..
--rw-r--r--   1 runner  staff  161298 Sep 13 12:45 filesystem.hpp
+drwxr-xr-x   3 runner  staff      96 Sep 13 12:49 .
+drwxr-xr-x  24 runner  staff     768 Sep 13 12:49 ..
+-rw-r--r--   1 runner  staff  161298 Sep 13 12:49 filesystem.hpp
 + echo JAVA_HOME=/Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-101/aarch64/Contents/Home
 JAVA_HOME=/Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-101/aarch64/Contents/Home
 + ls /Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-101/aarch64/Contents/Home/include /Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-101/aarch64/Contents/Home/include/darwin
@@ -28,12 +28,8 @@ Processing.NDI.Lib.cplusplus.h
 Processing.NDI.Lib.h
 Processing.NDI.Recv.ex.h
 Processing.NDI.Recv.h
-Processing.NDI.RecvAdvertiser.h
-Processing.NDI.RecvListener.h
 Processing.NDI.Routing.h
 Processing.NDI.Send.h
-Processing.NDI.SendAdvertiser.h
-Processing.NDI.SendListener.h
 Processing.NDI.compat.h
 Processing.NDI.deprecated.h
 Processing.NDI.structs.h

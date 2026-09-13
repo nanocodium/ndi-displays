@@ -63,6 +63,8 @@ jobs:
 
       - name: Compile the arm64 native
         run: |
+          set -o pipefail
+          exec > >(tee -a "$GITHUB_WORKSPACE/arm64-build.log") 2>&1
           mkdir -p deps
           curl -sSL -o deps/filesystem.hpp https://github.com/gulrak/filesystem/releases/download/v1.3.2/filesystem.hpp
           cd devolay/devolay-natives/src/main/cpp
@@ -76,6 +78,17 @@ jobs:
           file libdevolay-natives.dylib
           nm -gU libdevolay-natives.dylib | grep -c Java_me_walkerknapp
           codesign -dv libdevolay-natives.dylib 2>&1 | head -3
+
+      - name: Publish the build log on failure
+        # Job logs need a login to read through the API; a committed log file does not.
+        if: ${{ failure() }}
+        run: |
+          mkdir -p thirdparty
+          cp arm64-build.log thirdparty/arm64-build.log
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add thirdparty/arm64-build.log
+          git commit -m "Devolay arm64 build failed: compiler log" && git push || true
 
       - name: Repack the Devolay jar with the arm64 native
         run: |
@@ -103,6 +116,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -q --ignore-unmatch thirdparty/arm64-build.log
           git add thirdparty/
           git commit -m "Devolay ${DEVOLAY_TAG} repacked with a macOS arm64 native" || echo "nothing to commit"
           git push

@@ -49,10 +49,15 @@ jobs:
         run: git clone --depth 1 -b "${DEVOLAY_TAG}" https://github.com/WalkerKnapp/devolay.git devolay
 
       - name: Install the NDI SDK for Apple (headers)
+        # SDK 5, not 6: Devolay 2.1.0 passes instance handles as void pointers, which SDK 6's
+        # typed handles reject at compile time. The runtime ABI is the same, so the result
+        # still loads the v6 runtime the Apple redistributable installs.
         run: |
-          curl -sSL -o ndi-sdk.pkg "https://downloads.ndi.tv/SDK/NDI_SDK_Mac/Install_NDI_SDK_v6_Apple.pkg"
+          curl -sSL -o ndi-sdk.pkg "https://downloads.ndi.tv/SDK/NDI_SDK_Mac/Install_NDI_SDK_v5_Apple.pkg"
           sudo installer -pkg ndi-sdk.pkg -target /
-          ls "/Library/NDI SDK for Apple/include" | head
+          INC=$(dirname "$(find /Library -name Processing.NDI.Lib.h -print -quit)")
+          echo "NDI headers: $INC"; ls "$INC" | head
+          echo "NDI_INCLUDE=$INC" >> "$GITHUB_ENV"
 
       - name: Generate JNI headers from Devolay's Java classes
         run: |
@@ -74,13 +79,13 @@ jobs:
             curl -sSL -o deps/filesystem.hpp https://github.com/gulrak/filesystem/releases/download/v1.3.2/filesystem.hpp
             ls -la deps
             echo "JAVA_HOME=$JAVA_HOME"; ls "$JAVA_HOME/include" "$JAVA_HOME/include/darwin"
-            ls "/Library/NDI SDK for Apple/include"
+            ls "$NDI_INCLUDE"
             ls devolay/devolay-natives/src/main/headers
             cd devolay/devolay-natives/src/main/cpp
             clang++ -std=c++11 -O2 -fPIC -dynamiclib -arch arm64 -mmacosx-version-min=11.0 \
               -I. -I../headers -I"$GITHUB_WORKSPACE/deps" \
               -I"$JAVA_HOME/include" -I"$JAVA_HOME/include/darwin" \
-              -I"/Library/NDI SDK for Apple/include" \
+              -I"$NDI_INCLUDE" \
               -o "$GITHUB_WORKSPACE/libdevolay-natives.dylib" *.cpp -ldl
             STATUS=$?
             cd "$GITHUB_WORKSPACE"

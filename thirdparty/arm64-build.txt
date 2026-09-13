@@ -1,0 +1,126 @@
++ mkdir -p deps
++ curl -sSL -o deps/filesystem.hpp https://github.com/gulrak/filesystem/releases/download/v1.3.2/filesystem.hpp
++ ls -la deps
+total 320
+drwxr-xr-x   3 runner  staff      96 Sep 13 12:45 .
+drwxr-xr-x  23 runner  staff     736 Sep 13 12:45 ..
+-rw-r--r--   1 runner  staff  161298 Sep 13 12:45 filesystem.hpp
++ echo JAVA_HOME=/Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-101/aarch64/Contents/Home
+JAVA_HOME=/Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-101/aarch64/Contents/Home
++ ls /Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-101/aarch64/Contents/Home/include /Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-101/aarch64/Contents/Home/include/darwin
+/Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-101/aarch64/Contents/Home/include:
+classfile_constants.h
+darwin
+jawt.h
+jdwpTransport.h
+jni.h
+jvmti.h
+jvmticmlr.h
+
+/Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-101/aarch64/Contents/Home/include/darwin:
+jawt_md.h
+jni_md.h
++ ls '/Library/NDI SDK for Apple/include'
+Processing.NDI.DynamicLoad.h
+Processing.NDI.Find.h
+Processing.NDI.FrameSync.h
+Processing.NDI.Lib.cplusplus.h
+Processing.NDI.Lib.h
+Processing.NDI.Recv.ex.h
+Processing.NDI.Recv.h
+Processing.NDI.RecvAdvertiser.h
+Processing.NDI.RecvListener.h
+Processing.NDI.Routing.h
+Processing.NDI.Send.h
+Processing.NDI.SendAdvertiser.h
+Processing.NDI.SendListener.h
+Processing.NDI.compat.h
+Processing.NDI.deprecated.h
+Processing.NDI.structs.h
+Processing.NDI.utilities.h
++ ls devolay/devolay-natives/src/main/headers
+me_walkerknapp_devolay_Devolay.h
+me_walkerknapp_devolay_DevolayAudioFrame.h
+me_walkerknapp_devolay_DevolayAudioFrameInterleaved16s.h
+me_walkerknapp_devolay_DevolayAudioFrameInterleaved32f.h
+me_walkerknapp_devolay_DevolayAudioFrameInterleaved32s.h
+me_walkerknapp_devolay_DevolayFinder.h
+me_walkerknapp_devolay_DevolayFrameSync.h
+me_walkerknapp_devolay_DevolayMetadataFrame.h
+me_walkerknapp_devolay_DevolayPerformanceData.h
+me_walkerknapp_devolay_DevolayReceiver.h
+me_walkerknapp_devolay_DevolayRouter.h
+me_walkerknapp_devolay_DevolaySender.h
+me_walkerknapp_devolay_DevolaySource.h
+me_walkerknapp_devolay_DevolayUtilities.h
+me_walkerknapp_devolay_DevolayVideoFrame.h
++ cd devolay/devolay-natives/src/main/cpp
++ clang++ -std=c++11 -O2 -fPIC -dynamiclib -arch arm64 -mmacosx-version-min=11.0 -I. -I../headers -I/Users/runner/work/ndi-displays/ndi-displays/deps -I/Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-101/aarch64/Contents/Home/include -I/Users/runner/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-101/aarch64/Contents/Home/include/darwin '-I/Library/NDI SDK for Apple/include' -o /Users/runner/work/ndi-displays/ndi-displays/libdevolay-natives.dylib devolay.cpp finder.cpp frames.cpp framesync.cpp performance.cpp receiver.cpp router.cpp sender.cpp source.cpp utilities.cpp -ldl
+framesync.cpp:6:50: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_recv_instance_t *' (aka 'NDIlib_recv_instance_type **')
+    return (jlong) getNDILib()->framesync_create(reinterpret_cast<NDIlib_recv_instance_t *>(pReceiver));
+                                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+framesync.cpp:10:36: error: cannot initialize a parameter of type 'NDIlib_framesync_instance_t' (aka 'NDIlib_framesync_instance_type *') with an rvalue of type 'NDIlib_framesync_instance_t *' (aka 'NDIlib_framesync_instance_type **')
+    getNDILib()->framesync_destroy(reinterpret_cast<NDIlib_framesync_instance_t *>(pFramesync));
+                                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+framesync.cpp:15:42: error: cannot initialize a parameter of type 'NDIlib_framesync_instance_t' (aka 'NDIlib_framesync_instance_type *') with an rvalue of type 'NDIlib_framesync_instance_t *' (aka 'NDIlib_framesync_instance_type **')
+    getNDILib()->framesync_capture_audio(reinterpret_cast<NDIlib_framesync_instance_t *>(pFramesync),
+                                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+framesync.cpp:28:39: error: cannot initialize a parameter of type 'NDIlib_framesync_instance_t' (aka 'NDIlib_framesync_instance_type *') with an rvalue of type 'NDIlib_framesync_instance_t *' (aka 'NDIlib_framesync_instance_type **')
+    getNDILib()->framesync_free_audio(reinterpret_cast<NDIlib_framesync_instance_t *>(pFramesync),
+                                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+framesync.cpp:34:42: error: cannot initialize a parameter of type 'NDIlib_framesync_instance_t' (aka 'NDIlib_framesync_instance_type *') with an rvalue of type 'NDIlib_framesync_instance_t *' (aka 'NDIlib_framesync_instance_type **')
+    getNDILib()->framesync_capture_video(reinterpret_cast<NDIlib_framesync_instance_t *>(pFramesync),
+                                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+framesync.cpp:43:39: error: cannot initialize a parameter of type 'NDIlib_framesync_instance_t' (aka 'NDIlib_framesync_instance_type *') with an rvalue of type 'NDIlib_framesync_instance_t *' (aka 'NDIlib_framesync_instance_type **')
+    getNDILib()->framesync_free_video(reinterpret_cast<NDIlib_framesync_instance_t *>(pFramesync),
+                                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+6 errors generated.
+receiver.cpp:42:31: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_recv_instance_t *' (aka 'NDIlib_recv_instance_type **')
+    getNDILib()->recv_connect(reinterpret_cast<NDIlib_recv_instance_t *>(pReceiver), reinterpret_cast<NDIlib_source_t *>(pSource));
+                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+receiver.cpp:46:41: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_recv_instance_t *' (aka 'NDIlib_recv_instance_type **')
+    return getNDILib()->recv_capture_v2(reinterpret_cast<NDIlib_recv_instance_t *>(pReceiver),
+                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+receiver.cpp:54:37: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_recv_instance_t *' (aka 'NDIlib_recv_instance_type **')
+    getNDILib()->recv_free_video_v2(reinterpret_cast<NDIlib_recv_instance_t *>(pReceiver),
+                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+receiver.cpp:59:37: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_recv_instance_t *' (aka 'NDIlib_recv_instance_type **')
+    getNDILib()->recv_free_audio_v2(reinterpret_cast<NDIlib_recv_instance_t *>(pReceiver),
+                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+receiver.cpp:64:37: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_recv_instance_t *' (aka 'NDIlib_recv_instance_type **')
+    getNDILib()->recv_free_metadata(reinterpret_cast<NDIlib_recv_instance_t *>(pReceiver),
+                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+receiver.cpp:69:44: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_recv_instance_t *' (aka 'NDIlib_recv_instance_type **')
+    return getNDILib()->recv_send_metadata(reinterpret_cast<NDIlib_recv_instance_t *>(pReceiver),
+                                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+receiver.cpp:74:39: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_recv_instance_t *' (aka 'NDIlib_recv_instance_type **')
+    getNDILib()->recv_get_performance(reinterpret_cast<NDIlib_recv_instance_t *>(pReceiver),
+                                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+receiver.cpp:80:49: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_recv_instance_t *' (aka 'NDIlib_recv_instance_type **')
+    getNDILib()->recv_clear_connection_metadata(reinterpret_cast<NDIlib_recv_instance_t *>(pReceiver));
+                                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+receiver.cpp:84:47: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_recv_instance_t *' (aka 'NDIlib_recv_instance_type **')
+    getNDILib()->recv_add_connection_metadata(reinterpret_cast<NDIlib_recv_instance_t *>(pReceiver),
+                                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+receiver.cpp:89:49: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_recv_instance_t *' (aka 'NDIlib_recv_instance_type **')
+    return getNDILib()->recv_get_no_connections(reinterpret_cast<NDIlib_recv_instance_t *>(pReceiver));
+                                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+receiver.cpp:93:64: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_recv_instance_t *' (aka 'NDIlib_recv_instance_type **')
+    const char *webControl = getNDILib()->recv_get_web_control(reinterpret_cast<NDIlib_recv_instance_t *>(pReceiver));
+                                                               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+receiver.cpp:95:35: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_recv_instance_t *' (aka 'NDIlib_recv_instance_type **')
+    getNDILib()->recv_free_string(reinterpret_cast<NDIlib_recv_instance_t *>(pReceiver), webControl);
+                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+12 errors generated.
+sender.cpp:110:38: error: cannot initialize a parameter of type 'NDIlib_send_instance_t' (aka 'NDIlib_send_instance_type *') with an rvalue of type 'NDIlib_send_instance_t *' (aka 'NDIlib_send_instance_type **')
+    return getNDILib()->send_capture(reinterpret_cast<NDIlib_send_instance_t *>(pSender),
+                                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sender.cpp:116:37: error: cannot initialize a parameter of type 'NDIlib_recv_instance_t' (aka 'NDIlib_recv_instance_type *') with an rvalue of type 'NDIlib_send_instance_t *' (aka 'NDIlib_send_instance_type **')
+    getNDILib()->recv_free_metadata(reinterpret_cast<NDIlib_send_instance_t *>(pSender),
+                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2 errors generated.
++ STATUS=1
++ cd /Users/runner/work/ndi-displays/ndi-displays
++ '[' 1 = 0 ']'
++ echo COMPILE_STATUS=1
+COMPILE_STATUS=1

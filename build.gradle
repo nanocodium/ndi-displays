@@ -182,7 +182,18 @@ minecraft {
     }
 }
 
+// Devolay with a macOS arm64 native, built and repacked by the "Build Devolay macOS arm64"
+// workflow into thirdparty/. Upstream ships no Apple Silicon native; when the repacked jar is
+// present it replaces the Maven artifact (version .1 above upstream, inside the pinned range),
+// otherwise the build falls back to Maven Central and Apple Silicon Macs get no NDI.
+def devolayArm64 = file('thirdparty/devolay-2.1.0.1.jar')
+def devolayVersion = devolayArm64.exists() ? '2.1.0.1' : '2.1.0'
+
 repositories {
+    flatDir {
+        dirs 'thirdparty'
+        content { includeModule('me.walkerknapp', 'devolay') }
+    }
     mavenCentral()
     maven { url = 'https://maven.firstdarkdev.xyz/snapshots' }
     // Theatrical (DMX/Art-Net stage lighting) — for the kinetic winch fixture integration.
@@ -195,9 +206,9 @@ jarJar.enable()
 dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.3.0'
 
-    minecraftLibrary 'me.walkerknapp:devolay:2.1.0'
+    minecraftLibrary "me.walkerknapp:devolay:${devolayVersion}"
     jarJar('me.walkerknapp:devolay:[2.1.0,3.0)') {
-        jarJar.pin(it, '2.1.0')
+        jarJar.pin(it, devolayVersion)
     }
 
     // Optional bloom integration (compile-only: Shimmer's production mixins can't

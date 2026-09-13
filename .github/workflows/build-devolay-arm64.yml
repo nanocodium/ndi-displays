@@ -9,10 +9,13 @@
 # macOS), and adds it to a copy of devolay-2.1.0.jar from Maven Central. The repacked jar is
 # committed to thirdparty/ where build.gradle picks it up through a flat-dir repository.
 #
-# Run it by hand from the Actions tab whenever the Devolay version or the NDI SDK changes.
+# Runs whenever this file changes on main, or by hand from the Actions tab.
 name: Build Devolay macOS arm64
 
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/build-devolay-arm64.yml']
   workflow_dispatch:
     inputs:
       devolay_tag:
@@ -29,6 +32,10 @@ permissions:
 jobs:
   build:
     runs-on: macos-14
+    env:
+      # Pushes carry no inputs; these are the dispatch defaults.
+      DEVOLAY_TAG: ${{ inputs.devolay_tag || 'v2.1.0' }}
+      DO_COMMIT: ${{ github.event_name == 'push' || inputs.commit }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,7 +46,7 @@ jobs:
           architecture: aarch64
 
       - name: Fetch Devolay sources
-        run: git clone --depth 1 -b "${{ inputs.devolay_tag }}" https://github.com/WalkerKnapp/devolay.git devolay
+        run: git clone --depth 1 -b "${DEVOLAY_TAG}" https://github.com/WalkerKnapp/devolay.git devolay
 
       - name: Install the NDI SDK for Apple (headers)
         run: |
@@ -72,7 +79,7 @@ jobs:
 
       - name: Repack the Devolay jar with the arm64 native
         run: |
-          VERSION="${{ inputs.devolay_tag }}"; VERSION="${VERSION#v}"
+          VERSION="${DEVOLAY_TAG#v}"
           curl -sSL -o devolay-upstream.jar "https://repo1.maven.org/maven2/me/walkerknapp/devolay/${VERSION}/devolay-${VERSION}.jar"
           mkdir -p repack/natives/macos/arm64-v8a
           cp devolay-upstream.jar repack/devolay.jar
@@ -92,10 +99,10 @@ jobs:
             thirdparty/*.jar
 
       - name: Commit the repacked jar
-        if: ${{ inputs.commit }}
+        if: ${{ env.DO_COMMIT == 'true' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add thirdparty/
-          git commit -m "Devolay ${{ inputs.devolay_tag }} repacked with a macOS arm64 native" || echo "nothing to commit"
+          git commit -m "Devolay ${DEVOLAY_TAG} repacked with a macOS arm64 native" || echo "nothing to commit"
           git push

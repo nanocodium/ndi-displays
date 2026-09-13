@@ -66,6 +66,18 @@ jobs:
             $(find devolay/devolay-java/src/main/java -name '*.java')
           ls devolay/devolay-natives/src/main/headers
 
+      - name: Patch Devolay's handle casts for SDK 5 headers
+        # Devolay 2.1.0 predates SDK 5's typed handles: it casts a jlong to
+        # NDIlib_x_instance_t * (a pointer to the handle) where the API takes the handle itself.
+        # Under SDK 4's void* handles that converted silently; now it is a type error. Rewrite
+        # the casts to the handle type, which is the form the rest of the file already uses, and
+        # route the sender's metadata free through send_free_metadata rather than the receiver's.
+        run: |
+          cd devolay/devolay-natives/src/main/cpp
+          sed -i '' -E '/getNDILib\(\)/ s/reinterpret_cast<(NDIlib_[a-z]+_instance_t) \*>/reinterpret_cast<\1>/g' *.cpp
+          sed -i '' 's/getNDILib()->recv_free_metadata(reinterpret_cast<NDIlib_send_instance_t>/getNDILib()->send_free_metadata(reinterpret_cast<NDIlib_send_instance_t>/' sender.cpp
+          echo "remaining pointer-to-handle casts on API calls:"; grep -n 'getNDILib().*instance_t \*' *.cpp || echo none
+
       - name: Compile the arm64 native
         # Everything goes through one log that is committed whatever happens: job logs need a
         # login to read through the API, a file in the repo does not.

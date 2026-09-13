@@ -30,7 +30,7 @@ The **[NDI SDK](https://ndi.video/for-developers/ndi-sdk/)** is for native devel
 
 ## macOS
 
-Install [NDI Tools](https://ndi.video/tools/) (includes the runtime). Linux notes below do not apply.
+Install the [NDI Redist for Apple](http://ndi.link/NDIRedistV6Apple), which puts `libndi.dylib` under `/usr/local/lib` where the mod looks for it. Intel and Apple Silicon Macs are both supported: the jar carries its own arm64 build of the NDI binding. Linux notes below do not apply.
 
 ## Linux
 

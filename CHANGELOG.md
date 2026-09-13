@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **LED inner corner** (`ndidisplays:led_inner_corner`) — concave quarter-cylinder for in-corners. Same block as the outer cabinet (`convex=false`). Swap recipes; sneak + empty hand flips a placed one.
+- Apple Silicon Macs get live NDI: the bundled Devolay binding now includes a macOS arm64 native, built by the `Build Devolay macOS arm64` workflow and repacked into `thirdparty/devolay-2.1.0.1.jar`.
 - Camera range is configurable: `cameraRange` (blocks) and `cameraRangeUnlimited` in the client config, with a slider and switch on the mod's options page. Cameras past the range stop sending until the player returns.
 - **Active Cam** (2D Spidercam): four Camera Winches, gondola, controller, FPV and drone-style waypoints.
 - Wiki **For developers** (`docs/devs/`): contributing, Keep a Changelog rules, interop contract for Theatrical / Extra Lights / SEF. Root `CONTRIBUTING.md` points at it.

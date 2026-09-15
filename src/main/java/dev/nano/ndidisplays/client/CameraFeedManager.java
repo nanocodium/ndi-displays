@@ -623,6 +623,7 @@ public final class CameraFeedManager {
     @SubscribeEvent
     public static void onRenderStage(net.minecraftforge.client.event.RenderLevelStageEvent event) {
         if (!capturing) {
+            healPlayerFrame(event);
             return;
         }
         // Keep the nested render inside its own framebuffer. Post-processing mods hook these same
@@ -663,6 +664,52 @@ public final class CameraFeedManager {
         LOGGER.info("[ndidisplays] stage {} viewport {},{} {}x{} boundDrawFbo={}",
                 event.getStage(), vp[0], vp[1], vp[2], vp[3],
                 GL11C.glGetInteger(GL30C.GL_DRAW_FRAMEBUFFER_BINDING));
+    }
+
+    private static final java.util.Set<String> HEALED_STAGES = new java.util.HashSet<>();
+
+    /**
+     * The player's own frame, guarded the same way captures are.
+     *
+     * Post-processing mods size their scratch targets to "main", and during a capture main IS the
+     * camera's 1920x1080 buffer. Back in the player's frame those targets are still capture-sized;
+     * a mod that binds one at a stage checkpoint and then rebinds main WITHOUT resetting the
+     * viewport leaves the GL viewport at capture size for everything drawn afterwards. Terrain
+     * and entities are already down by then and look right, but the hand, and lights other mods
+     * draw late (Theatrical's fixture glows), land displaced and scaled by the window/capture size
+     * ratio — invisible on a 1080p window, obvious on a small one. Vanilla never resets the
+     * viewport between stages because nothing in vanilla changes it. This does: whenever the
+     * viewport or the draw framebuffer differs from the real main target at a checkpoint, both
+     * are put back. Skipped under a shader pack, which owns its own framebuffers mid-frame.
+     */
+    private static void healPlayerFrame(net.minecraftforge.client.event.RenderLevelStageEvent event) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null
+                || dev.nano.ndidisplays.client.render.ShaderPackCompat.shaderPackActive()) {
+            return;
+        }
+        RenderTarget main = mc.getMainRenderTarget();
+        if (main == null) {
+            return;
+        }
+        int[] vp = new int[4];
+        GL11C.glGetIntegerv(GL11C.GL_VIEWPORT, vp);
+        boolean fboWrong = GL11C.glGetInteger(GL30C.GL_DRAW_FRAMEBUFFER_BINDING) != main.frameBufferId;
+        boolean viewportWrong = vp[0] != 0 || vp[1] != 0 || vp[2] != main.width || vp[3] != main.height;
+        if (!fboWrong && !viewportWrong) {
+            return;
+        }
+        if (HEALED_STAGES.size() < 8 && HEALED_STAGES.add(String.valueOf(event.getStage()))) {
+            LOGGER.info("[ndidisplays] player frame left with {} at stage {} (viewport {}x{},"
+                            + " main {}x{}); restoring the main target",
+                    fboWrong ? "a foreign framebuffer" : "a foreign viewport", event.getStage(),
+                    vp[2], vp[3], main.width, main.height);
+        }
+        if (fboWrong) {
+            main.bindWrite(true);
+        } else {
+            RenderSystem.viewport(0, 0, main.width, main.height);
+        }
     }
 
     /**

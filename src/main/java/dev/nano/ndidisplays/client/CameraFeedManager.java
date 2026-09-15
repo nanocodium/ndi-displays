@@ -2217,10 +2217,6 @@ public final class CameraFeedManager {
             Entity restored = oldCameraEntity == null ? player : oldCameraEntity;
             camera.setup(level, restored, !mc.options.getCameraType().isFirstPerson(),
                     mc.options.getCameraType().isMirrored(), 1.0F);
-            // Back to the real screen, including any post target Shimmer created mid-capture.
-            if (dev.nano.ndidisplays.client.render.LedWallRenderer.SHIMMER_LOADED) {
-                dev.nano.ndidisplays.client.render.ShimmerCompat.hookPostTargets(oldMainTarget);
-            }
             mc.getMainRenderTarget().bindWrite(true);
         }
     }
@@ -2550,6 +2546,10 @@ public final class CameraFeedManager {
             Entity restored = oldCameraEntity == null ? player : oldCameraEntity;
             camera.setup(level, restored, !mc.options.getCameraType().isFirstPerson(),
                     mc.options.getCameraType().isMirrored(), 1.0F);
+            // Back to the real screen, including any post target Shimmer created mid-capture.
+            if (dev.nano.ndidisplays.client.render.LedWallRenderer.SHIMMER_LOADED) {
+                dev.nano.ndidisplays.client.render.ShimmerCompat.hookPostTargets(oldMainTarget);
+            }
             mc.getMainRenderTarget().bindWrite(true);
 
         }

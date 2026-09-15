@@ -137,15 +137,18 @@ public final class ShimmerCompat {
      */
     public static Object isolateBloomQueues() {
         try {
-            java.util.Map<PostProcessing, java.util.List<java.util.List<Object>>> saved =
-                    new java.util.IdentityHashMap<>();
+            // The player's own queues are set aside untouched and a queue that swallows every
+            // add takes their place. Copying and clearing the live lists was not enough: a
+            // fixture rendered INSIDE the capture queues its glow into the live list, and
+            // Shimmer's own hook drains that list before the capture ends — into a post target
+            // whose attachments are the player's real screen. The result was the camera's
+            // fixture glows, torch flames and hand painted over the player's frame.
+            java.util.Map<PostProcessing, java.util.List<Object>> saved = new java.util.IdentityHashMap<>();
             for (PostProcessing post : PostProcessing.values()) {
-                java.util.List<java.util.List<Object>> pair = new java.util.ArrayList<>(2);
+                java.util.List<Object> pair = new java.util.ArrayList<>(2);
                 for (java.lang.reflect.Field field : bloomQueueFields()) {
-                    @SuppressWarnings("unchecked")
-                    java.util.List<Object> live = (java.util.List<Object>) field.get(post);
-                    pair.add(new java.util.ArrayList<>(live));
-                    live.clear();
+                    pair.add(field.get(post));
+                    field.set(post, new DiscardingList());
                 }
                 saved.put(post, pair);
             }
@@ -157,23 +160,19 @@ public final class ShimmerCompat {
         }
     }
 
-    /** Discards whatever the capture queued and restores the player's own bloom draws. */
+    /** Puts the player's own bloom queues back; whatever the capture queued was never kept. */
     public static void restoreBloomQueues(Object savedState) {
         if (savedState == null) {
             return;
         }
         try {
             @SuppressWarnings("unchecked")
-            java.util.Map<PostProcessing, java.util.List<java.util.List<Object>>> saved =
-                    (java.util.Map<PostProcessing, java.util.List<java.util.List<Object>>>) savedState;
-            for (java.util.Map.Entry<PostProcessing, java.util.List<java.util.List<Object>>> e
-                    : saved.entrySet()) {
+            java.util.Map<PostProcessing, java.util.List<Object>> saved =
+                    (java.util.Map<PostProcessing, java.util.List<Object>>) savedState;
+            for (java.util.Map.Entry<PostProcessing, java.util.List<Object>> e : saved.entrySet()) {
                 java.lang.reflect.Field[] fields = bloomQueueFields();
                 for (int i = 0; i < fields.length; i++) {
-                    @SuppressWarnings("unchecked")
-                    java.util.List<Object> live = (java.util.List<Object>) fields[i].get(e.getKey());
-                    live.clear();
-                    live.addAll(e.getValue().get(i));
+                    fields[i].set(e.getKey(), e.getValue().get(i));
                 }
             }
         } catch (Throwable t) {
@@ -195,6 +194,66 @@ public final class ShimmerCompat {
     }
 
     private static java.lang.reflect.Field[] bloomQueues;
+
+    /** A list that stays empty: Shimmer only runs its entity pass when the queue is not. */
+    private static final class DiscardingList extends java.util.ArrayList<Object> {
+        @Override
+        public boolean add(Object o) {
+            return false;
+        }
+
+        @Override
+        public boolean addAll(java.util.Collection<?> c) {
+            return false;
+        }
+    }
+
+    private static java.lang.reflect.Field[] postTargetFields;
+    private static boolean hookWarned;
+
+    /**
+     * Points Shimmer's post targets at the given main target.
+     *
+     * A post target does not own its depth (nor, for the "with colour" one, its colour): it
+     * attaches the MAIN target's textures, chosen when it is created, and it is created lazily by
+     * the first bloom draw. Inside a capture "main" is the camera's pooled buffer, so a target
+     * born there stays wired to that buffer: the player's fixture glows and torch flames then
+     * render into a camera feed instead of the screen, flickering as the pool rotates, while a
+     * target born on the screen paints the CAPTURE's glows over the player's frame. Re-hooking
+     * to the current main on the way into a capture and back to the real screen on the way out
+     * keeps every pass in its own buffer. The hooks leave the post target's framebuffer bound;
+     * the caller rebinds its own.
+     */
+    public static void hookPostTargets(com.mojang.blaze3d.pipeline.RenderTarget main) {
+        try {
+            if (postTargetFields == null) {
+                java.lang.reflect.Field withColor = PostProcessing.class.getDeclaredField("postTargetWithColor");
+                java.lang.reflect.Field withoutColor = PostProcessing.class.getDeclaredField("postTargetWithoutColor");
+                withColor.setAccessible(true);
+                withoutColor.setAccessible(true);
+                postTargetFields = new java.lang.reflect.Field[]{withColor, withoutColor};
+            }
+            for (PostProcessing post : PostProcessing.values()) {
+                for (int i = 0; i < 2; i++) {
+                    Object t = postTargetFields[i].get(post);
+                    if (t instanceof com.lowdragmc.shimmer.client.rendertarget.CopyDepthColorTarget pt) {
+                        com.lowdragmc.shimmer.client.rendertarget.CopyDepthColorTarget
+                                .hookDepthBuffer(pt, main.getDepthTextureId());
+                        if (i == 0) {
+                            com.lowdragmc.shimmer.client.rendertarget.CopyDepthColorTarget
+                                    .hookColorAttachment(pt, main.getColorTextureId());
+                        }
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            if (!hookWarned) {
+                hookWarned = true;
+                LOGGER.warn("[ndidisplays] cannot re-hook Shimmer's post targets across captures ({})",
+                        t.toString());
+            }
+        }
+    }
 
     public static void submitBloom(Matrix4f pose, Vec3 p00, Vec3 p10, Vec3 p11, Vec3 p01,
                                    ResourceLocation texture, float[] ledParams, boolean blowThrough) {

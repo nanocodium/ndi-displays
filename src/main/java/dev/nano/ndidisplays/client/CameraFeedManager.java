@@ -2217,6 +2217,10 @@ public final class CameraFeedManager {
             Entity restored = oldCameraEntity == null ? player : oldCameraEntity;
             camera.setup(level, restored, !mc.options.getCameraType().isFirstPerson(),
                     mc.options.getCameraType().isMirrored(), 1.0F);
+            // Back to the real screen, including any post target Shimmer created mid-capture.
+            if (dev.nano.ndidisplays.client.render.LedWallRenderer.SHIMMER_LOADED) {
+                dev.nano.ndidisplays.client.render.ShimmerCompat.hookPostTargets(oldMainTarget);
+            }
             mc.getMainRenderTarget().bindWrite(true);
         }
     }
@@ -2455,6 +2459,12 @@ public final class CameraFeedManager {
         // which during this capture is the camera's, so stale camera pixels could otherwise be
         // composited into the player's frame afterwards.
         Boolean bloomFlag = dev.nano.ndidisplays.client.render.ShimmerCompat.suppressBloomFilter();
+        // Shimmer's post targets attach main's own textures; point them at the camera's buffer
+        // for the duration, so anything its hooks still draw lands in the feed, not the screen.
+        if (dev.nano.ndidisplays.client.render.LedWallRenderer.SHIMMER_LOADED) {
+            dev.nano.ndidisplays.client.render.ShimmerCompat.hookPostTargets(captureTarget);
+            captureTarget.bindWrite(true);
+        }
         // Same hazard, different mod: see TheatricalLazyQueue. A beam queued inside this capture
         // and drawn in the player's frame samples whatever target was current when it was queued.
         java.util.List<Object> beamsSaved =

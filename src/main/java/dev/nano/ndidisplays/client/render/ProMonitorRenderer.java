@@ -19,11 +19,11 @@ import org.joml.Matrix4f;
  */
 public class ProMonitorRenderer implements BlockEntityRenderer<ProMonitorBlockEntity> {
 
-    private static final float SCR_X0 = 0.0569F;
-    private static final float SCR_X1 = 0.9431F;
-    private static final float SCR_Y0 = 0.1716F;
-    private static final float SCR_Y1 = 0.6787F;
-    private static final float SCR_Z = 0.5897F + 0.004F;
+    private static final float SCR_X0 = -0.1203F;
+    private static final float SCR_X1 = 1.1203F;
+    private static final float SCR_Y0 = 0.2402F;
+    private static final float SCR_Y1 = 0.9502F;
+    private static final float SCR_Z = 0.6256F + 0.004F;
 
     @Override
     public void render(ProMonitorBlockEntity be, float partialTick, PoseStack pose,

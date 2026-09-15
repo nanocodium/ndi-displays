@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 /** The production monitor's chassis; the BER puts the live feed on its panel. */
 public class ProMonitorBlock extends HorizontalDirectionalBlock implements EntityBlock {
 
-    private static final VoxelShape SHAPE = Block.box(1, 0, 5, 15, 12, 11);
+    private static final VoxelShape SHAPE = Block.box(0, 0, 3, 16, 15, 13);
 
     public ProMonitorBlock(Properties properties) {
         super(properties);

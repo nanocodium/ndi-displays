@@ -123,17 +123,24 @@ public enum PanelFacing {
         return pitch;
     }
 
+    /** Width of one cabinet's face along the wall: the full stride, so neighbours meet. */
+    public double cabinetWidth() {
+        return pitch;
+    }
+
     /**
      * Where the emissive surface sits relative to its block's centre, measured along the
      * outward normal.
      *
      * Cardinal cabinets hug the back of their cell so a wall sits flush with the block
      * boundary, which puts the screen <em>behind</em> centre (a negative offset). Diagonal
-     * cabinets straddle the block's diagonal, so their screen sits just in front of centre.
+     * cabinets run from the block's diagonal forward, so their screen sits one cabinet
+     * thickness in front of centre — the same depth ahead of the idealised face line as a
+     * flat's, which is what lets a flat and a chamfer mitre cleanly at a bend.
      */
     public double surfaceOffset(float thickness, float epsilon) {
         return diagonal
-                ? thickness * 0.5 + epsilon
+                ? thickness + epsilon
                 : -(0.5 - thickness - epsilon);
     }
 }

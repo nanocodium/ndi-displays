@@ -19,6 +19,6 @@ Need the Runtime first? See [Install](/guide/install). Need OBS or Resolume on t
 
 Panels have eight orientations. Facing a cardinal gives a square cabinet; facing between them gives a 45° **chamfer** (a flat cut). Stand square to the angle you want and place on the ground. Clicking a block face still snaps flush to that face.
 
-Build a 45° wall as a staircase — one block diagonally each time — and the cabinets meet corner to corner. A straight run and a 45° wing are **two** walls with their own sources unless a diagonal cabinet bridges them.
+Build a 45° wall as a staircase — one block diagonally each time — and the cabinets meet corner to corner. A straight run and a 45° wing are **two** walls with their own sources unless a diagonal cabinet bridges them. Place the chamfer so its cabinet touches the flat's cabinet: flat cabinets sit at the **back** of their block, so the chamfer goes diagonally off the flat's rear corner. A flat run, a chamfer and the next run then join into **one** screen — up to a full closed ring of flats and chamfers.
 
 For a **smooth 90°** wrap, place an [LED Corner Cabinet](/blocks/led-panel#90-turns) between the two cardinal runs. Outer item for an outside L, inner item (`led_inner_corner`) when the curve must go into the room. Craft from one LED panel (then swap outer ↔ inner). Two flats in an L with **no** corner stay two screens.

@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Active Cam** (2D Spidercam): four Camera Winches, gondola, controller, FPV and drone-style waypoints.
 - Wiki **For developers** (`docs/devs/`): contributing, Keep a Changelog rules, interop contract for Theatrical / Extra Lights / SEF. Root `CONTRIBUTING.md` points at it.
 
+### Fixed
+
+- Chamfers and corner cabinets join the flats they physically touch. The wall scanner idealised a flat cabinet's face at the *front* edge of its block, 0.875 m in front of the real 2/16 slab at the back, so a bend only chained when the next cabinet was placed a block away from the one it continued, and a closed ring drew once per cabinet (every panel took itself for the anchor) and z-fought. The face is now the cabinet's own back edge, and a closed ring is canonicalised so all its panels agree on one anchor. Corner cabinets' quarter-arcs start where the neighbouring flat's cabinet ends, one cell over from before.
+- Bending walls draw each column on its cabinet's screen plane — flats and chamfers a slab in front of their back edge / diagonal (the chamfer slab now runs forward from the diagonal instead of straddling it), arcs on the quarter-round — with the joins mitred and the cabinet wedge behind each mitre filled in, so the picture is continuous around a bend instead of floating 0.875 m ahead of the flats and hiding inside the chamfers.
+
 ## [1.1.1-beta.1] - 2026-09-06
 
 Second CurseForge beta. Ship **`ndidisplays-1.20.1-1.1.1-beta.1-all.jar`**. Includes [nanocodium/ndi-displays](https://github.com/nanocodium/ndi-displays) `main` through `150b536` (their post-1.1.0-beta.1 work was not in their changelog).

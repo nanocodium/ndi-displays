@@ -39,7 +39,7 @@ A true 90° wrap is the **LED Corner Cabinet**: one block, a quarter-cylinder of
 
 Shapeless: **1** LED panel → outer corner. Outer ↔ inner swap in the grid. Sneak + empty hand on a placed cabinet flips the two. The corner auto-orients from its neighbours.
 
-The 45° **chamfer** is still the diagonal panel (`DIAGONAL`) — a flat cut, not a curve. Two cardinal flats in an L **without** a corner cabinet stay **two** screens; they do not merge across the gap.
+The 45° **chamfer** is still the diagonal panel (`DIAGONAL`) — a flat cut, not a curve. A chamfer joins the flats whose cabinets it touches: flat cabinets sit at the back of their block, so put the chamfer diagonally off the flat's **rear** corner. The same goes for a corner cabinet — its quarter-arc starts where the neighbouring flat's cabinet ends. Two cardinal flats in an L **without** a corner cabinet stay **two** screens; they do not merge across the gap.
 
 ## NDI behavior
 

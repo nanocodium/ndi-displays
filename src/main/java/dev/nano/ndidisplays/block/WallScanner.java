@@ -304,10 +304,16 @@ public final class WallScanner {
         double cz = cell.getZ() + 0.5;
         Vec3 n = facing.normal();
         Vec3 r = facing.rightUnit();
-        double half = facing.pitch() * 0.5;
-        // Cardinal faces sit on the cell's front edge; diagonal faces span the cell diagonal
-        // through its centre (their normal offset is zero in this idealisation).
-        double off = facing.isDiagonal() ? 0.0 : 0.5;
+        double half = facing.cabinetWidth() * 0.5;
+        // Cardinal cabinets hug the BACK of their cell (a 2/16 slab against the rear boundary,
+        // see LedPanelBlock's shapes), so their idealised face is the cell's back edge — where
+        // the cabinet's corners actually are. Diagonal faces span the cell diagonal through its
+        // centre. Both therefore end on cell corners, and a chamfer placed so its cabinet touches
+        // the flat's cabinet shares that corner. (This used to be the FRONT edge, 0.875 blocks in
+        // front of the real screen: chamfers only chained when placed a cell away from the
+        // cabinet they were meant to continue, and a ring of flats and chamfers built flush
+        // fell apart into one wall per run.)
+        double off = facing.isDiagonal() ? 0.0 : -0.5;
         double fx = cx + n.x * off;
         double fz = cz + n.z * off;
         return new double[]{fx - r.x * half, fz - r.z * half, fx + r.x * half, fz + r.z * half,
@@ -452,7 +458,7 @@ public final class WallScanner {
 
     /**
      * Scans the bending wall through {@code start}, or returns null when the horizontal chain
-     * never changes orientation — planar walls stay on the classic (cheaper, recessed-cabinet)
+     * never changes orientation — planar walls stay on the classic (cheaper, single-quad)
      * path. The chain is walked at the start row's y level; each column then grows vertically
      * over identical cabinets stacked above and below it.
      */
@@ -534,6 +540,27 @@ public final class WallScanner {
         List<PanelFacing> facings = new ArrayList<>(faces);
         List<double[]> segList = new ArrayList<>(segs);
         int width = columns.size();
+
+        // A closed ring has no natural first column: the walk starts wherever the scanning
+        // panel is, so every panel saw itself at index 0, made itself the anchor, and the ring
+        // was drawn once per cabinet — a stack of coincident walls z-fighting each other.
+        // Rotate the chain to start at the lowest-ordered cell so all panels build the same
+        // wall, and so the picture's wrap seam sits in one fixed place.
+        double[] lastSeg = segList.get(width - 1);
+        double[] firstSeg = segList.get(0);
+        if (width >= 3 && samePoint(lastSeg[2], lastSeg[3], firstSeg[0], firstSeg[1])) {
+            int first = 0;
+            for (int i = 1; i < width; i++) {
+                if (columns.get(i).asLong() < columns.get(first).asLong()) {
+                    first = i;
+                }
+            }
+            if (first != 0) {
+                java.util.Collections.rotate(columns, -first);
+                java.util.Collections.rotate(facings, -first);
+                java.util.Collections.rotate(segList, -first);
+            }
+        }
 
         // vertical extent per column: identical cabinets stacked at the column's (x, z)
         int minY = Integer.MAX_VALUE;

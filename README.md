@@ -173,7 +173,10 @@ place on the ground. Clicking a block face still snaps flush to that face.
 
 Build a 45° wall as a staircase — one block diagonally each time — and the
 cabinets meet corner to corner. A straight run and a 45° wing are **two**
-walls with their own sources, meeting at a corner.
+walls with their own sources, meeting at a corner — unless a chamfer bridges
+them. Set the chamfer diagonally off the flat cabinet's rear corner (flat
+cabinets sit at the back of their block) and the run, the chamfer and the run
+beyond become **one** screen; a closed ring of flats and chamfers is one wall.
 
 </details>
 

@@ -341,6 +341,13 @@ public class NdiDisplays {
      * right-click screens to switch them to NDI video with that source — Theatrical's
      * configuration-card workflow, applied to video routing.
      */
+    /**
+     * The mod's logo as an item, purely so the creative tab has an icon of its own. Not listed in
+     * the tab and not craftable — it only exists to be drawn.
+     */
+    public static final RegistryObject<Item> TAB_ICON_ITEM = ITEMS.register("tab_icon",
+            () -> new Item(new Item.Properties().stacksTo(1)));
+
     public static final RegistryObject<Item> NDI_CONFIG_CARD_ITEM = ITEMS.register("ndi_config_card",
             () -> new dev.nano.ndidisplays.item.NdiConfigCardItem(new Item.Properties().stacksTo(1)));
 
@@ -494,8 +501,7 @@ public class NdiDisplays {
     public static final RegistryObject<CreativeModeTab> TAB = CREATIVE_TABS.register("main",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup." + MODID))
-                    // The LED panel is near-black on the tab's dark ground — an invisible tab.
-                    .icon(() -> new ItemStack(NDI_CONFIG_CARD_ITEM.get()))
+                    .icon(() -> new ItemStack(TAB_ICON_ITEM.get()))
                     .displayItems((params, output) -> {
                         output.accept(LED_PANEL_ITEM.get());
                         output.accept(LED_CORNER_ITEM.get());

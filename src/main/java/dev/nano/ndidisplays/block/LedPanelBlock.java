@@ -45,16 +45,22 @@ public class LedPanelBlock extends HorizontalDirectionalBlock implements EntityB
      * facings (north-west and south-east) occupy the same plane and differ only in which way
      * they look.
      */
-    private static final VoxelShape SHAPE_DIAGONAL_ANTI = diagonalStaircase(true);
-    private static final VoxelShape SHAPE_DIAGONAL_MAIN = diagonalStaircase(false);
+    // The slab sits FORWARD of the diagonal (like a flat sits forward of its back edge), so
+    // each staircase is nudged a pixel toward its own screen side.
+    private static final VoxelShape SHAPE_NORTH_WEST = diagonalStaircase(true, -1, -1);
+    private static final VoxelShape SHAPE_SOUTH_EAST = diagonalStaircase(true, 1, 1);
+    private static final VoxelShape SHAPE_NORTH_EAST = diagonalStaircase(false, 1, -1);
+    private static final VoxelShape SHAPE_SOUTH_WEST = diagonalStaircase(false, -1, 1);
 
-    private static VoxelShape diagonalStaircase(boolean anti) {
+    private static VoxelShape diagonalStaircase(boolean anti, int dx, int dz) {
         VoxelShape shape = Shapes.empty();
         for (int i = 0; i < 8; i++) {
-            double x0 = i * 2;
+            double x0 = i * 2 + dx;
             // anti-diagonal runs corner (0,16) to (16,0); the main diagonal (0,0) to (16,16).
-            double z0 = anti ? 14 - i * 2 : i * 2;
-            shape = Shapes.or(shape, Block.box(x0, 0, z0, x0 + 2, 16, z0 + 2));
+            double z0 = (anti ? 14 - i * 2 : i * 2) + dz;
+            shape = Shapes.or(shape, Block.box(
+                    Math.max(0, x0), 0, Math.max(0, z0),
+                    Math.min(16, x0 + 2), 16, Math.min(16, z0 + 2)));
         }
         return shape;
     }
@@ -108,11 +114,11 @@ public class LedPanelBlock extends HorizontalDirectionalBlock implements EntityB
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext ctx) {
         if (state.getValue(DIAGONAL)) {
-            // north-west and south-east share the anti-diagonal; north-east and south-west
-            // share the main diagonal.
-            return switch (state.getValue(FACING)) {
-                case NORTH, SOUTH -> SHAPE_DIAGONAL_ANTI;
-                default -> SHAPE_DIAGONAL_MAIN;
+            return switch (PanelFacing.of(state)) {
+                case NORTH_WEST -> SHAPE_NORTH_WEST;
+                case SOUTH_EAST -> SHAPE_SOUTH_EAST;
+                case NORTH_EAST -> SHAPE_NORTH_EAST;
+                default -> SHAPE_SOUTH_WEST;
             };
         }
         return switch (state.getValue(FACING)) {

@@ -3,6 +3,7 @@
  "block.ndidisplays.blow_through_panel": "Blow-Through LED Panel",
  "block.ndidisplays.led_floor": "LED Floor Tile",
  "itemGroup.ndidisplays": "NDI Stage Displays",
+ "item.ndidisplays.tab_icon": "NDI Stage Displays",
  "gui.ndidisplays.config.title": "LED Wall Processor",
  "gui.ndidisplays.source": "NDI Source",
  "gui.ndidisplays.pitch": "Pixel Pitch",

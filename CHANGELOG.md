@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Spherical LED screen** (`ndidisplays:sphere_screen`) — one mount drawing a video globe of configurable diameter (0.5–32 m). The source wraps round it as an equirectangular map (frame centre on the facing side, seam at the back); native size is the unrolled 2:1 surface at the chosen pitch. Same processor GUI as the round screen, plus crop, NDI card and Theatrical 2ch DMX.
+- Curved screen: **Mount: hidden** option makes the centre hub invisible (small hitbox stays so it can be reopened), leaving only the video arc.
 - **LED inner corner** (`ndidisplays:led_inner_corner`) — concave quarter-cylinder for in-corners. Same block as the outer cabinet (`convex=false`). Swap recipes; sneak + empty hand flips a placed one.
 - Apple Silicon Macs get live NDI: the bundled Devolay binding now includes a macOS arm64 native, built by the `Build Devolay macOS arm64` workflow and repacked into `thirdparty/devolay-2.1.0.1.jar`.
 - Camera range is configurable: `cameraRange` (blocks) and `cameraRangeUnlimited` in the client config, with a slider and switch on the mod's options page. Cameras past the range stop sending until the player returns.
@@ -18,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Stale `led_corner_panel` loot table (and its orphaned blockstate / models) removed: it named an item that no longer exists and logged a loot-table parse error on every world load. The corner cabinet's real loot table (`led_corner`) already drops the outer or inner corner item.
+- Two flat runs meeting at a convex 90° corner merge into one screen (hard fold) when their cabinets touch at the shared back corner; previously cardinal-to-cardinal turns were refused and such an L was always two walls. Back-to-back (180°) flats still never merge.
 - Chamfers and corner cabinets join the flats they physically touch. The wall scanner idealised a flat cabinet's face at the *front* edge of its block, 0.875 m in front of the real 2/16 slab at the back, so a bend only chained when the next cabinet was placed a block away from the one it continued, and a closed ring drew once per cabinet (every panel took itself for the anchor) and z-fought. The face is now the cabinet's own back edge, and a closed ring is canonicalised so all its panels agree on one anchor. Corner cabinets' quarter-arcs start where the neighbouring flat's cabinet ends, one cell over from before.
 - Bending walls draw each column on its cabinet's screen plane — flats and chamfers a slab in front of their back edge / diagonal (the chamfer slab now runs forward from the diagonal instead of straddling it), arcs on the quarter-round — with the joins mitred and the cabinet wedge behind each mitre filled in, so the picture is continuous around a bend instead of floating 0.875 m ahead of the flats and hiding inside the chamfers.
 

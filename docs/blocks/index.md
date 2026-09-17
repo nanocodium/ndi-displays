@@ -24,6 +24,7 @@ Registered in `NdiDisplays.java` via `BLOCKS.register("…")` (not `BLOCKS.regis
 | <img src="/img/blocks/projector.png" alt="Projector" width="96" /> | `ndidisplays:projector` | [Projector](/blocks/projector) |
 | <img src="/img/blocks/round_screen.png" alt="Round Screen" width="96" /> | `ndidisplays:round_screen` | [Round Screen](/blocks/round-screen) |
 | <img src="/img/blocks/curved_screen.png" alt="Curved Screen" width="96" /> | `ndidisplays:curved_screen` | [Curved Screen](/blocks/curved-screen) |
+| | `ndidisplays:sphere_screen` | [Spherical Screen](/blocks/sphere-screen) |
 | <img src="/img/blocks/multiview.png" alt="Multiview" width="96" /> | `ndidisplays:multiview` | [Multiview](/blocks/multiview) |
 | — | `ndidisplays:winch_park_monitor` | [Winch Park Monitor](/blocks/winch-park-monitor) |
 | <img src="/img/blocks/broadcast_camera.png" alt="Broadcast Camera" width="96" /> | `ndidisplays:broadcast_camera` | [Broadcast Camera](/blocks/cameras#broadcast-camera) |

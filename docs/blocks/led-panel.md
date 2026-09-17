@@ -39,7 +39,7 @@ A true 90° wrap is the **LED Corner Cabinet**: one block, a quarter-cylinder of
 
 Shapeless: **1** LED panel → outer corner. Outer ↔ inner swap in the grid. Sneak + empty hand on a placed cabinet flips the two. The corner auto-orients from its neighbours.
 
-The 45° **chamfer** is still the diagonal panel (`DIAGONAL`) — a flat cut, not a curve. A chamfer joins the flats whose cabinets it touches: flat cabinets sit at the back of their block, so put the chamfer diagonally off the flat's **rear** corner. The same goes for a corner cabinet — its quarter-arc starts where the neighbouring flat's cabinet ends. Two cardinal flats in an L **without** a corner cabinet stay **two** screens; they do not merge across the gap.
+The 45° **chamfer** is still the diagonal panel (`DIAGONAL`) — a flat cut, not a curve. A chamfer joins the flats whose cabinets it touches: flat cabinets sit at the back of their block, so put the chamfer diagonally off the flat's **rear** corner. The same goes for a corner cabinet — its quarter-arc starts where the neighbouring flat's cabinet ends. Two cardinal flats meeting at a convex 90° corner (their cabinets touching at the shared back corner) merge into **one** screen with a hard fold; a corner cabinet turns that fold into a curve. Flats that do not touch stay separate screens.
 
 ## NDI behavior
 
@@ -54,7 +54,6 @@ Every client with the Runtime pulls the feed itself. Server stores processor set
 - Merge span **256** on each axis. A shaped flood-fill stops at **8192** tiles and falls back to the rectangle rules.
 - Native feed capped at **3840×2160** per source ([Native resolution](/reference/native-resolution)).
 - Adjacent same-facing panels only; a 45° wing is a **second** wall unless a diagonal chamfer joins them.
-- A 90° L without a [corner cabinet](#90-turns) is two walls.
 - No vanilla block light. The shader stays emissive (ignores world lighting). Optional Shimmer **screen lights** (colour wash on the floor) stay off unless `-Dndidisplays.screenLights=true` — see [Config](/reference/config#screen-lights).
 
 ## Integrations

@@ -1,0 +1,7 @@
+{
+    "__comment": "Renders nothing: a mount whose hub is hidden. Particle texture only, so breaking it still puffs.",
+    "textures": {
+        "particle": "ndidisplays:block/led_panel_side"
+    },
+    "elements": []
+}

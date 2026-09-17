@@ -50,6 +50,7 @@ export default defineConfig({
           { text: 'Blow-Through Panel', link: '/blocks/blow-through-panel' },
           { text: 'LED Floor Tile', link: '/blocks/led-floor' },
           { text: 'Round LED Screen', link: '/blocks/round-screen' },
+          { text: 'Spherical LED Screen', link: '/blocks/sphere-screen' },
           { text: 'Curved LED Screen', link: '/blocks/curved-screen' },
           { text: 'Cameras', link: '/blocks/cameras' },
           { text: 'Kinetic LED Winch', link: '/blocks/kinetic-winch' },

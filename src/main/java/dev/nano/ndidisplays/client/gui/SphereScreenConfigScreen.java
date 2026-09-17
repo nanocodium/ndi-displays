@@ -1,9 +1,9 @@
 package dev.nano.ndidisplays.client.gui;
 
-import dev.nano.ndidisplays.block.CurvedScreenBlockEntity;
+import dev.nano.ndidisplays.block.SphereScreenBlockEntity;
 import dev.nano.ndidisplays.client.ndi.NdiManager;
 import dev.nano.ndidisplays.net.NetworkHandler;
-import dev.nano.ndidisplays.net.UpdateCurvedScreenConfigPacket;
+import dev.nano.ndidisplays.net.UpdateSphereScreenConfigPacket;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
@@ -16,10 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Curved screen configuration: the usual processor settings plus radius, opening
- * angle (360 = full cylinder), height and concave/convex side.
+ * Spherical screen configuration: NDI source, pixel pitch, brightness, test pattern —
+ * and the globe diameter, which is what makes this screen a sphere of any size.
  */
-public class CurvedScreenConfigScreen extends Screen {
+public class SphereScreenConfigScreen extends Screen {
 
     private static final int[] PX_PER_BLOCK_PRESETS = {512, 384, 256, 208, 170, 128, 96, 64, 48, 32};
 
@@ -34,35 +34,26 @@ public class CurvedScreenConfigScreen extends Screen {
             Component.translatable("gui.ndidisplays.pattern.checker")
     };
 
-    private final CurvedScreenBlockEntity screen;
+    private final SphereScreenBlockEntity screen;
 
+    // Survives widget rebuilds (resize), so typed input is never lost.
     private String source;
     private int pxPerBlock;
     private float brightness;
     private int pattern;
-    private float radius;
-    private float arcAngle;
-    private float screenHeight;
-    private boolean convex;
-    private int videoRepeat;
-    private boolean hideMount;
+    private float diameter;
 
     private EditBox sourceBox;
     private NdiSourcePicker picker;
 
-    public CurvedScreenConfigScreen(CurvedScreenBlockEntity screen) {
-        super(Component.translatable("gui.ndidisplays.curved.title"));
+    public SphereScreenConfigScreen(SphereScreenBlockEntity screen) {
+        super(Component.translatable("gui.ndidisplays.sphere.title"));
         this.screen = screen;
         this.source = screen.getSourceName();
         this.pxPerBlock = closestPreset(screen.getPixelsPerBlock());
         this.brightness = screen.getBrightness();
         this.pattern = screen.getTestPattern();
-        this.radius = screen.getRadius();
-        this.arcAngle = screen.getArcAngle();
-        this.hideMount = screen.isMountHidden();
-        this.screenHeight = screen.getScreenHeight();
-        this.convex = screen.isConvex();
-        this.videoRepeat = screen.getVideoRepeat();
+        this.diameter = screen.getDiameter();
     }
 
     @Override
@@ -72,7 +63,7 @@ public class CurvedScreenConfigScreen extends Screen {
         int y = 30;
 
         sourceBox = new EditBox(font, left, y, 264, 18, Component.translatable("gui.ndidisplays.source"));
-        sourceBox.setMaxLength(CurvedScreenBlockEntity.MAX_SOURCE_NAME);
+        sourceBox.setMaxLength(SphereScreenBlockEntity.MAX_SOURCE_NAME);
         sourceBox.setValue(source);
         sourceBox.setResponder(value -> source = value);
         addRenderableWidget(sourceBox);
@@ -99,64 +90,25 @@ public class CurvedScreenConfigScreen extends Screen {
                         (btn, val) -> pattern = val));
         y += 22;
 
-        addRenderableWidget(new FloatSlider(left, y, 130, radius,
-                CurvedScreenBlockEntity.MIN_RADIUS, CurvedScreenBlockEntity.MAX_RADIUS,
-                v -> radius = (float) v,
-                v -> String.format("Radius: %.1f m", v)));
-        addRenderableWidget(new FloatSlider(left + 134, y, 130, arcAngle,
-                CurvedScreenBlockEntity.MIN_ANGLE, CurvedScreenBlockEntity.MAX_ANGLE,
-                v -> arcAngle = (float) v,
-                v -> v >= 359.5 ? "Angle: 360\u00B0 (cylinder)" : String.format("Angle: %.0f\u00B0", v)));
-        y += 22;
-
-        addRenderableWidget(new FloatSlider(left, y, 130, screenHeight,
-                CurvedScreenBlockEntity.MIN_HEIGHT, CurvedScreenBlockEntity.MAX_HEIGHT,
-                v -> screenHeight = (float) v,
-                v -> String.format("Height: %.1f m", v)));
-        addRenderableWidget(new FloatSlider(left + 134, y, 130, brightness, 0.05, 1.0,
+        addRenderableWidget(new FloatSlider(left, y, 130, brightness, 0.05, 1.0,
                 v -> brightness = (float) v,
                 v -> String.format("Brightness: %d%%", Math.round(v * 100))));
+        addRenderableWidget(new FloatSlider(left + 134, y, 130, diameter,
+                SphereScreenBlockEntity.MIN_DIAMETER, SphereScreenBlockEntity.MAX_DIAMETER,
+                v -> diameter = (float) v,
+                v -> String.format("Diameter: %.1f m", v)));
         y += 22;
 
-        addRenderableWidget(CycleButton.<Boolean>builder(val -> val
-                        ? Component.translatable("gui.ndidisplays.curved.convex")
-                        : Component.translatable("gui.ndidisplays.curved.concave"))
-                .withValues(Boolean.FALSE, Boolean.TRUE)
-                .withInitialValue(convex)
-                .displayOnlyValue()
-                .create(left, y, 130, 18, Component.translatable("gui.ndidisplays.curved.side"),
-                        (btn, val) -> convex = val));
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.screen_dmx.open"), b ->
                         net.minecraft.client.Minecraft.getInstance().setScreen(
                                 new ScreenDmxSlotsScreen(screen, this)))
-                .bounds(left + 134, y, 130, 18).build());
-        y += 22;
-
-        // How many times the source frame tiles around the arc (1x = stretched once).
-        addRenderableWidget(CycleButton.<Integer>builder(n ->
-                        Component.literal(n == 1
-                                ? "1\u00D7 (stretch)"
-                                : n + "\u00D7"))
-                .withValues(rangeFrom1(CurvedScreenBlockEntity.MAX_REPEAT))
-                .withInitialValue(Math.min(videoRepeat, CurvedScreenBlockEntity.MAX_REPEAT))
-                .create(left, y, 130, 18, Component.translatable("gui.ndidisplays.curved.repeat"),
-                        (btn, val) -> videoRepeat = val));
+                .bounds(left, y, 130, 18).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.processor.open"), b ->
                         net.minecraft.client.Minecraft.getInstance().setScreen(
                                 new VideoProcessorScreen(this, screen.getBlockPos(),
                                         source.trim(), screen.crop())))
                 .bounds(left + 134, y, 130, 18).build());
-        y += 22;
-
-        // Hide the centre hub so only the arc shows (a column with an empty core, a floating arc).
-        addRenderableWidget(CycleButton.<Boolean>builder(val -> val
-                        ? Component.translatable("gui.ndidisplays.curved.mount_hidden")
-                        : Component.translatable("gui.ndidisplays.curved.mount_shown"))
-                .withValues(Boolean.FALSE, Boolean.TRUE)
-                .withInitialValue(hideMount)
-                .create(left, y, 130, 18, Component.translatable("gui.ndidisplays.curved.mount"),
-                        (btn, val) -> hideMount = val));
-        y += 28;
+        y += 26;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.winch.apply"), b -> apply())
                 .bounds(cx - 132, y, 130, 20).build());
@@ -165,18 +117,13 @@ public class CurvedScreenConfigScreen extends Screen {
     }
 
     private void apply() {
-        NetworkHandler.CHANNEL.sendToServer(new UpdateCurvedScreenConfigPacket(
+        NetworkHandler.CHANNEL.sendToServer(new UpdateSphereScreenConfigPacket(
                 screen.getBlockPos(),
                 sourceBox.getValue().trim(),
                 pxPerBlock,
                 brightness,
                 pattern,
-                radius,
-                arcAngle,
-                screenHeight,
-                convex,
-                videoRepeat,
-                hideMount));
+                diameter));
         onClose();
     }
 
@@ -242,14 +189,6 @@ public class CurvedScreenConfigScreen extends Screen {
     private static List<Integer> range(int n) {
         List<Integer> list = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
-            list.add(i);
-        }
-        return list;
-    }
-
-    private static List<Integer> rangeFrom1(int n) {
-        List<Integer> list = new ArrayList<>(n);
-        for (int i = 1; i <= n; i++) {
             list.add(i);
         }
         return list;

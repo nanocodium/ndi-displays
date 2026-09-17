@@ -326,14 +326,18 @@ public final class WallScanner {
 
     /**
      * Whether a chain may step from orientation {@code a} to {@code b}. Same orientation is a
-     * straight run; a change is only allowed THROUGH a diagonal or corner cabinet — the bridging
-     * cabinet is the builder's explicit "these connect". Direct cardinal-to-cardinal turns are
-     * forbidden on purpose: two independent flat screens meeting at a corner is everyday stage
-     * building, and an endpoint match alone must never merge them into one mis-mapped wall.
-     * A null orientation is a corner cabinet, which bridges anything.
+     * straight run. A diagonal or corner cabinet bridges anything (a null orientation is a
+     * corner cabinet). Two flats may also meet at a right angle: with cabinets hugging the back
+     * of their cell, a convex 90° L's two end cabinets touch at their shared back corner, and a
+     * shared face endpoint there is exactly that geometry — the picture wraps the corner as a
+     * hard fold. Opposite facings never chain: back-to-back screens share a back edge too, and
+     * merging them would fold a wall onto itself.
      */
     private static boolean mayTurn(PanelFacing a, PanelFacing b) {
-        return a == null || b == null || a == b || a.isDiagonal() || b.isDiagonal();
+        if (a == null || b == null || a == b || a.isDiagonal() || b.isDiagonal()) {
+            return true;
+        }
+        return a.cardinal().getAxis() != b.cardinal().getAxis();
     }
 
     /**

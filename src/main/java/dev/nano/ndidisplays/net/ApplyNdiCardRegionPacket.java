@@ -125,6 +125,8 @@ public record ApplyNdiCardRegionPacket(boolean mainHand, String source, boolean 
                             floor.applyNdiCard(source);
                         } else if (be instanceof dev.nano.ndidisplays.block.RoundScreenBlockEntity round) {
                             round.applyNdiCard(source);
+                        } else if (be instanceof dev.nano.ndidisplays.block.SphereScreenBlockEntity sphere) {
+                            sphere.applyNdiCard(source);
                         } else if (be instanceof dev.nano.ndidisplays.block.CurvedScreenBlockEntity curved) {
                             curved.applyNdiCard(source);
                         } else if (be instanceof dev.nano.ndidisplays.block.ChainHoistBlockEntity hoist) {

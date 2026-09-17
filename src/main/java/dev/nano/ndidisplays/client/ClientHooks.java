@@ -101,6 +101,15 @@ public final class ClientHooks {
         }
     }
 
+    public static void openSphereScreenConfig(BlockPos pos) {
+        Minecraft mc = Minecraft.getInstance();
+        Level level = mc.level;
+        if (level != null && level.getBlockEntity(pos)
+                instanceof dev.nano.ndidisplays.block.SphereScreenBlockEntity screen) {
+            mc.setScreen(new dev.nano.ndidisplays.client.gui.SphereScreenConfigScreen(screen));
+        }
+    }
+
     public static void openCurvedScreenConfig(BlockPos pos) {
         Minecraft mc = Minecraft.getInstance();
         Level level = mc.level;

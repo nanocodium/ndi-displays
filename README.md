@@ -92,6 +92,10 @@ floor canvas — colour bars, grids, or live video underfoot.
 A single mount that draws a video disc of configurable radius. Same processor
 workflow as the walls, without building a circle out of cabinets.
 
+### Spherical LED Screen
+A single mount that draws a video globe of configurable diameter (0.5–32 m).
+The frame wraps round it as an equirectangular map — feed it a 2:1 panorama.
+
 </td>
 </tr>
 <tr>
@@ -128,7 +132,7 @@ alignment grid. Shadows use a 2048 map.
 
 ### LED Corner
 Quarter-cylinder wrap between two cardinal runs. Craft from one panel.
-Sneak-place for the inner corner. Without it, a 90° L is two walls.
+Sneak-place for the inner corner. Without one, two flats touching at a convex 90° corner still merge, as a hard fold.
 
 </td>
 </tr>

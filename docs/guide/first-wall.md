@@ -9,7 +9,7 @@
 
 ## Shaped walls
 
-The plan does not have to be a rectangle. Same-kind, same-facing cabinets that share an edge are **one screen** — a cross floor, an L, a staircase of chamfers. Right-click any cabinet and **Apply to Wall** writes the whole group (bounded by the 256-cabinet span). Gaps and a 90° L **without** a [corner cabinet](/blocks/led-panel#90-turns) stay separate walls.
+The plan does not have to be a rectangle. Same-kind, same-facing cabinets that share an edge are **one screen** — a cross floor, an L, a staircase of chamfers. Right-click any cabinet and **Apply to Wall** writes the whole group (bounded by the 256-cabinet span). Gaps stay separate walls; a 90° L whose cabinets touch is one wall (see below).
 
 Prefer a short distinctive fragment (`Arena - Composition`) over the full machine-prefixed name. Matching is exact first, then case-insensitive substring, so the short form survives a hostname change.
 
@@ -21,4 +21,4 @@ Panels have eight orientations. Facing a cardinal gives a square cabinet; facing
 
 Build a 45° wall as a staircase — one block diagonally each time — and the cabinets meet corner to corner. A straight run and a 45° wing are **two** walls with their own sources unless a diagonal cabinet bridges them. Place the chamfer so its cabinet touches the flat's cabinet: flat cabinets sit at the **back** of their block, so the chamfer goes diagonally off the flat's rear corner. A flat run, a chamfer and the next run then join into **one** screen — up to a full closed ring of flats and chamfers.
 
-For a **smooth 90°** wrap, place an [LED Corner Cabinet](/blocks/led-panel#90-turns) between the two cardinal runs. Outer item for an outside L, inner item (`led_inner_corner`) when the curve must go into the room. Craft from one LED panel (then swap outer ↔ inner). Two flats in an L with **no** corner stay two screens.
+For a **smooth 90°** wrap, place an [LED Corner Cabinet](/blocks/led-panel#90-turns) between the two cardinal runs. Outer item for an outside L, inner item (`led_inner_corner`) when the curve must go into the room. Craft from one LED panel (then swap outer ↔ inner). Two flats whose cabinets touch at a convex corner already merge as a hard fold; the corner cabinet rounds it.

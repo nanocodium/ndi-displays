@@ -227,6 +227,26 @@ public class NdiDisplays {
                             ROUND_SCREEN.get()).build(null));
 
     /**
+     * Spherical LED screen: one mount block rendering a video globe of configurable
+     * diameter, the source wrapped round it as an equirectangular map.
+     */
+    public static final RegistryObject<Block> SPHERE_SCREEN = BLOCKS.register("sphere_screen",
+            () -> new dev.nano.ndidisplays.block.SphereScreenBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.5F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> 0)));
+
+    public static final RegistryObject<Item> SPHERE_SCREEN_ITEM = ITEMS.register("sphere_screen",
+            () -> new BlockItem(SPHERE_SCREEN.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.SphereScreenBlockEntity>> SPHERE_SCREEN_BE =
+            BLOCK_ENTITIES.register("sphere_screen",
+                    () -> BlockEntityType.Builder.of(dev.nano.ndidisplays.block.SphereScreenBlockEntity::new,
+                            SPHERE_SCREEN.get()).build(null));
+
+    /**
      * Curved LED screen: a cylindrical arc of configurable radius, opening angle and
      * height. 360 degrees closes it into a full video column.
      */
@@ -513,6 +533,7 @@ public class NdiDisplays {
                         output.accept(ACTIVE_CAM_CONTROLLER_ITEM.get());
                         output.accept(CHAIN_HOIST_ITEM.get());
                         output.accept(ROUND_SCREEN_ITEM.get());
+                        output.accept(SPHERE_SCREEN_ITEM.get());
                         output.accept(PROJECTOR_ITEM.get());
                         output.accept(CURVED_SCREEN_ITEM.get());
                         output.accept(MULTIVIEW_ITEM.get());

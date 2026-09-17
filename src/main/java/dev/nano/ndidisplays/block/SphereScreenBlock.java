@@ -23,33 +23,24 @@ import net.minecraftforge.fml.DistExecutor;
 import javax.annotation.Nullable;
 
 /**
- * Mount block of the curved LED screen. The renderer draws the cylindrical arc
- * around this hub at the configured radius/angle/height; 360 degrees makes it a
- * full video column.
+ * Mount block of the spherical LED screen. The block is a compact hub at the globe's
+ * centre; the renderer draws the video sphere around it at the configured diameter, with the
+ * frame's centre facing the block's FACING direction. Right-click opens the config (source,
+ * pitch, brightness, pattern, diameter); the NDI configuration card applies its source.
  */
-public class CurvedScreenBlock extends HorizontalDirectionalBlock implements EntityBlock {
+public class SphereScreenBlock extends HorizontalDirectionalBlock implements EntityBlock {
 
-    /**
-     * True hides the mount hub: the block renders nothing and shrinks to a small hitbox, so
-     * only the video arc is visible — for a screen hung in free air or a column with nothing
-     * at its centre. The hub can still be targeted (outline on hover) to reopen its config.
-     */
-    public static final net.minecraft.world.level.block.state.properties.BooleanProperty HIDDEN =
-            net.minecraft.world.level.block.state.properties.BooleanProperty.create("hidden");
-
+    /** Compact centre hub the globe is built around. */
     private static final VoxelShape SHAPE = Block.box(4, 4, 4, 12, 12, 12);
-    private static final VoxelShape SHAPE_HIDDEN = Block.box(6, 6, 6, 10, 10, 10);
 
-    public CurvedScreenBlock(Properties properties) {
+    public SphereScreenBlock(Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any()
-                .setValue(FACING, Direction.NORTH)
-                .setValue(HIDDEN, false));
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, HIDDEN);
+        builder.add(FACING);
     }
 
     @Override
@@ -60,14 +51,14 @@ public class CurvedScreenBlock extends HorizontalDirectionalBlock implements Ent
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext ctx) {
-        return state.getValue(HIDDEN) ? SHAPE_HIDDEN : SHAPE;
+        return SHAPE;
     }
 
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
                                  InteractionHand hand, BlockHitResult hit) {
         if (player.getItemInHand(hand).getItem() instanceof dev.nano.ndidisplays.item.NdiConfigCardItem) {
-            if (!level.isClientSide && level.getBlockEntity(pos) instanceof CurvedScreenBlockEntity screen) {
+            if (!level.isClientSide && level.getBlockEntity(pos) instanceof SphereScreenBlockEntity screen) {
                 String source = dev.nano.ndidisplays.item.NdiConfigCardItem
                         .storedSource(player.getItemInHand(hand));
                 screen.applyNdiCard(source);
@@ -77,9 +68,8 @@ public class CurvedScreenBlock extends HorizontalDirectionalBlock implements Ent
             }
             return InteractionResult.sidedSuccess(level.isClientSide);
         }
-        // Theatrical configuration card: patch the arc as a 2ch fixture (dimmer + source).
         if (DmxScreen.isTheatricalCard(player.getItemInHand(hand))) {
-            if (!level.isClientSide && level.getBlockEntity(pos) instanceof CurvedScreenBlockEntity screen) {
+            if (!level.isClientSide && level.getBlockEntity(pos) instanceof SphereScreenBlockEntity screen) {
                 DmxScreen.applyTheatricalCard(level, pos, state, player,
                         player.getItemInHand(hand), screen);
             }
@@ -87,7 +77,7 @@ public class CurvedScreenBlock extends HorizontalDirectionalBlock implements Ent
         }
         if (level.isClientSide) {
             DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
-                    dev.nano.ndidisplays.client.ClientHooks.openCurvedScreenConfig(pos));
+                    dev.nano.ndidisplays.client.ClientHooks.openSphereScreenConfig(pos));
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
@@ -95,6 +85,6 @@ public class CurvedScreenBlock extends HorizontalDirectionalBlock implements Ent
     @Override
     @Nullable
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new CurvedScreenBlockEntity(pos, state);
+        return new SphereScreenBlockEntity(pos, state);
     }
 }

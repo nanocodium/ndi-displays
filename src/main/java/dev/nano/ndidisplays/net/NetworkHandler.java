@@ -211,5 +211,9 @@ public final class NetworkHandler {
                 ActiveCamSnapshotPacket::encode,
                 ActiveCamSnapshotPacket::decode,
                 ActiveCamSnapshotPacket::handle);
+        CHANNEL.registerMessage(id++, UpdateSphereScreenConfigPacket.class,
+                UpdateSphereScreenConfigPacket::encode,
+                UpdateSphereScreenConfigPacket::decode,
+                UpdateSphereScreenConfigPacket::handle);
     }
 }

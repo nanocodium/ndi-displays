@@ -13,55 +13,43 @@ import net.minecraft.world.phys.AABB;
 import javax.annotation.Nullable;
 
 /**
- * Curved LED screen: one mount block whose renderer draws a vertical cylindrical
- * arc of configurable radius, opening angle and height, centred on the block and
- * opening towards its FACING direction. 360 degrees closes the arc into a full
- * cylinder (DJ-booth column); smaller angles give the Coachella-style horseshoe.
+ * A spherical LED screen: one mount block whose renderer draws a video globe of
+ * configurable diameter, centred on the block. The source frame is wrapped around it as an
+ * equirectangular map (longitude across the frame, latitude down it), with the frame's centre
+ * facing the block's FACING direction — feed it a 2:1 panorama and it reads correctly from
+ * every side; anything else simply stretches around the globe.
  *
- * The video unrolls along the arc: u sweeps the opening angle, v the height, so
- * the full source frame wraps around the curve.
+ * Same LED-simulation shaders as the rectangular walls: pitch, brightness, gamma and test
+ * patterns behave identically.
  */
-public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
+public class SphereScreenBlockEntity extends BlockEntity implements DmxScreen {
 
     public static final int MAX_SOURCE_NAME = LedPanelBlockEntity.MAX_SOURCE_NAME;
     public static final int PATTERN_COUNT = LedPanelBlockEntity.PATTERN_COUNT;
 
-    public static final float MIN_RADIUS = 0.5F;
-    public static final float MAX_RADIUS = 16.0F;
-    public static final float MIN_ANGLE = 15.0F;
-    public static final float MAX_ANGLE = 360.0F;
-    public static final float MIN_HEIGHT = 0.5F;
-    public static final float MAX_HEIGHT = 16.0F;
-    /** Most times the source can tile around the arc. */
-    public static final int MAX_REPEAT = 8;
+    /** Globe diameter limits, metres. */
+    public static final float MAX_DIAMETER = 32.0F;
+    public static final float MIN_DIAMETER = 0.5F;
 
     private static final int DEFAULT_PX_PER_BLOCK = 128;
     private static final float DEFAULT_BRIGHTNESS = 0.85F;
     private static final float DEFAULT_GAMMA = 2.2F;
     private static final int DEFAULT_PATTERN = 1;
-    private static final float DEFAULT_RADIUS = 3.0F;
-    private static final float DEFAULT_ANGLE = 120.0F;
-    private static final float DEFAULT_HEIGHT = 3.0F;
+    private static final float DEFAULT_DIAMETER = 3.0F;
 
     private String sourceName = "";
     private int pixelsPerBlock = DEFAULT_PX_PER_BLOCK;
     private float brightness = DEFAULT_BRIGHTNESS;
     private float gamma = DEFAULT_GAMMA;
     private int testPattern = DEFAULT_PATTERN;
-    private float radius = DEFAULT_RADIUS;
-    private float arcAngle = DEFAULT_ANGLE;
-    private float screenHeight = DEFAULT_HEIGHT;
-    /** false = concave (video reads correctly from inside the arc), true = convex (from outside). */
-    private boolean convex;
-    /** How many times the source frame tiles around the arc (1 = stretched once over the whole sweep). */
-    private int videoRepeat = 1;
+    private float diameter = DEFAULT_DIAMETER;
 
     private final ScreenDmxState dmx = new ScreenDmxState();
-    /** Input window: the region of the source frame this screen displays. */
+    /** Input window: the region of the source frame wrapped around the globe. */
     private final CropWindow crop = new CropWindow();
 
-    public CurvedScreenBlockEntity(BlockPos pos, BlockState state) {
-        super(NdiDisplays.CURVED_SCREEN_BE.get(), pos, state);
+    public SphereScreenBlockEntity(BlockPos pos, BlockState state) {
+        super(NdiDisplays.SPHERE_SCREEN_BE.get(), pos, state);
     }
 
     public CropWindow crop() {
@@ -93,47 +81,29 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
         return testPattern;
     }
 
+    public float getDiameter() {
+        return diameter;
+    }
+
     public float getRadius() {
-        return radius;
-    }
-
-    public float getArcAngle() {
-        return arcAngle;
-    }
-
-    public float getScreenHeight() {
-        return screenHeight;
-    }
-
-    public boolean isConvex() {
-        return convex;
-    }
-
-    public int getVideoRepeat() {
-        return videoRepeat;
+        return diameter * 0.5F;
     }
 
     public Direction getFacing() {
-        return getBlockState().getValue(CurvedScreenBlock.FACING);
+        return getBlockState().getValue(SphereScreenBlock.FACING);
     }
 
-    /** Whether the mount hub is hidden (blockstate-driven, so the model swaps with it). */
-    public boolean isMountHidden() {
-        return getBlockState().getValue(CurvedScreenBlock.HIDDEN);
-    }
-
+    /**
+     * Applies GUI config. Also handles the client sync packet path, so every value is
+     * re-clamped rather than trusted (see {@link LedPanelBlockEntity#load}).
+     */
     public void applyConfig(String source, int pxPerBlock, float brightness, int pattern,
-                            float radius, float arcAngle, float screenHeight, boolean convex,
-                            int videoRepeat) {
+                            float diameter) {
         this.sourceName = Clamps.name(source, MAX_SOURCE_NAME);
         this.pixelsPerBlock = Clamps.i(pxPerBlock, 8, 1024);
         this.brightness = Clamps.f(brightness, 0.02F, 1.0F, DEFAULT_BRIGHTNESS);
         this.testPattern = Clamps.i(pattern, 0, PATTERN_COUNT - 1);
-        this.radius = Clamps.f(radius, MIN_RADIUS, MAX_RADIUS, DEFAULT_RADIUS);
-        this.arcAngle = Clamps.f(arcAngle, MIN_ANGLE, MAX_ANGLE, DEFAULT_ANGLE);
-        this.screenHeight = Clamps.f(screenHeight, MIN_HEIGHT, MAX_HEIGHT, DEFAULT_HEIGHT);
-        this.convex = convex;
-        this.videoRepeat = Clamps.i(videoRepeat, 1, MAX_REPEAT);
+        this.diameter = Clamps.f(diameter, MIN_DIAMETER, MAX_DIAMETER, DEFAULT_DIAMETER);
         setChanged();
     }
 
@@ -153,7 +123,7 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
 
     @Override
     public String getDmxModelName() {
-        return "NDI Curved Screen";
+        return "NDI Sphere Screen";
     }
 
     @Override
@@ -199,10 +169,7 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
     @Override
     public void onChunkUnloaded() {
         super.onChunkUnloaded();
-        // Server chunk unload never calls setRemoved, so without this the DMX consumer — which
-        // holds this block entity — stayed registered in Theatrical's network for the whole
-        // session, and DMX arriving for the unloaded screen force-loaded the chunk on every
-        // frame the desk sent. A reload re-registers through setLevel.
+        // See RoundScreenBlockEntity: a server chunk unload never calls setRemoved.
         if (level != null && !level.isClientSide) {
             dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.unregisterScreen(this);
         }
@@ -216,11 +183,7 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
         tag.putFloat("Brightness", brightness);
         tag.putFloat("Gamma", gamma);
         tag.putInt("Pattern", testPattern);
-        tag.putFloat("Radius", radius);
-        tag.putFloat("ArcAngle", arcAngle);
-        tag.putFloat("ScreenHeight", screenHeight);
-        tag.putBoolean("Convex", convex);
-        tag.putInt("VideoRepeat", videoRepeat);
+        tag.putFloat("Diameter", diameter);
         crop.save(tag);
         dmx.save(tag);
     }
@@ -236,14 +199,8 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
         gamma = Clamps.f(tag.contains("Gamma") ? tag.getFloat("Gamma") : DEFAULT_GAMMA, 1.0F, 3.0F, DEFAULT_GAMMA);
         testPattern = Clamps.i(tag.contains("Pattern") ? tag.getInt("Pattern") : DEFAULT_PATTERN,
                 0, PATTERN_COUNT - 1);
-        radius = Clamps.f(tag.contains("Radius") ? tag.getFloat("Radius") : DEFAULT_RADIUS,
-                MIN_RADIUS, MAX_RADIUS, DEFAULT_RADIUS);
-        arcAngle = Clamps.f(tag.contains("ArcAngle") ? tag.getFloat("ArcAngle") : DEFAULT_ANGLE,
-                MIN_ANGLE, MAX_ANGLE, DEFAULT_ANGLE);
-        screenHeight = Clamps.f(tag.contains("ScreenHeight") ? tag.getFloat("ScreenHeight") : DEFAULT_HEIGHT,
-                MIN_HEIGHT, MAX_HEIGHT, DEFAULT_HEIGHT);
-        convex = tag.getBoolean("Convex");
-        videoRepeat = Clamps.i(tag.contains("VideoRepeat") ? tag.getInt("VideoRepeat") : 1, 1, MAX_REPEAT);
+        diameter = Clamps.f(tag.contains("Diameter") ? tag.getFloat("Diameter") : DEFAULT_DIAMETER,
+                MIN_DIAMETER, MAX_DIAMETER, DEFAULT_DIAMETER);
         crop.load(tag);
         dmx.load(tag);
     }
@@ -268,6 +225,6 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
 
     @Override
     public AABB getRenderBoundingBox() {
-        return new AABB(worldPosition).inflate(radius + 1.0, screenHeight * 0.5 + 1.0, radius + 1.0);
+        return new AABB(worldPosition).inflate(getRadius() + 1.0);
     }
 }

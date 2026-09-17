@@ -14,7 +14,7 @@ See [Recipes](/reference/recipes) (`curved_screen.json`).
 
 ## Configuration
 
-Right-click → curved-screen processor: source, pitch, brightness, gamma, radius, opening angle, height, concave/convex, video repeat, crop.
+Right-click → curved-screen processor: source, pitch, brightness, gamma, radius, opening angle, height, concave/convex, video repeat, crop, and **Mount: shown / hidden**. Hidden makes the centre hub invisible with a small hitbox, so only the arc shows — hover the centre to find and reopen it.
 
 Video sits on one face of a thin slab (`CURVED_THICKNESS` 0.12).
 

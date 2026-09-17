@@ -21,7 +21,7 @@ import java.util.function.Supplier;
  * Client → server: sets a screen's input window (video-processor crop) — the
  * rectangle of the source frame the screen displays. Works on LED walls (fans out
  * to every panel of the detected wall so the wall stays one coherent surface),
- * round screens and curved screens.
+ * round, spherical and curved screens.
  */
 public record UpdateScreenCropPacket(BlockPos pos, float u0, float v0, float u1, float v1) {
 
@@ -55,6 +55,9 @@ public record UpdateScreenCropPacket(BlockPos pos, float u0, float v0, float u1,
             } else if (be instanceof RoundScreenBlockEntity round) {
                 round.crop().set(msg.u0, msg.v0, msg.u1, msg.v1);
                 sync(level, round);
+            } else if (be instanceof dev.nano.ndidisplays.block.SphereScreenBlockEntity sphere) {
+                sphere.crop().set(msg.u0, msg.v0, msg.u1, msg.v1);
+                sync(level, sphere);
             } else if (be instanceof CurvedScreenBlockEntity curved) {
                 curved.crop().set(msg.u0, msg.v0, msg.u1, msg.v1);
                 sync(level, curved);

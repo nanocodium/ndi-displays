@@ -130,6 +130,15 @@ public final class NativeResolution {
         return withCrop(px * panelsW, px * panelsH, be.crop(), px);
     }
 
+    /**
+     * A video globe: its unrolled equirectangular surface, circumference wide and half that
+     * high — the 2:1 panorama that maps onto it 1:1.
+     */
+    public static Native of(SphereScreenBlockEntity be) {
+        int w = Math.round((float) (be.getPixelsPerBlock() * Math.PI * be.getDiameter()));
+        return withCrop(w, Math.max(1, w / 2), be.crop(), be.getPixelsPerBlock());
+    }
+
     /** A video disc: square, since the circle is inscribed in its own bounding box. */
     public static Native of(RoundScreenBlockEntity be) {
         int side = Math.round(be.getPixelsPerBlock() * be.getRadius() * 2.0F);

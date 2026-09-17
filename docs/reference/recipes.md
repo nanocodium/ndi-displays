@@ -40,6 +40,7 @@ Crafts from `src/main/resources/data/ndidisplays/recipes/`. This table is regene
 | `projector` | shaped | III / GPI / III | I=`minecraft:iron_ingot`, G=`minecraft:glass`, P=`ndidisplays:led_panel` | `ndidisplays:projector` |
 | `ptz_camera` | shaped |  G  / IRI | I=`minecraft:iron_ingot`, G=`minecraft:glass`, R=`minecraft:redstone` | `ndidisplays:ptz_camera` |
 | `round_screen` | shaped |  L  / LRL /  L  | L=`ndidisplays:led_panel`, R=`minecraft:redstone` | `ndidisplays:round_screen` |
+| `sphere_screen` | shaped | LLL / LRL / LLL | L=`ndidisplays:led_panel`, R=`minecraft:redstone` | `ndidisplays:sphere_screen` |
 | `shoulder_camera` | shaped | LCB / IHI / III | L=`minecraft:spyglass`, C=`ndidisplays:handheld_camera`, B=`minecraft:redstone_block`, H=`minecraft:leather_chestplate`, I=`minecraft:iron_ingot` | `ndidisplays:shoulder_camera` |
 | `track_camera` | shaped | C / I | I=`minecraft:iron_ingot`, C=`ndidisplays:broadcast_camera` | `ndidisplays:track_camera` |
 | `vision_switcher` | shaped | RGR / IPI | R=`minecraft:redstone`, G=`minecraft:glass`, I=`minecraft:iron_ingot`, P=`ndidisplays:led_panel` | `ndidisplays:vision_switcher` |

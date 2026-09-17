@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2-beta.1] - 2026-09-17
+
+Third CurseForge beta. Ship **`ndidisplays-1.20.1-1.1.2-beta.1-all.jar`**.
+
 ### Added
 
 - **Spherical LED screen** (`ndidisplays:sphere_screen`) — one mount drawing a video globe of configurable diameter (0.5–32 m). The source wraps round it as an equirectangular map (frame centre on the facing side, seam at the back); native size is the unrolled 2:1 surface at the chosen pitch. Same processor GUI as the round screen, plus crop, NDI card and Theatrical 2ch DMX.
@@ -104,7 +108,8 @@ First public CurseForge beta. Ship **`ndidisplays-1.20.1-1.1.0-beta.1-all.jar`**
 
 Upstream [nanocodium/ndi-displays](https://github.com/nanocodium/ndi-displays) `main` at `32d691b` before this beta. Notes for that tree now live under [1.1.0-beta.1].
 
-[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.1-beta.1...HEAD
+[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.2-beta.1...HEAD
+[1.1.2-beta.1]: https://github.com/nanocodium/ndi-displays/compare/1.1.1-beta.1...1.1.2-beta.1
 [1.1.1-beta.1]: https://github.com/nanocodium/ndi-displays/compare/1.1.0-beta.1...HEAD
 [1.1.0-beta.1]: https://github.com/nanocodium/ndi-displays/compare/32d691b...1.1.0-beta.1
 [1.0.0]: https://github.com/nanocodium/ndi-displays/commit/32d691b

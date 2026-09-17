@@ -3,16 +3,32 @@
 This page follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The same notes live in [`CHANGELOG.md`](https://github.com/nanocodium/ndi-displays/blob/main/CHANGELOG.md) at the repo root.
 
-Current artifact: **`ndidisplays-1.20.1-1.1.1-beta.1-all.jar`** — Minecraft **1.20.1**, Forge **47.x**, Java 17.
+Current artifact: **`ndidisplays-1.20.1-1.1.2-beta.1-all.jar`** — Minecraft **1.20.1**, Forge **47.x**, Java 17.
 
 ## [Unreleased]
 
+## [1.1.2-beta.1] - 2026-09-17
+
+Third CurseForge beta.
+
 ### Added
+
+- [Spherical LED Screen](/blocks/sphere-screen) (`sphere_screen`): video globe of configurable diameter, equirectangular wrap.
+- [Curved screen](/blocks/curved-screen) **Mount: hidden** option.
+- Creative tab icon.
 
 - [Active Cam](/blocks/active-cam) (2D Spidercam): four [Camera Winches](/blocks/camera-winch), gondola, [controller](/blocks/active-cam-controller), FPV and drone-style waypoints.
 - [LED inner corner](/blocks/led-panel#90-turns) (`led_inner_corner`) — concave wrap for room corners.
 - Camera range slider (`cameraRange` / `cameraRangeUnlimited`) on the client options page.
 - [For developers](/devs/) — [contributing](/devs/contributing), [interop & API](/devs/interop).
+
+### Changed
+
+- Chamfers and corner cabinets join the flats they physically touch (flat faces idealised at the cabinet's back edge); two flats touching at a convex 90° corner merge as a hard fold. Bending walls draw on the real screen planes with mitred joins and filled cabinet wedges; closed rings render once.
+
+### Fixed
+
+- Stale `led_corner_panel` loot table removed (parse error on every world load).
 
 ## [1.1.1-beta.1] - 2026-09-06
 
@@ -84,7 +100,8 @@ First public CurseForge beta. Everything in this jar.
 
 Upstream `main` at `32d691b` before this beta. Notes for that tree now live under [1.1.0-beta.1].
 
-[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.1-beta.1...HEAD
+[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.2-beta.1...HEAD
+[1.1.2-beta.1]: https://github.com/nanocodium/ndi-displays/compare/1.1.1-beta.1...1.1.2-beta.1
 [1.1.1-beta.1]: https://github.com/nanocodium/ndi-displays/compare/1.1.0-beta.1...HEAD
 [1.1.0-beta.1]: https://github.com/nanocodium/ndi-displays/compare/32d691b...1.1.0-beta.1
 [1.0.0]: https://github.com/nanocodium/ndi-displays/commit/32d691b

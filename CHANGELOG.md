@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Stale `led_corner_panel` loot table (and its orphaned blockstate / models) removed: it named an item that no longer exists and logged a loot-table parse error on every world load. The corner cabinet's real loot table (`led_corner`) already drops the outer or inner corner item.
 - Chamfers and corner cabinets join the flats they physically touch. The wall scanner idealised a flat cabinet's face at the *front* edge of its block, 0.875 m in front of the real 2/16 slab at the back, so a bend only chained when the next cabinet was placed a block away from the one it continued, and a closed ring drew once per cabinet (every panel took itself for the anchor) and z-fought. The face is now the cabinet's own back edge, and a closed ring is canonicalised so all its panels agree on one anchor. Corner cabinets' quarter-arcs start where the neighbouring flat's cabinet ends, one cell over from before.
 - Bending walls draw each column on its cabinet's screen plane — flats and chamfers a slab in front of their back edge / diagonal (the chamfer slab now runs forward from the diagonal instead of straddling it), arcs on the quarter-round — with the joins mitred and the cabinet wedge behind each mitre filled in, so the picture is continuous around a bend instead of floating 0.875 m ahead of the flats and hiding inside the chamfers.
 

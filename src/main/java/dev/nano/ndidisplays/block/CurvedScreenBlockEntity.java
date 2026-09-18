@@ -27,11 +27,11 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
     public static final int PATTERN_COUNT = LedPanelBlockEntity.PATTERN_COUNT;
 
     public static final float MIN_RADIUS = 0.5F;
-    public static final float MAX_RADIUS = 16.0F;
+    public static final float MAX_RADIUS = 256.0F;
     public static final float MIN_ANGLE = 15.0F;
     public static final float MAX_ANGLE = 360.0F;
     public static final float MIN_HEIGHT = 0.5F;
-    public static final float MAX_HEIGHT = 16.0F;
+    public static final float MAX_HEIGHT = 256.0F;
     /** Most times the source can tile around the arc. */
     public static final int MAX_REPEAT = 8;
 

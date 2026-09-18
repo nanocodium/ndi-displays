@@ -16,6 +16,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;
@@ -81,8 +82,14 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
         Ghosts cache = ghosts(entity, structure, level, originBlock, tilt);
         cache.pushLiveFixtures(entity, structure);
         // Where the rig origin is really being drawn this frame, as opposed to the
-        // whole-block cell the ghosts are addressed at.
-        Vec3 drawnOrigin = entity.getPosition(partialTick);
+        // whole-block cell the ghosts are addressed at. Same lerp as the entity render
+        // dispatcher, from xOld/yOld/zOld: those are stamped by the client level before
+        // every tick, whereas xo/yo/zo (what Entity#getPosition lerps from) are only
+        // stamped by Entity#tick, which the rig skips on the client.
+        Vec3 drawnOrigin = new Vec3(
+                Mth.lerp(partialTick, entity.xOld, entity.getX()),
+                Mth.lerp(partialTick, entity.yOld, entity.getY()),
+                Mth.lerp(partialTick, entity.zOld, entity.getZ()));
 
         for (int i = 0; i < structure.entries().size(); i++) {
             RigStructure.Entry entry = structure.entries().get(i);

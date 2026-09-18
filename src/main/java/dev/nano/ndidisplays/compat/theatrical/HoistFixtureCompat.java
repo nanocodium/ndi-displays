@@ -52,6 +52,50 @@ public final class HoistFixtureCompat {
     private static volatile boolean broken;
 
     /**
+     * {@code -Dndidisplays.debugFlownFixtures=true}: log every change to a flown fixture's
+     * head state, per frame on the client and per tick on the server, so a one-tick glitch
+     * can be pinned to the side and the value that produced it.
+     */
+    public static final boolean DEBUG = Boolean.getBoolean("ndidisplays.debugFlownFixtures");
+
+    public static void debug(String message, Object... args) {
+        if (DEBUG) {
+            LOG.info("[ndidisplays] flown-fixture " + message, args);
+        }
+    }
+
+    /** Head-state summary of a ghost or proxy, or "" when the integration is off. */
+    public static String describe(@Nullable BlockEntity be) {
+        if (!active() || be == null) {
+            return "";
+        }
+        try {
+            return HoistFixtureHooks.describe(be);
+        } catch (RuntimeException | LinkageError e) {
+            return "describe-failed";
+        }
+    }
+
+    /** Summary of every fixture in a synced live tag, one line per fixture. */
+    public static String describe(CompoundTag live) {
+        if (!active() || live.isEmpty()) {
+            return "";
+        }
+        try {
+            StringBuilder sb = new StringBuilder();
+            ListTag list = live.getList(LIST, Tag.TAG_COMPOUND);
+            for (int i = 0; i < list.size(); i++) {
+                CompoundTag item = list.getCompound(i);
+                sb.append(" #").append(item.getInt(INDEX)).append(' ')
+                        .append(HoistFixtureHooks.describe(item.getCompound(STATE)));
+            }
+            return sb.toString();
+        } catch (RuntimeException | LinkageError e) {
+            return "describe-failed";
+        }
+    }
+
+    /**
      * Proxies per flying rig. Server-side only, and deliberately not persisted: a restart
      * rebuilds them from the snapshot on the rig entity's first tick.
      */

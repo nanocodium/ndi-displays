@@ -155,6 +155,25 @@ final class HoistFixtureHooks {
         }
     }
 
+    /** One-line summary of a light's head state, for the flown-fixture diagnostic log. */
+    static String describe(BlockEntity be) {
+        if (!(be instanceof BaseLightBlockEntity light)) {
+            return "not-a-light";
+        }
+        return String.format("pan=%d/%d tilt=%d/%d focus=%d int=%.0f/%d rgb=%d,%d,%d dist=%.2f",
+                light.getPan(), light.getPrevPan(), light.getTilt(), light.getPrevTilt(),
+                light.getFocus(), light.getIntensity(), light.getPrevIntensity(),
+                light.getRed(), light.getGreen(), light.getBlue(), light.getDistance());
+    }
+
+    /** Same summary read straight from a synced state tag. */
+    static String describe(CompoundTag tag) {
+        return String.format("pan=%d tilt=%d focus=%d int=%d rgb=%d,%d,%d gobo=%d zoom=%d",
+                tag.getInt("pan"), tag.getInt("tilt"), tag.getInt("focus"), tag.getInt("intensity"),
+                tag.getInt("red"), tag.getInt("green"), tag.getInt("blue"),
+                tag.getInt("gobo"), tag.getInt("zoom"));
+    }
+
     /**
      * Ends the previous tick's sweep: previous = current, so the head holds still until
      * the next change. Called once per tick on every ghost that got no new values.

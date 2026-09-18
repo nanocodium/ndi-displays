@@ -311,6 +311,8 @@ public class MovingRigEntity extends Entity {
         // the wire twenty times a second for every client watching it.
         if (!live.equals(entityData.get(FIXTURES))) {
             entityData.set(FIXTURES, live);
+            HoistFixtureCompat.debug("server tick {} y={} live:{}", server.getGameTime(),
+                    String.format("%.3f", getY()), HoistFixtureCompat.describe(live));
         }
     }
 

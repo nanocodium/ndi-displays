@@ -58,6 +58,11 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
      */
     private final WeakHashMap<MovingRigEntity, Ghosts> ghosts = new WeakHashMap<>();
 
+    private static final org.slf4j.Logger LOG = com.mojang.logging.LogUtils.getLogger();
+    /** One warning per distinct failure, not one per frame. */
+    private static final java.util.Set<String> REPORTED_GHOST_FAILURES =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     public MovingRigRenderer(EntityRendererProvider.Context ctx) {
         super(ctx);
     }
@@ -124,8 +129,14 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
                             : drawnOrigin.add(offset.getX(), offset.getY(), offset.getZ());
                     HoistFixtureCompat.aimBeam(ghost, corner.add(0.5, 0.5, 0.5));
                     beamMark = HoistFixtureCompat.markBeams();
+                    if (HoistFixtureCompat.DEBUG) {
+                        cache.trace(i, ghost, level.getGameTime(), partialTick, corner);
+                    }
                 }
                 drew = renderGhost(ghost, partialTick, poseStack, buffers, light);
+                if (fixture && !drew) {
+                    HoistFixtureCompat.debug("ghost #{} did not draw; fallback model used", i);
+                }
                 if (fixture && drew) {
                     // Theatrical anchors the beam on the ghost's block cell, not on this
                     // pose. Slide it onto the body so it glides with the truss.
@@ -167,9 +178,14 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
             renderer.render(ghost, partialTick, poseStack, buffers, light,
                     OverlayTexture.NO_OVERLAY);
             return true;
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException e) {
             // A foreign renderer that assumes it is in the world (neighbours, a mixer
             // down the hall) must not take the rest of the rig with it.
+            String key = e.getClass().getName() + ": " + e.getMessage();
+            if (REPORTED_GHOST_FAILURES.add(key)) {
+                LOG.warn("[ndidisplays] ghost renderer for {} threw; drawing its baked model"
+                        + " instead ({})", ghost.getType(), key, e);
+            }
             return false;
         }
     }
@@ -217,6 +233,8 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
             return cache;
         }
         cache = new Ghosts(structure, origin, attitude);
+        HoistFixtureCompat.debug("client ghosts rebuilt: origin {} attitude {} entityY={}",
+                origin, attitude, String.format("%.3f", entity.getY()));
         for (RigStructure.Entry entry : structure.entries()) {
             cache.entities().add(
                     createGhost(level, tilt.cellOf(origin, entry.offset()), entry));
@@ -270,6 +288,19 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
         private final List<BlockEntity> entities = new ArrayList<>();
         private CompoundTag appliedLive = new CompoundTag();
         private long settledTick = Long.MIN_VALUE;
+        /** Last logged head-state per ghost index, for the diagnostic log. */
+        private final java.util.Map<Integer, String> traced = new java.util.HashMap<>();
+
+        /** Logs a fixture ghost's head state whenever it differs from the last frame. */
+        void trace(int index, BlockEntity ghost, long tick, float partialTick, Vec3 corner) {
+            String now = HoistFixtureCompat.describe(ghost);
+            if (!now.equals(traced.get(index))) {
+                traced.put(index, now);
+                HoistFixtureCompat.debug("client frame tick {} pt={} ghost #{} cell {} corner {} :: {}",
+                        tick, String.format("%.2f", partialTick), index, ghost.getBlockPos(),
+                        String.format("%.3f,%.3f,%.3f", corner.x, corner.y, corner.z), now);
+            }
+        }
 
         Ghosts(RigStructure source, BlockPos origin, long attitude) {
             this.source = source;
@@ -295,6 +326,8 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
             CompoundTag live = entity.fixtureState();
             boolean fresh = appliedLive.isEmpty();
             if (!live.isEmpty() && !live.equals(appliedLive)) {
+                HoistFixtureCompat.debug("client apply tick {} fresh={} live:{}", tick, fresh,
+                        HoistFixtureCompat.describe(live));
                 HoistFixtureCompat.applyLive(live, entities, structure, !fresh);
                 appliedLive = live.copy();
                 settledTick = tick;

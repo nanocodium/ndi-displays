@@ -28,7 +28,7 @@ public class SphereScreenBlockEntity extends BlockEntity implements DmxScreen {
     public static final int PATTERN_COUNT = LedPanelBlockEntity.PATTERN_COUNT;
 
     /** Globe diameter limits, metres. */
-    public static final float MAX_DIAMETER = 32.0F;
+    public static final float MAX_DIAMETER = 512.0F;
     public static final float MIN_DIAMETER = 0.5F;
 
     private static final int DEFAULT_PX_PER_BLOCK = 128;

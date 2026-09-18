@@ -1,6 +1,6 @@
 # Spherical LED Screen
 
-A single mount that draws a video globe of configurable **diameter** (0.5–32 m), centred on the block. The source frame is wrapped around it as an equirectangular map: the frame runs once around the equator and from pole to pole, with the centre of the frame on the block's facing side and the seam round the back. Feed it a **2:1 panorama** and it reads correctly from every side; any other frame simply stretches around the globe.
+A single mount that draws a video globe of configurable **diameter** (0.5–512 m), centred on the block. The source frame is wrapped around it as an equirectangular map: the frame runs once around the equator and from pole to pole, with the centre of the frame on the block's facing side and the seam round the back. Feed it a **2:1 panorama** and it reads correctly from every side; any other frame simply stretches around the globe.
 
 ## Registry ID
 

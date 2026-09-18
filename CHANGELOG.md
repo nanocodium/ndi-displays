@@ -13,7 +13,7 @@ Third CurseForge beta. Ship **`ndidisplays-1.20.1-1.1.2-beta.1-all.jar`**.
 
 ### Added
 
-- **Spherical LED screen** (`ndidisplays:sphere_screen`) — one mount drawing a video globe of configurable diameter (0.5–32 m). The source wraps round it as an equirectangular map (frame centre on the facing side, seam at the back); native size is the unrolled 2:1 surface at the chosen pitch. Same processor GUI as the round screen, plus crop, NDI card and Theatrical 2ch DMX.
+- **Spherical LED screen** (`ndidisplays:sphere_screen`) — one mount drawing a video globe of configurable diameter (0.5–512 m). The source wraps round it as an equirectangular map (frame centre on the facing side, seam at the back); native size is the unrolled 2:1 surface at the chosen pitch. Same processor GUI as the round screen, plus crop, NDI card and Theatrical 2ch DMX.
 - Curved screen: **Mount: hidden** option makes the centre hub invisible (small hitbox stays so it can be reopened), leaving only the video arc.
 - **LED inner corner** (`ndidisplays:led_inner_corner`) — concave quarter-cylinder for in-corners. Same block as the outer cabinet (`convex=false`). Swap recipes; sneak + empty hand flips a placed one.
 - Apple Silicon Macs get live NDI: the bundled Devolay binding now includes a macOS arm64 native, built by the `Build Devolay macOS arm64` workflow and repacked into `thirdparty/devolay-2.1.0.1.jar`.

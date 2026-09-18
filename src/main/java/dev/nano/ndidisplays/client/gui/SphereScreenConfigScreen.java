@@ -93,10 +93,13 @@ public class SphereScreenConfigScreen extends Screen {
         addRenderableWidget(new FloatSlider(left, y, 130, brightness, 0.05, 1.0,
                 v -> brightness = (float) v,
                 v -> String.format("Brightness: %d%%", Math.round(v * 100))));
-        addRenderableWidget(new FloatSlider(left + 134, y, 130, diameter,
-                SphereScreenBlockEntity.MIN_DIAMETER, SphereScreenBlockEntity.MAX_DIAMETER,
-                v -> diameter = (float) v,
-                v -> String.format("Diameter: %.1f m", v)));
+        // Logarithmic: 0.5 m to 512 m is ten doublings, so a linear slider would jump by
+        // 4 m per pixel and make small globes impossible to set.
+        double logMin = Math.log(SphereScreenBlockEntity.MIN_DIAMETER);
+        double logMax = Math.log(SphereScreenBlockEntity.MAX_DIAMETER);
+        addRenderableWidget(new FloatSlider(left + 134, y, 130, Math.log(diameter), logMin, logMax,
+                v -> diameter = snapDiameter(Math.exp(v)),
+                v -> String.format("Diameter: %s m", fmtDiameter(snapDiameter(Math.exp(v))))));
         y += 22;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.screen_dmx.open"), b ->
@@ -200,6 +203,18 @@ public class SphereScreenConfigScreen extends Screen {
 
     private interface LabelFmt {
         String label(double v);
+    }
+
+    /** Snaps to 0.1 m under 16 m, 0.5 m under 64 m and whole metres above; the slider
+     *  is logarithmic, so raw values carry meaningless fractions at the large end. */
+    private static float snapDiameter(double d) {
+        double step = d < 16.0 ? 0.1 : d < 64.0 ? 0.5 : 1.0;
+        return (float) Math.max(SphereScreenBlockEntity.MIN_DIAMETER,
+                Math.min(SphereScreenBlockEntity.MAX_DIAMETER, Math.round(d / step) * step));
+    }
+
+    private static String fmtDiameter(float d) {
+        return d < 64.0F ? String.format("%.1f", d) : String.format("%.0f", d);
     }
 
     private static class FloatSlider extends AbstractSliderButton {

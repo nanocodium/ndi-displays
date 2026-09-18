@@ -136,11 +136,11 @@ public class SphereScreenRenderer implements BlockEntityRenderer<SphereScreenBlo
 
     /**
      * Emits the globe as quads (lat/long grid) in block-local space, four vertices per cell.
-     * Resolution follows the diameter so a 32 m globe stays round up close without a 0.5 m
+     * Resolution follows the diameter so a 512 m globe stays round up close without a 0.5 m
      * one burning thousands of quads.
      */
     private static void tessellate(SphereScreenBlockEntity be, float r, SphereVertex out) {
-        int slices = Math.max(32, Math.min(128, Math.round(r * 12.0F)));
+        int slices = Math.max(32, Math.min(256, Math.round(r * 12.0F)));
         int stacks = slices / 2;
         Vec3 centre = new Vec3(0.5, 0.5, 0.5);
         Direction facing = be.getFacing();
@@ -185,6 +185,8 @@ public class SphereScreenRenderer implements BlockEntityRenderer<SphereScreenBlo
 
     @Override
     public int getViewDistance() {
-        return 256;
+        // A globe can be 256 m in radius, so its mount may sit well beyond the default
+        // 64-block block-entity cutoff while the surface is right in front of the player.
+        return 1024;
     }
 }

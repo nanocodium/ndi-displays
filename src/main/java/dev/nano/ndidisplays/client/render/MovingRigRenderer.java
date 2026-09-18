@@ -119,16 +119,29 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
             if (RigStructure.clientNeedsBlockEntity(state)) {
                 BlockEntity ghost = cache.entities().get(i);
                 boolean fixture = ghost != null && HoistFixtureCompat.isFixture(state);
-                Vec3 corner = null;
+                Vec3 delta = null;
                 int beamMark = -1;
+                boolean mounted = false;
                 if (fixture) {
-                    // Where this block's body is really drawn this frame (its min corner).
-                    corner = sloped
+                    // Where this block's body is really drawn this frame (its min corner),
+                    // and how far that is from the whole-block cell the ghost is addressed at.
+                    Vec3 corner = sloped
                             ? drawnOrigin.add(tilt.apply(offset.getX() + 0.5, offset.getY() + 0.5,
                                     offset.getZ() + 0.5)).subtract(0.5, 0.5, 0.5)
                             : drawnOrigin.add(offset.getX(), offset.getY(), offset.getZ());
+                    delta = corner.subtract(Vec3.atLowerCornerOf(ghost.getBlockPos()));
                     HoistFixtureCompat.aimBeam(ghost, corner.add(0.5, 0.5, 0.5));
-                    beamMark = HoistFixtureCompat.markBeams();
+                    if (!sloped && HoistFixtureCompat.isMountable(ghost)) {
+                        // Extra Lights: draw the ghost at its cell and carry the remainder in
+                        // the fixture's own mount offset, which every one of its render paths
+                        // applies - including the shared raymarched volume that anchors on
+                        // getBlockPos() in world space and cannot be shifted from outside.
+                        HoistFixtureCompat.mountAt(ghost, delta);
+                        poseStack.translate(-delta.x, -delta.y, -delta.z);
+                        mounted = true;
+                    } else {
+                        beamMark = HoistFixtureCompat.markBeams();
+                    }
                     if (HoistFixtureCompat.DEBUG) {
                         cache.trace(i, ghost, level.getGameTime(), partialTick, corner);
                     }
@@ -137,11 +150,10 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
                 if (fixture && !drew) {
                     HoistFixtureCompat.debug("ghost #{} did not draw; fallback model used", i);
                 }
-                if (fixture && drew) {
+                if (fixture && drew && !mounted) {
                     // Theatrical anchors the beam on the ghost's block cell, not on this
                     // pose. Slide it onto the body so it glides with the truss.
-                    HoistFixtureCompat.shiftBeamsSince(beamMark,
-                            corner.subtract(Vec3.atLowerCornerOf(ghost.getBlockPos())));
+                    HoistFixtureCompat.shiftBeamsSince(beamMark, delta);
                 }
                 if (!drew) {
                     BlockState visible = visibleFallback(state);

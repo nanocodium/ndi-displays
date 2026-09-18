@@ -333,6 +333,35 @@ public final class HoistFixtureCompat {
         }
     }
 
+    /** True for an Extra Lights fixture whose mount transform can carry a sub-block offset. */
+    public static boolean isMountable(@Nullable BlockEntity ghost) {
+        if (ghost == null || !active()) {
+            return false;
+        }
+        try {
+            return HoistMountHooks.isMountable(ghost);
+        } catch (RuntimeException | LinkageError e) {
+            markBroken(e);
+            return false;
+        }
+    }
+
+    /**
+     * Puts {@code delta}, the ghost's displacement from its block cell this frame, into an
+     * Extra Lights fixture's mount offset, so body, quads and the shared raymarched volume
+     * all draw it there. The caller poses the ghost at the cell itself.
+     */
+    public static void mountAt(BlockEntity ghost, net.minecraft.world.phys.Vec3 delta) {
+        if (ghost == null || !active()) {
+            return;
+        }
+        try {
+            HoistMountHooks.mountAt(ghost, delta);
+        } catch (RuntimeException | LinkageError e) {
+            markBroken(e);
+        }
+    }
+
     /**
      * Snapshot of Theatrical's beam queue before a ghost fixture is drawn, for
      * {@link #shiftBeamsSince}. Negative when beams cannot be re-anchored on this build.

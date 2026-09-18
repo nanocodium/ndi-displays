@@ -55,6 +55,7 @@ public final class TheatricalLazyQueue {
         }
         List<Object> saved = new ArrayList<>(live);
         live.clear();
+        resetExtraLightsBeamPass();
         return saved;
     }
 
@@ -74,6 +75,7 @@ public final class TheatricalLazyQueue {
         int leftover = live.size();
         live.clear();
         live.addAll(saved);
+        resetExtraLightsBeamPass();
         if (leftover > 0 && !leftoverLogged) {
             leftoverLogged = true;
             LOGGER.info("[ndidisplays] {} fixture beam(s) were queued during a camera capture but"
@@ -123,6 +125,53 @@ public final class TheatricalLazyQueue {
             LOGGER.warn("[ndidisplays] could not draw fixture beams into the capture ({});"
                     + " feeds will show fixtures without beams", t.toString());
             return -1;
+        }
+    }
+
+    // ------------------------------------------------------------------ Extra Lights
+
+    private static final String EL_RAYMARCH =
+            "com.github.dumann089.theatricalextralights.client.render.beam.raymarch.RaymarchBeamRenderer";
+    private static final String EL_DEPTH =
+            "com.github.dumann089.theatricalextralights.client.render.beam.raymarch.SceneDepthCopy";
+
+    private static boolean elResolved;
+    private static Object elRaymarch;
+    private static Field elBeamCount;
+    private static Method elBeginFrame;
+
+    /**
+     * Starts Extra Lights' raymarched beam pass from zero on both sides of a capture.
+     *
+     * Its renderer is one shared instance for every fixture in view. It queues itself and
+     * refreshes its copy of the scene depth only when its beam count is zero at the first
+     * submission of a pass, and a pass that never reaches the drain leaves the count where
+     * it was. The next pass then neither queues it nor re-copies depth: the player's frame
+     * draws the beam wash occluded by the CAMERA's depth, which reads as a magenta copy of
+     * the viewfinder image cut into the world, while the feed shows no beams at all.
+     * Discarding those slots is the same trade as discarding the queue leftovers above.
+     */
+    private static void resetExtraLightsBeamPass() {
+        try {
+            if (!elResolved) {
+                elResolved = true;
+                Class<?> raymarch = Class.forName(EL_RAYMARCH);
+                Field instance = raymarch.getDeclaredField("INSTANCE");
+                instance.setAccessible(true);
+                elRaymarch = instance.get(null);
+                elBeamCount = raymarch.getDeclaredField("activeBeamCount");
+                elBeamCount.setAccessible(true);
+                elBeginFrame = Class.forName(EL_DEPTH).getMethod("beginFrame");
+            }
+            if (elRaymarch != null) {
+                elBeamCount.setInt(elRaymarch, 0);
+                elBeginFrame.invoke(null);
+            }
+        } catch (Throwable t) {
+            // Extra Lights absent, or an older build without the raymarch engine: nothing to reset.
+            elRaymarch = null;
+            elBeamCount = null;
+            elBeginFrame = null;
         }
     }
 

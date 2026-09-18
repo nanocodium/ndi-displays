@@ -44,6 +44,7 @@ public class CurvedScreenConfigScreen extends Screen {
     private float arcAngle;
     private float screenHeight;
     private float offset;
+    private float yOffset;
     private boolean convex;
     private int videoRepeat;
     private boolean hideMount;
@@ -63,6 +64,7 @@ public class CurvedScreenConfigScreen extends Screen {
         this.hideMount = screen.isMountHidden();
         this.screenHeight = screen.getScreenHeight();
         this.offset = screen.getOffset();
+        this.yOffset = screen.getYOffset();
         this.convex = screen.isConvex();
         this.videoRepeat = screen.getVideoRepeat();
     }
@@ -170,6 +172,14 @@ public class CurvedScreenConfigScreen extends Screen {
         addRenderableWidget(new FloatSlider(left + 134, y, 130, Math.sqrt(offset), 0.0, sqrtMax,
                 v -> offset = snapMetres(v * v, 0.0F, CurvedScreenBlockEntity.MAX_OFFSET),
                 v -> "Distance: " + fmtMetres(snapMetres(v * v, 0.0F, CurvedScreenBlockEntity.MAX_OFFSET)) + " m"));
+        y += 22;
+
+        // Vertical shift of the arc. Signed square-law: fine around zero, ±256 m at the ends.
+        double sqrtYMax = Math.sqrt(CurvedScreenBlockEntity.MAX_Y_OFFSET);
+        addRenderableWidget(new FloatSlider(left, y, 130, Math.copySign(Math.sqrt(Math.abs(yOffset)), yOffset),
+                -sqrtYMax, sqrtYMax,
+                v -> yOffset = signedSquare(v),
+                v -> "Height offset: " + fmtSigned(signedSquare(v)) + " m"));
         y += 28;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.winch.apply"), b -> apply())
@@ -189,6 +199,7 @@ public class CurvedScreenConfigScreen extends Screen {
                 arcAngle,
                 screenHeight,
                 offset,
+                yOffset,
                 convex,
                 videoRepeat,
                 hideMount));
@@ -283,6 +294,15 @@ public class CurvedScreenConfigScreen extends Screen {
     private static float snapMetres(double v, float min, float max) {
         double step = v < 16.0 ? 0.1 : v < 64.0 ? 0.5 : 1.0;
         return (float) Math.max(min, Math.min(max, Math.round(v / step) * step));
+    }
+
+    private static float signedSquare(double v) {
+        float m = snapMetres(v * v, 0.0F, CurvedScreenBlockEntity.MAX_Y_OFFSET);
+        return v < 0 ? -m : m;
+    }
+
+    private static String fmtSigned(float v) {
+        return (v < 0 ? "-" : v > 0 ? "+" : "") + fmtMetres(Math.abs(v));
     }
 
     private static String fmtMetres(float v) {

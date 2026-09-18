@@ -16,7 +16,7 @@ import java.util.function.Supplier;
  */
 public record UpdateCurvedScreenConfigPacket(BlockPos pos, String source, int pxPerBlock,
                                              float brightness, int pattern, float radius,
-                                             float arcAngle, float screenHeight, float offset, boolean convex,
+                                             float arcAngle, float screenHeight, float offset, float yOffset, boolean convex,
                                              int videoRepeat, boolean hideMount) {
 
     public static void encode(UpdateCurvedScreenConfigPacket msg, FriendlyByteBuf buf) {
@@ -29,6 +29,7 @@ public record UpdateCurvedScreenConfigPacket(BlockPos pos, String source, int px
         buf.writeFloat(msg.arcAngle);
         buf.writeFloat(msg.screenHeight);
         buf.writeFloat(msg.offset);
+        buf.writeFloat(msg.yOffset);
         buf.writeBoolean(msg.convex);
         buf.writeVarInt(msg.videoRepeat);
         buf.writeBoolean(msg.hideMount);
@@ -41,6 +42,7 @@ public record UpdateCurvedScreenConfigPacket(BlockPos pos, String source, int px
                 buf.readVarInt(),
                 buf.readFloat(),
                 buf.readVarInt(),
+                buf.readFloat(),
                 buf.readFloat(),
                 buf.readFloat(),
                 buf.readFloat(),
@@ -64,7 +66,7 @@ public record UpdateCurvedScreenConfigPacket(BlockPos pos, String source, int px
                 return;
             }
             screen.applyConfig(msg.source, msg.pxPerBlock, msg.brightness, msg.pattern,
-                    msg.radius, msg.arcAngle, msg.screenHeight, msg.offset, msg.convex, msg.videoRepeat);
+                    msg.radius, msg.arcAngle, msg.screenHeight, msg.offset, msg.yOffset, msg.convex, msg.videoRepeat);
             BlockState state = level.getBlockState(msg.pos);
             if (state.hasProperty(dev.nano.ndidisplays.block.CurvedScreenBlock.HIDDEN)
                     && state.getValue(dev.nano.ndidisplays.block.CurvedScreenBlock.HIDDEN) != msg.hideMount) {

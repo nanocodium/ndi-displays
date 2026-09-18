@@ -35,6 +35,8 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
     public static final float MAX_HEIGHT = 256.0F;
     /** How far the arc's centre may sit in front of the mount, along its facing, metres. */
     public static final float MAX_OFFSET = 512.0F;
+    /** How far the arc may be raised or lowered relative to the mount, metres, either way. */
+    public static final float MAX_Y_OFFSET = 256.0F;
     /** Most times the source can tile around the arc. */
     public static final int MAX_REPEAT = 8;
 
@@ -46,6 +48,7 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
     private static final float DEFAULT_ANGLE = 120.0F;
     private static final float DEFAULT_HEIGHT = 3.0F;
     private static final float DEFAULT_OFFSET = 0.0F;
+    private static final float DEFAULT_Y_OFFSET = 0.0F;
 
     private String sourceName = "";
     private int pixelsPerBlock = DEFAULT_PX_PER_BLOCK;
@@ -57,6 +60,8 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
     private float screenHeight = DEFAULT_HEIGHT;
     /** Distance from the mount to the arc's centre, along the facing direction. */
     private float offset = DEFAULT_OFFSET;
+    /** Vertical shift of the arc relative to the mount; positive raises it. */
+    private float yOffset = DEFAULT_Y_OFFSET;
     /** false = concave (video reads correctly from inside the arc), true = convex (from outside). */
     private boolean convex;
     /** How many times the source frame tiles around the arc (1 = stretched once over the whole sweep). */
@@ -115,6 +120,10 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
         return offset;
     }
 
+    public float getYOffset() {
+        return yOffset;
+    }
+
     public boolean isConvex() {
         return convex;
     }
@@ -134,7 +143,7 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
 
     public void applyConfig(String source, int pxPerBlock, float brightness, int pattern,
                             float radius, float arcAngle, float screenHeight, float offset,
-                            boolean convex, int videoRepeat) {
+                            float yOffset, boolean convex, int videoRepeat) {
         this.sourceName = Clamps.name(source, MAX_SOURCE_NAME);
         this.pixelsPerBlock = Clamps.i(pxPerBlock, 8, 1024);
         this.brightness = Clamps.f(brightness, 0.02F, 1.0F, DEFAULT_BRIGHTNESS);
@@ -143,6 +152,7 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
         this.arcAngle = Clamps.f(arcAngle, MIN_ANGLE, MAX_ANGLE, DEFAULT_ANGLE);
         this.screenHeight = Clamps.f(screenHeight, MIN_HEIGHT, MAX_HEIGHT, DEFAULT_HEIGHT);
         this.offset = Clamps.f(offset, 0.0F, MAX_OFFSET, DEFAULT_OFFSET);
+        this.yOffset = Clamps.f(yOffset, -MAX_Y_OFFSET, MAX_Y_OFFSET, DEFAULT_Y_OFFSET);
         this.convex = convex;
         this.videoRepeat = Clamps.i(videoRepeat, 1, MAX_REPEAT);
         setChanged();
@@ -231,6 +241,7 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
         tag.putFloat("ArcAngle", arcAngle);
         tag.putFloat("ScreenHeight", screenHeight);
         tag.putFloat("Offset", offset);
+        tag.putFloat("YOffset", yOffset);
         tag.putBoolean("Convex", convex);
         tag.putInt("VideoRepeat", videoRepeat);
         crop.save(tag);
@@ -256,6 +267,8 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
                 MIN_HEIGHT, MAX_HEIGHT, DEFAULT_HEIGHT);
         offset = Clamps.f(tag.contains("Offset") ? tag.getFloat("Offset") : DEFAULT_OFFSET,
                 0.0F, MAX_OFFSET, DEFAULT_OFFSET);
+        yOffset = Clamps.f(tag.contains("YOffset") ? tag.getFloat("YOffset") : DEFAULT_Y_OFFSET,
+                -MAX_Y_OFFSET, MAX_Y_OFFSET, DEFAULT_Y_OFFSET);
         convex = tag.getBoolean("Convex");
         videoRepeat = Clamps.i(tag.contains("VideoRepeat") ? tag.getInt("VideoRepeat") : 1, 1, MAX_REPEAT);
         crop.load(tag);
@@ -283,7 +296,8 @@ public class CurvedScreenBlockEntity extends BlockEntity implements DmxScreen {
     @Override
     public AABB getRenderBoundingBox() {
         Vec3i n = getFacing().getNormal();
-        return new AABB(worldPosition.offset(n.getX() * Math.round(offset), 0, n.getZ() * Math.round(offset)))
+        return new AABB(worldPosition.offset(n.getX() * Math.round(offset), Math.round(yOffset),
+                        n.getZ() * Math.round(offset)))
                 .inflate(radius + 1.0, screenHeight * 0.5 + 1.0, radius + 1.0);
     }
 }

@@ -65,8 +65,9 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
         // The arc's centre sits `offset` metres in front of the mount along its facing.
         Vec3 center = new Vec3(0.5, 0.5, 0.5).add(fwd.scale(be.getOffset()));
 
-        float yBottom = (float) (0.5 - h * 0.5);
-        float yTop = (float) (0.5 + h * 0.5);
+        float yMid = 0.5F + be.getYOffset();
+        float yBottom = yMid - h * 0.5F;
+        float yTop = yMid + h * 0.5F;
 
         // Radial positions of the LED face and the cabinet back. Concave = video on the
         // inner face, cabinet radially outwards; convex = the opposite.

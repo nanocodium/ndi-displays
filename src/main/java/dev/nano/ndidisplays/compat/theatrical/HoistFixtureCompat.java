@@ -44,10 +44,10 @@ public final class HoistFixtureCompat {
 
     private static final Logger LOG = LogUtils.getLogger();
 
-    /** Live head state per fixture: index into the snapshot, then seven channel values. */
+    /** Live state per fixture: index into the snapshot, then the proxy's full saved tag. */
     private static final String LIST = "L";
     private static final String INDEX = "i";
-    private static final String VALUES = "v";
+    private static final String STATE = "t";
 
     private static volatile boolean broken;
 
@@ -147,13 +147,13 @@ public final class HoistFixtureCompat {
         try {
             ListTag list = new ListTag();
             for (Tracked entry : tracked) {
-                int[] values = HoistFixtureHooks.readLive(entry.proxy());
-                if (values == null) {
+                CompoundTag state = HoistFixtureHooks.readLive(entry.proxy());
+                if (state == null) {
                     continue;
                 }
                 CompoundTag item = new CompoundTag();
                 item.putInt(INDEX, entry.index());
-                item.putIntArray(VALUES, values);
+                item.put(STATE, state);
                 list.add(item);
             }
             if (list.isEmpty()) {
@@ -298,7 +298,7 @@ public final class HoistFixtureCompat {
      * Pushes the synced head state onto the ghost fixtures the rig renderer is drawing.
      *
      * @param ghosts   one entry per snapshot block, null where the block has no ghost
-     * @param captured the snapshot, for the fixture NBT the live values are merged into
+     * @param captured the snapshot the ghosts were built from, for bounds
      */
     public static void applyLive(CompoundTag live, List<BlockEntity> ghosts,
                                  RigStructure captured, boolean interpolate) {
@@ -314,15 +314,10 @@ public final class HoistFixtureCompat {
                     continue;
                 }
                 BlockEntity ghost = ghosts.get(index);
-                CompoundTag tag = captured.entries().get(index).blockEntity();
-                if (ghost == null || tag == null) {
+                if (ghost == null || !item.contains(STATE, Tag.TAG_COMPOUND)) {
                     continue;
                 }
-                int[] values = item.getIntArray(VALUES);
-                if (values.length < HoistFixtureHooks.VALUE_COUNT) {
-                    continue;
-                }
-                HoistFixtureHooks.applyLive(ghost, tag, values, interpolate);
+                HoistFixtureHooks.applyLive(ghost, item.getCompound(STATE), interpolate);
             }
         } catch (RuntimeException | LinkageError e) {
             markBroken(e);

@@ -62,7 +62,8 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
         Direction facing = be.getFacing();
         Vec3 fwd = Vec3.atLowerCornerOf(facing.getNormal());
         Vec3 right = Vec3.atLowerCornerOf(facing.getClockWise().getNormal());
-        Vec3 center = new Vec3(0.5, 0.5, 0.5);
+        // The arc's centre sits `offset` metres in front of the mount along its facing.
+        Vec3 center = new Vec3(0.5, 0.5, 0.5).add(fwd.scale(be.getOffset()));
 
         float yBottom = (float) (0.5 - h * 0.5);
         float yTop = (float) (0.5 + h * 0.5);

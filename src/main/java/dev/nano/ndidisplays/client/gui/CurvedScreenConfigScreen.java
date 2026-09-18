@@ -43,6 +43,7 @@ public class CurvedScreenConfigScreen extends Screen {
     private float radius;
     private float arcAngle;
     private float screenHeight;
+    private float offset;
     private boolean convex;
     private int videoRepeat;
     private boolean hideMount;
@@ -61,6 +62,7 @@ public class CurvedScreenConfigScreen extends Screen {
         this.arcAngle = screen.getArcAngle();
         this.hideMount = screen.isMountHidden();
         this.screenHeight = screen.getScreenHeight();
+        this.offset = screen.getOffset();
         this.convex = screen.isConvex();
         this.videoRepeat = screen.getVideoRepeat();
     }
@@ -162,6 +164,12 @@ public class CurvedScreenConfigScreen extends Screen {
                 .withInitialValue(hideMount)
                 .create(left, y, 130, 18, Component.translatable("gui.ndidisplays.curved.mount"),
                         (btn, val) -> hideMount = val));
+        // Distance from the mount to the arc's centre. Square-law so the first metres are
+        // fine-grained while the far end still reaches 512 m; unlike radius it may be 0.
+        double sqrtMax = Math.sqrt(CurvedScreenBlockEntity.MAX_OFFSET);
+        addRenderableWidget(new FloatSlider(left + 134, y, 130, Math.sqrt(offset), 0.0, sqrtMax,
+                v -> offset = snapMetres(v * v, 0.0F, CurvedScreenBlockEntity.MAX_OFFSET),
+                v -> "Distance: " + fmtMetres(snapMetres(v * v, 0.0F, CurvedScreenBlockEntity.MAX_OFFSET)) + " m"));
         y += 28;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.winch.apply"), b -> apply())
@@ -180,6 +188,7 @@ public class CurvedScreenConfigScreen extends Screen {
                 radius,
                 arcAngle,
                 screenHeight,
+                offset,
                 convex,
                 videoRepeat,
                 hideMount));

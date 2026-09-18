@@ -108,6 +108,51 @@ final class HoistBeamHooks {
         }
     }
 
+    /**
+     * The real camera moved by {@code -delta}, so anything drawn relative to it lands
+     * {@code delta} further along in the world. Rotation is rebuilt through the protected
+     * setter so the final look/up/left vectors are populated; everything else delegates.
+     */
+    private static final class ShiftedCamera extends Camera {
+        private final Camera real;
+
+        ShiftedCamera(Camera real, Vec3 delta) {
+            this.real = real;
+            setRotation(real.getYRot(), real.getXRot());
+            setPosition(real.getPosition().subtract(delta));
+        }
+
+        @Override
+        public net.minecraft.world.entity.Entity getEntity() {
+            return real.getEntity();
+        }
+
+        @Override
+        public boolean isInitialized() {
+            return real.isInitialized();
+        }
+
+        @Override
+        public boolean isDetached() {
+            return real.isDetached();
+        }
+
+        @Override
+        public Camera.NearPlane getNearPlane() {
+            return real.getNearPlane();
+        }
+
+        @Override
+        public net.minecraft.world.level.material.FogType getFluidInCamera() {
+            return real.getFluidInCamera();
+        }
+
+        @Override
+        public net.minecraft.world.level.block.state.BlockState getBlockAtCamera() {
+            return real.getBlockAtCamera();
+        }
+    }
+
     private static final class Shifted extends LazyRenderers.LazyRenderer {
         private final LazyRenderers.LazyRenderer inner;
         private final Vec3 delta;
@@ -120,10 +165,14 @@ final class HoistBeamHooks {
         @Override
         public void render(MultiBufferSource.BufferSource bufferSource, PoseStack poseStack,
                            Camera camera, float partialTick) {
-            poseStack.pushPose();
-            poseStack.translate(delta.x, delta.y, delta.z);
-            inner.render(bufferSource, poseStack, camera, partialTick);
-            poseStack.popPose();
+            // Shift the camera the other way rather than the pose. Every beam renderer
+            // anchors itself with (blockPos - camera.getPosition()), and Extra Lights'
+            // raymarched shaft goes further: it feeds the shader world-space origins from
+            // the block cell plus the camera position, and only uses the pose to place its
+            // proxy box. Translating the pose moved that box off the volume it bounds; the
+            // volume stayed on the grid, and the two drifted apart by up to a block before
+            // snapping back at each cell boundary. Moving the camera shifts all of it as one.
+            inner.render(bufferSource, poseStack, new ShiftedCamera(camera, delta), partialTick);
         }
 
         @Override

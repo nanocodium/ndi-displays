@@ -2,7 +2,7 @@
 
 ![Curved LED screen](/img/blocks/curved_screen.png)
 
-Cylindrical arc: radius (0.5–256 m), opening angle, height (0.5–256 m). 360° closes it into a full video column. Concave (audience inside) or convex (audience outside), with optional video repeat around the barrel.
+Cylindrical arc: radius, opening angle, height. 360° closes it into a full video column. Concave (audience inside) or convex (audience outside), with optional video repeat around the barrel.
 
 ## Registry ID
 

@@ -306,8 +306,6 @@ public class CurvedScreenRenderer implements BlockEntityRenderer<CurvedScreenBlo
 
     @Override
     public int getViewDistance() {
-        // The arc can reach 256 m from its hub, so the hub may be far outside the default
-        // block-entity cutoff while the video face is right in front of the player.
-        return 1024;
+        return 256;
     }
 }

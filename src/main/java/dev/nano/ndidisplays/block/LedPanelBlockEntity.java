@@ -175,6 +175,29 @@ public class LedPanelBlockEntity extends BlockEntity implements DmxScreen {
         cachedWall = null;
     }
 
+    /**
+     * Every panel that shares this panel's screen, for settings that must reach all of it.
+     *
+     * The merged wall as the scanner sees it right now - so a run that turns a 90° corner or
+     * a 45° chamfer is one group, the way it is one picture - plus the connected same-facing
+     * cabinets, which keeps a half-built or oversized arrangement configured as a whole
+     * before the scanner recognises it. Rescans rather than trusting the 2-second cache: a
+     * player who has just placed the corner cabinet expects the click after it to count.
+     */
+    public java.util.List<BlockPos> screenGroup() {
+        java.util.LinkedHashSet<BlockPos> out = new java.util.LinkedHashSet<>();
+        if (level != null) {
+            invalidateWallCache();
+            WallScanner.WallInfo wall = getWallInfo();
+            if (wall != null) {
+                out.addAll(WallScanner.allPanels(wall));
+            }
+            out.addAll(WallScanner.collectGroup(level, worldPosition, getFacing(), getPanelKind()));
+        }
+        out.add(worldPosition);
+        return new java.util.ArrayList<>(out);
+    }
+
     // ------------------------------------------------------------------ DMX (Theatrical)
 
     @Override

@@ -51,12 +51,11 @@ public record UpdateWallConfigPacket(BlockPos pos, String source, int pxPerBlock
             if (!(level.getBlockEntity(msg.pos) instanceof LedPanelBlockEntity clicked)) {
                 return;
             }
-            // Apply to every connected panel, not just the rectangle: a builder thinks of a
-            // half-finished or L-shaped arrangement as one screen, and settings should stick
-            // to all of it so the wall is already configured once it becomes rectangular.
-            dev.nano.ndidisplays.block.PanelFacing facing = clicked.getFacing();
-            net.minecraft.world.level.block.Block kind = clicked.getPanelKind();
-            for (BlockPos panelPos : WallScanner.collectGroup(level, msg.pos, facing, kind)) {
+            // Apply to every panel of the screen: the merged wall (including the far side of
+            // a 90° corner or chamfer, which draws from this side's anchor) plus any connected
+            // panels the scanner does not recognise yet, so a half-finished arrangement is
+            // already configured once it becomes a screen.
+            for (BlockPos panelPos : clicked.screenGroup()) {
                 if (level.getBlockEntity(panelPos) instanceof LedPanelBlockEntity panel) {
                     panel.applyConfig(msg.source, msg.pxPerBlock, msg.brightness, msg.gamma, msg.pattern);
                     BlockState state = level.getBlockState(panelPos);

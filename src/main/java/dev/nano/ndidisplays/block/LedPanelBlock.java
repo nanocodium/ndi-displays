@@ -136,8 +136,7 @@ public class LedPanelBlock extends HorizontalDirectionalBlock implements EntityB
             if (!level.isClientSide && level.getBlockEntity(pos) instanceof LedPanelBlockEntity clicked) {
                 String source = dev.nano.ndidisplays.item.NdiConfigCardItem
                         .storedSource(player.getItemInHand(hand));
-                for (BlockPos panelPos : WallScanner.collectGroup(level, pos, clicked.getFacing(),
-                        clicked.getPanelKind())) {
+                for (BlockPos panelPos : clicked.screenGroup()) {
                     if (level.getBlockEntity(panelPos) instanceof LedPanelBlockEntity panel) {
                         panel.applyConfig(source, panel.getPixelsPerBlock(), panel.getBrightness(),
                                 panel.getGamma(), 0);

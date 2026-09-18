@@ -99,20 +99,26 @@ public class CurvedScreenConfigScreen extends Screen {
                         (btn, val) -> pattern = val));
         y += 22;
 
-        addRenderableWidget(new FloatSlider(left, y, 130, radius,
-                CurvedScreenBlockEntity.MIN_RADIUS, CurvedScreenBlockEntity.MAX_RADIUS,
-                v -> radius = (float) v,
-                v -> String.format("Radius: %.1f m", v)));
+        // Radius and height run 0.5 m to 256 m: nine doublings, so both sliders are
+        // logarithmic — linear would jump about 2 m per pixel and lose the small sizes.
+        addRenderableWidget(new FloatSlider(left, y, 130, Math.log(radius),
+                Math.log(CurvedScreenBlockEntity.MIN_RADIUS), Math.log(CurvedScreenBlockEntity.MAX_RADIUS),
+                v -> radius = snapMetres(Math.exp(v), CurvedScreenBlockEntity.MIN_RADIUS,
+                        CurvedScreenBlockEntity.MAX_RADIUS),
+                v -> "Radius: " + fmtMetres(snapMetres(Math.exp(v), CurvedScreenBlockEntity.MIN_RADIUS,
+                        CurvedScreenBlockEntity.MAX_RADIUS)) + " m"));
         addRenderableWidget(new FloatSlider(left + 134, y, 130, arcAngle,
                 CurvedScreenBlockEntity.MIN_ANGLE, CurvedScreenBlockEntity.MAX_ANGLE,
                 v -> arcAngle = (float) v,
                 v -> v >= 359.5 ? "Angle: 360\u00B0 (cylinder)" : String.format("Angle: %.0f\u00B0", v)));
         y += 22;
 
-        addRenderableWidget(new FloatSlider(left, y, 130, screenHeight,
-                CurvedScreenBlockEntity.MIN_HEIGHT, CurvedScreenBlockEntity.MAX_HEIGHT,
-                v -> screenHeight = (float) v,
-                v -> String.format("Height: %.1f m", v)));
+        addRenderableWidget(new FloatSlider(left, y, 130, Math.log(screenHeight),
+                Math.log(CurvedScreenBlockEntity.MIN_HEIGHT), Math.log(CurvedScreenBlockEntity.MAX_HEIGHT),
+                v -> screenHeight = snapMetres(Math.exp(v), CurvedScreenBlockEntity.MIN_HEIGHT,
+                        CurvedScreenBlockEntity.MAX_HEIGHT),
+                v -> "Height: " + fmtMetres(snapMetres(Math.exp(v), CurvedScreenBlockEntity.MIN_HEIGHT,
+                        CurvedScreenBlockEntity.MAX_HEIGHT)) + " m"));
         addRenderableWidget(new FloatSlider(left + 134, y, 130, brightness, 0.05, 1.0,
                 v -> brightness = (float) v,
                 v -> String.format("Brightness: %d%%", Math.round(v * 100))));
@@ -261,6 +267,17 @@ public class CurvedScreenConfigScreen extends Screen {
 
     private interface LabelFmt {
         String label(double v);
+    }
+
+    /** Snaps to 0.1 m under 16 m, 0.5 m under 64 m and whole metres above; the sliders
+     *  are logarithmic, so raw values carry meaningless fractions at the large end. */
+    private static float snapMetres(double v, float min, float max) {
+        double step = v < 16.0 ? 0.1 : v < 64.0 ? 0.5 : 1.0;
+        return (float) Math.max(min, Math.min(max, Math.round(v / step) * step));
+    }
+
+    private static String fmtMetres(float v) {
+        return v < 64.0F ? String.format("%.1f", v) : String.format("%.0f", v);
     }
 
     private static class FloatSlider extends AbstractSliderButton {

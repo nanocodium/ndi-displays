@@ -201,6 +201,47 @@ public final class HoistFixtureCompat {
     }
 
     /**
+     * Writes each proxy's current state back into the snapshot the load will be placed
+     * from, so a landed fixture keeps the look it had in the air rather than the one it
+     * took off with. Without this every set-down snapped pan, tilt, gobo and colour back
+     * to the take-off cue until the desk's next frame arrived. Call before {@link #release}.
+     */
+    public static void freshenSnapshot(UUID rigId, RigStructure structure) {
+        if (!active() || rigId == null || structure == null) {
+            return;
+        }
+        List<Tracked> tracked;
+        synchronized (TRACKED) {
+            tracked = TRACKED.get(rigId);
+        }
+        if (tracked == null) {
+            return;
+        }
+        try {
+            List<RigStructure.Entry> entries = structure.entries();
+            for (Tracked entry : tracked) {
+                if (entry.index() >= entries.size()) {
+                    continue;
+                }
+                CompoundTag target = entries.get(entry.index()).blockEntity();
+                CompoundTag state = HoistFixtureHooks.readLive(entry.proxy());
+                if (target == null || state == null) {
+                    continue;
+                }
+                // Overlay rather than replace: the snapshot's id and position keys stay.
+                for (String key : state.getAllKeys()) {
+                    Tag value = state.get(key);
+                    if (value != null) {
+                        target.put(key, value.copy());
+                    }
+                }
+            }
+        } catch (RuntimeException | LinkageError e) {
+            markBroken(e);
+        }
+    }
+
+    /**
      * Hands the fixtures back to the world. Called before the load is placed, so the real
      * block entities register themselves cleanly rather than fighting a stale proxy for the
      * same DMX address.

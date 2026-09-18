@@ -228,8 +228,10 @@ public class MovingRigEntity extends Entity {
             target = clear;
         }
 
-        // Unpatch the flown fixtures first: the real block entities register themselves as
-        // they are placed, and two consumers on one DMX address is one too many.
+        // Land the fixtures with the look they have now, then unpatch them: the real block
+        // entities register themselves as they are placed, and two consumers on one DMX
+        // address is one too many.
+        HoistFixtureCompat.freshenSnapshot(rigId(), snapshot);
         HoistFixtureCompat.release(rigId());
 
         snapshot.placeAt(level, target);
@@ -327,6 +329,7 @@ public class MovingRigEntity extends Entity {
         if (!landed && reason.shouldDestroy() && level() instanceof ServerLevel server
                 && structure() != null && structure().size() > 0) {
             RigStructure snapshot = structure();
+            HoistFixtureCompat.freshenSnapshot(rigId(), snapshot);
             HoistFixtureCompat.release(rigId());
             BlockPos target = origin().above((int) Math.round(travel()));
             snapshot.placeAt(server, target);

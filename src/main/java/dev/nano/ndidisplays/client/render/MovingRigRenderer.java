@@ -80,7 +80,7 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
 
         BlockPos originBlock = BlockPos.containing(entity.getX(), entity.getY(), entity.getZ());
         Ghosts cache = ghosts(entity, structure, level, originBlock, tilt);
-        cache.pushLiveFixtures(entity, structure);
+        cache.pushLiveFixtures(entity, structure, level.getGameTime());
         // Where the rig origin is really being drawn this frame, as opposed to the
         // whole-block cell the ghosts are addressed at. Same lerp as the entity render
         // dispatcher, from xOld/yOld/zOld: those are stamped by the client level before
@@ -269,6 +269,7 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
         private final long attitude;
         private final List<BlockEntity> entities = new ArrayList<>();
         private CompoundTag appliedLive = new CompoundTag();
+        private long settledTick = Long.MIN_VALUE;
 
         Ghosts(RigStructure source, BlockPos origin, long attitude) {
             this.source = source;
@@ -281,19 +282,26 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
         }
 
         /**
-         * Copies the rig's live lighting state onto the ghosts, when it has changed.
+         * Copies the rig's live lighting state onto the ghosts, when it has changed, and
+         * keeps their head interpolation ticking over.
          *
-         * Once per change rather than once per frame: a fixture reloads itself from NBT to
-         * take the values, and re-running that at the frame rate for a truss of moving
-         * heads would be measurable for no benefit — nothing looks at it in between.
+         * A change makes the heads sweep from their previous position over the current
+         * tick, the way Theatrical animates a bolted fixture. A tick without a change
+         * settles them, so the sweep does not replay every frame. A freshly built cache
+         * (new ghosts, loaded from the take-off snapshot) takes the values without a sweep:
+         * otherwise every block boundary would swing the heads from take-off to now.
          */
-        void pushLiveFixtures(MovingRigEntity entity, RigStructure structure) {
+        void pushLiveFixtures(MovingRigEntity entity, RigStructure structure, long tick) {
             CompoundTag live = entity.fixtureState();
-            if (live.isEmpty() || live.equals(appliedLive)) {
-                return;
+            boolean fresh = appliedLive.isEmpty();
+            if (!live.isEmpty() && !live.equals(appliedLive)) {
+                HoistFixtureCompat.applyLive(live, entities, structure, !fresh);
+                appliedLive = live.copy();
+                settledTick = tick;
+            } else if (tick != settledTick) {
+                HoistFixtureCompat.settle(entities);
+                settledTick = tick;
             }
-            HoistFixtureCompat.applyLive(live, entities, structure);
-            appliedLive = live.copy();
         }
     }
 }

@@ -232,6 +232,22 @@ public final class HoistFixtureCompat {
 
     // ------------------------------------------------------------------ client
 
+    /** Ends the ghosts' head sweeps for a tick that brought no new values. */
+    public static void settle(List<BlockEntity> ghosts) {
+        if (!active()) {
+            return;
+        }
+        try {
+            for (BlockEntity ghost : ghosts) {
+                if (ghost != null) {
+                    HoistFixtureHooks.settle(ghost);
+                }
+            }
+        } catch (RuntimeException | LinkageError e) {
+            markBroken(e);
+        }
+    }
+
     /**
      * Snapshot of Theatrical's beam queue before a ghost fixture is drawn, for
      * {@link #shiftBeamsSince}. Negative when beams cannot be re-anchored on this build.
@@ -285,7 +301,7 @@ public final class HoistFixtureCompat {
      * @param captured the snapshot, for the fixture NBT the live values are merged into
      */
     public static void applyLive(CompoundTag live, List<BlockEntity> ghosts,
-                                 RigStructure captured) {
+                                 RigStructure captured, boolean interpolate) {
         if (!active() || live.isEmpty()) {
             return;
         }
@@ -306,7 +322,7 @@ public final class HoistFixtureCompat {
                 if (values.length < HoistFixtureHooks.VALUE_COUNT) {
                     continue;
                 }
-                HoistFixtureHooks.applyLive(ghost, tag, values);
+                HoistFixtureHooks.applyLive(ghost, tag, values, interpolate);
             }
         } catch (RuntimeException | LinkageError e) {
             markBroken(e);

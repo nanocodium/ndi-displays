@@ -6,7 +6,6 @@ import dev.imabad.theatrical.client.LazyRenderers;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
@@ -91,9 +90,9 @@ final class HoistBeamHooks {
         if (Math.abs(distance - light.getDistance()) < 0.01) {
             return;
         }
-        CompoundTag tag = ghost.saveWithoutMetadata();
-        tag.putDouble("distance", distance);
-        ghost.load(tag);
+        // Not through load(): read() would reset prevPan/prevTilt and freeze the head's
+        // sweep on every frame the truss moves.
+        HoistFixtureHooks.setDistance(light, distance);
     }
 
     /** Number of beams queued so far this frame; pass to {@link #shiftSince}. */

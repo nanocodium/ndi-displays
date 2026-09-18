@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nullable;
+import java.lang.reflect.Field;
 
 /**
  * Everything that touches a Theatrical type on behalf of a flown lighting fixture. Only
@@ -32,6 +33,28 @@ final class HoistFixtureHooks {
 
     /** pan, tilt, focus, intensity, red, green, blue. */
     static final int VALUE_COUNT = 7;
+
+    /**
+     * Theatrical's interpolation and beam-length state, reached directly. {@code read()}
+     * forces prevPan = pan and prevTilt = tilt, so a ghost fed through NBT can never
+     * interpolate: every new head position is a snap, and a pan/tilt effect that glides
+     * on a bolted fixture stutters on a flown one. Ghosts never tick, so nothing else
+     * maintains these fields; this class does it in their place.
+     */
+    private static final Field PREV_PAN = field("prevPan");
+    private static final Field PREV_TILT = field("prevTilt");
+    private static final Field DISTANCE = field("distance");
+
+    @Nullable
+    private static Field field(String name) {
+        try {
+            Field f = BaseLightBlockEntity.class.getDeclaredField(name);
+            f.setAccessible(true);
+            return f;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return null;
+        }
+    }
 
     private HoistFixtureHooks() {
     }
@@ -117,31 +140,53 @@ final class HoistFixtureHooks {
      * Reloading from a merged tag is both complete and version-proof: whatever a modded
      * fixture keeps alongside the standard fields comes straight back from the snapshot.
      */
-    static void applyLive(BlockEntity ghost, CompoundTag captured, int[] values) {
+    static void applyLive(BlockEntity ghost, CompoundTag captured, int[] values,
+                          boolean interpolate) {
         if (!(ghost instanceof BaseLightBlockEntity light)) {
             return;
         }
-        CompoundTag tag = merged(captured, values, ghost.getBlockPos(), light.getDistance());
-        ghost.load(tag);
-
-        // Beam length. The fixture works this out in its own ticker, which never runs for a
-        // ghost, so without this every flown beam would keep the length it had on the truss
-        // — punching through the stage floor on the way up, stopping short on the way down.
-        if (light.getIntensity() > 0) {
-            double distance = safeRayTrace(light);
-            if (distance >= 0 && Math.abs(distance - light.getDistance()) > 0.5) {
-                ghost.load(merged(captured, values, ghost.getBlockPos(), distance));
-            }
+        int fromPan = light.getPan();
+        int fromTilt = light.getTilt();
+        ghost.load(merged(captured, values, ghost.getBlockPos(), light.getDistance()));
+        if (interpolate) {
+            // Sweep from where the head was to where it is now over this tick, exactly as
+            // Theatrical's own storePrev() would have arranged on a ticking fixture.
+            setInt(PREV_PAN, light, fromPan);
+            setInt(PREV_TILT, light, fromTilt);
         }
     }
 
-    private static double safeRayTrace(BaseLightBlockEntity light) {
+    /**
+     * Ends the previous tick's sweep: previous = current, so the head holds still until
+     * the next change. Called once per tick on every ghost that got no new values.
+     */
+    static void settle(BlockEntity ghost) {
+        if (ghost instanceof BaseLightBlockEntity light) {
+            setInt(PREV_PAN, light, light.getPan());
+            setInt(PREV_TILT, light, light.getTilt());
+        }
+    }
+
+    /** Beam length without a reload, so a per-frame update cannot disturb the sweep. */
+    static void setDistance(BaseLightBlockEntity light, double distance) {
+        if (DISTANCE == null) {
+            return;
+        }
         try {
-            return light.doRayTrace();
-        } catch (RuntimeException | LinkageError e) {
-            // A raycast is a nicety. A fixture whose geometry this build does not
-            // understand keeps its captured beam length instead of killing the frame.
-            return -1;
+            DISTANCE.setDouble(light, distance);
+        } catch (IllegalAccessException | RuntimeException ignored) {
+            // Cosmetic: the beam keeps its last length.
+        }
+    }
+
+    private static void setInt(@Nullable Field field, BaseLightBlockEntity light, int value) {
+        if (field == null) {
+            return;
+        }
+        try {
+            field.setInt(light, value);
+        } catch (IllegalAccessException | RuntimeException ignored) {
+            // Cosmetic: the head snaps instead of sweeping.
         }
     }
 

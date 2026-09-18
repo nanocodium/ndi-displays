@@ -80,7 +80,6 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
         BlockPos originBlock = BlockPos.containing(entity.getX(), entity.getY(), entity.getZ());
         Ghosts cache = ghosts(entity, structure, level, originBlock, tilt);
         cache.pushLiveFixtures(entity, structure);
-        cache.refreshBeams(level);
         // Where the rig origin is really being drawn this frame, as opposed to the
         // whole-block cell the ghosts are addressed at.
         Vec3 drawnOrigin = entity.getPosition(partialTick);
@@ -108,15 +107,21 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
             if (RigStructure.clientNeedsBlockEntity(state)) {
                 BlockEntity ghost = cache.entities().get(i);
                 boolean fixture = ghost != null && HoistFixtureCompat.isFixture(state);
-                int beamMark = fixture ? HoistFixtureCompat.markBeams() : -1;
+                Vec3 corner = null;
+                int beamMark = -1;
+                if (fixture) {
+                    // Where this block's body is really drawn this frame (its min corner).
+                    corner = sloped
+                            ? drawnOrigin.add(tilt.apply(offset.getX() + 0.5, offset.getY() + 0.5,
+                                    offset.getZ() + 0.5)).subtract(0.5, 0.5, 0.5)
+                            : drawnOrigin.add(offset.getX(), offset.getY(), offset.getZ());
+                    HoistFixtureCompat.aimBeam(ghost, corner.add(0.5, 0.5, 0.5));
+                    beamMark = HoistFixtureCompat.markBeams();
+                }
                 drew = renderGhost(ghost, partialTick, poseStack, buffers, light);
                 if (fixture && drew) {
                     // Theatrical anchors the beam on the ghost's block cell, not on this
                     // pose. Slide it onto the body so it glides with the truss.
-                    Vec3 corner = sloped
-                            ? drawnOrigin.add(tilt.apply(offset.getX() + 0.5, offset.getY() + 0.5,
-                                    offset.getZ() + 0.5)).subtract(0.5, 0.5, 0.5)
-                            : drawnOrigin.add(offset.getX(), offset.getY(), offset.getZ());
                     HoistFixtureCompat.shiftBeamsSince(beamMark,
                             corner.subtract(Vec3.atLowerCornerOf(ghost.getBlockPos())));
                 }
@@ -257,7 +262,6 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
         private final long attitude;
         private final List<BlockEntity> entities = new ArrayList<>();
         private CompoundTag appliedLive = new CompoundTag();
-        private long beamsMeasuredAt = Long.MIN_VALUE;
 
         Ghosts(RigStructure source, BlockPos origin, long attitude) {
             this.source = source;
@@ -276,20 +280,6 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
          * take the values, and re-running that at the frame rate for a truss of moving
          * heads would be measurable for no benefit — nothing looks at it in between.
          */
-        /**
-         * Re-measures the fixtures' beams once per game tick. A ghost never ticks, so its
-         * beam length would otherwise only change with the DMX look, and a beam on a rising
-         * truss would punch through the floor until the next block boundary rebuilt it.
-         */
-        void refreshBeams(Level level) {
-            long now = level.getGameTime();
-            if (now == beamsMeasuredAt) {
-                return;
-            }
-            beamsMeasuredAt = now;
-            HoistFixtureCompat.refreshBeamLengths(entities);
-        }
-
         void pushLiveFixtures(MovingRigEntity entity, RigStructure structure) {
             CompoundTag live = entity.fixtureState();
             if (live.isEmpty() || live.equals(appliedLive)) {

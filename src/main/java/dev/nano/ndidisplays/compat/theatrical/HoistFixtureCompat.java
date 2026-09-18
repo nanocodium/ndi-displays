@@ -263,17 +263,16 @@ public final class HoistFixtureCompat {
         }
     }
 
-    /** Re-measures each ghost fixture's beam against the world; once per tick is plenty. */
-    public static void refreshBeamLengths(List<BlockEntity> ghosts) {
-        if (!active()) {
+    /**
+     * Points a ghost fixture's beam at the first surface from where its body is drawn this
+     * frame, so the beam ends on the floor rather than a whole-block figure away from it.
+     */
+    public static void aimBeam(BlockEntity ghost, net.minecraft.world.phys.Vec3 drawnCentre) {
+        if (ghost == null || !active()) {
             return;
         }
         try {
-            for (BlockEntity ghost : ghosts) {
-                if (ghost != null) {
-                    HoistFixtureHooks.refreshBeamLength(ghost);
-                }
-            }
+            HoistBeamHooks.aimBeam(ghost, drawnCentre);
         } catch (RuntimeException | LinkageError e) {
             markBroken(e);
         }

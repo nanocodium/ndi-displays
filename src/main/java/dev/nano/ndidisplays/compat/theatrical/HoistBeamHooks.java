@@ -1,9 +1,18 @@
 package dev.nano.ndidisplays.compat.theatrical;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.imabad.theatrical.blockentities.light.BaseLightBlockEntity;
 import dev.imabad.theatrical.client.LazyRenderers;
 import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.lang.reflect.Field;
@@ -47,6 +56,44 @@ final class HoistBeamHooks {
     @SuppressWarnings("unchecked")
     private static List<LazyRenderers.LazyRenderer> queue() throws IllegalAccessException {
         return (List<LazyRenderers.LazyRenderer>) RENDERERS.get(null);
+    }
+
+    /**
+     * Sets a ghost fixture's beam length to the distance from where its body is drawn
+     * this frame to the first surface along its optical axis.
+     *
+     * Theatrical's own {@code doRayTrace} measures from the fixture's block cell to the
+     * block the beam hits: a whole-block figure, which is fine for a fixture bolted to a
+     * truss and steps a block at a time on one that is flying. Extra Lights puts its gobo
+     * projection at exactly that length, so the floor pattern would lift off the stage
+     * and snap back once per block of travel. Measuring from the real position, every
+     * frame, keeps it on the floor. Ghosts never tick, so nothing overwrites this.
+     */
+    static void aimBeam(BlockEntity ghost, Vec3 drawnCentre) {
+        if (!(ghost instanceof BaseLightBlockEntity light) || light.getIntensity() <= 0) {
+            return;
+        }
+        Level level = ghost.getLevel();
+        Player player = Minecraft.getInstance().player;
+        if (level == null || player == null) {
+            return;
+        }
+        Vec3 dir = BaseLightBlockEntity.rayTraceDir(light);
+        if (dir.lengthSqr() < 1.0e-6) {
+            return;
+        }
+        double max = Math.max(1.0, light.getMaxLightDistance());
+        BlockHitResult hit = level.clip(new ClipContext(drawnCentre,
+                drawnCentre.add(dir.normalize().scale(max)),
+                ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+        double distance = hit.getType() == HitResult.Type.MISS
+                ? max : hit.getLocation().distanceTo(drawnCentre);
+        if (Math.abs(distance - light.getDistance()) < 0.01) {
+            return;
+        }
+        CompoundTag tag = ghost.saveWithoutMetadata();
+        tag.putDouble("distance", distance);
+        ghost.load(tag);
     }
 
     /** Number of beams queued so far this frame; pass to {@link #shiftSince}. */

@@ -135,6 +135,24 @@ final class HoistFixtureHooks {
         }
     }
 
+    /**
+     * Recomputes a ghost's beam length against the world it is currently flying through.
+     * {@link #applyLive} only runs when the DMX look changes, so on a static look the beam
+     * would otherwise keep one length for a whole block of travel and then jump.
+     */
+    static void refreshBeamLength(BlockEntity ghost) {
+        if (!(ghost instanceof BaseLightBlockEntity light) || light.getIntensity() <= 0) {
+            return;
+        }
+        double distance = safeRayTrace(light);
+        if (distance < 0 || Math.abs(distance - light.getDistance()) <= 0.25) {
+            return;
+        }
+        CompoundTag tag = ghost.saveWithoutMetadata();
+        tag.putDouble("distance", distance);
+        ghost.load(tag);
+    }
+
     private static double safeRayTrace(BaseLightBlockEntity light) {
         try {
             return light.doRayTrace();

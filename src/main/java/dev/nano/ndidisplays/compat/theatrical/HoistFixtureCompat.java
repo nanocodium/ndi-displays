@@ -233,6 +233,53 @@ public final class HoistFixtureCompat {
     // ------------------------------------------------------------------ client
 
     /**
+     * Snapshot of Theatrical's beam queue before a ghost fixture is drawn, for
+     * {@link #shiftBeamsSince}. Negative when beams cannot be re-anchored on this build.
+     */
+    public static int markBeams() {
+        if (!active()) {
+            return -1;
+        }
+        try {
+            return HoistBeamHooks.available() ? HoistBeamHooks.mark() : -1;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            markBroken(e);
+            return -1;
+        }
+    }
+
+    /**
+     * Moves every beam a ghost fixture just queued by {@code delta}: the distance from the
+     * whole-block cell the ghost is addressed at to where its body was actually drawn.
+     */
+    public static void shiftBeamsSince(int mark, net.minecraft.world.phys.Vec3 delta) {
+        if (mark < 0 || !active() || delta.lengthSqr() < 1.0e-8) {
+            return;
+        }
+        try {
+            HoistBeamHooks.shiftSince(mark, delta);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            markBroken(e);
+        }
+    }
+
+    /** Re-measures each ghost fixture's beam against the world; once per tick is plenty. */
+    public static void refreshBeamLengths(List<BlockEntity> ghosts) {
+        if (!active()) {
+            return;
+        }
+        try {
+            for (BlockEntity ghost : ghosts) {
+                if (ghost != null) {
+                    HoistFixtureHooks.refreshBeamLength(ghost);
+                }
+            }
+        } catch (RuntimeException | LinkageError e) {
+            markBroken(e);
+        }
+    }
+
+    /**
      * Pushes the synced head state onto the ghost fixtures the rig renderer is drawing.
      *
      * @param ghosts   one entry per snapshot block, null where the block has no ghost

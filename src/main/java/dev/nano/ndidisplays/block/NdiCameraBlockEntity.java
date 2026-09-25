@@ -217,6 +217,14 @@ public class NdiCameraBlockEntity extends BlockEntity {
         setChanged();
     }
 
+    /** Live lens controls, independent of output and motion configuration. */
+    public void aim(float pan, float tilt, float fov) {
+        this.pan = Clamps.f(pan, -180, 180, 0);
+        this.tilt = Clamps.f(tilt, -85, 85, 0);
+        this.fov = Clamps.f(fov, 10, 110, DEFAULT_FOV);
+        setChanged();
+    }
+
     // --- view math --------------------------------------------------------
 
     private static float facingYaw(Direction facing) {

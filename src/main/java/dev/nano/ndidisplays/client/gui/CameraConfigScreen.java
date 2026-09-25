@@ -34,6 +34,7 @@ public class CameraConfigScreen extends Screen {
     private float aux1;
     private float aux2;
     private float aux3;
+    private boolean aimDirty;
 
     public CameraConfigScreen(NdiCameraBlockEntity camera) {
         // Locale.ROOT: a Turkish locale lowercases "JIB" to "jıb" (dotless i), which would
@@ -94,13 +95,13 @@ public class CameraConfigScreen extends Screen {
                 .create(left, y, 128, 20, Component.translatable("gui.ndidisplays.camera.fps"),
                         (btn, val) -> fps = val));
         addRenderableWidget(slider(left + 132, y, 128, fov, 15, 100,
-                v -> fov = (float) v, v -> String.format("Zoom (FOV): %.0f°", v)));
+                v -> { fov = (float) v; aimDirty = true; }, v -> String.format("Zoom (FOV): %.0f°", v)));
         y += 24;
 
         addRenderableWidget(slider(left, y, 128, pan, -180, 180,
-                v -> pan = (float) v, v -> String.format("Pan: %+.0f°", v)));
+                v -> { pan = (float) v; aimDirty = true; }, v -> String.format("Pan: %+.0f°", v)));
         addRenderableWidget(slider(left + 132, y, 128, tilt, -85, 85,
-                v -> tilt = (float) v, v -> String.format("Tilt: %+.0f°", v)));
+                v -> { tilt = (float) v; aimDirty = true; }, v -> String.format("Tilt: %+.0f°", v)));
         y += 24;
 
         switch (camera.getKind()) {
@@ -134,13 +135,31 @@ public class CameraConfigScreen extends Screen {
             default -> {
             }
         }
-        y += 6;
+        addRenderableWidget(Button.builder(Component.literal("Take control"), b -> {
+            flushAim();
+            minecraft.setScreen(new MountedCameraScreen(camera));
+        }).bounds(left, y, 260, 20).build());
+        y += 26;
 
         addRenderableWidget(Button.builder(Component.translatable("gui.ndidisplays.apply"), b -> apply())
                 .bounds(cx - 130, y, 128, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> onClose())
                 .bounds(cx + 2, y, 128, 20).build());
     }
+
+    private void flushAim() {
+        if (!aimDirty) return;
+        camera.aim(pan, tilt, fov);
+        NetworkHandler.CHANNEL.sendToServer(new dev.nano.ndidisplays.net.CameraAimPacket(
+                camera.getBlockPos(), pan, tilt, fov));
+        aimDirty = false;
+    }
+
+    @Override
+    public void tick() { super.tick(); flushAim(); }
+
+    @Override
+    public void removed() { flushAim(); super.removed(); }
 
     private void apply() {
         NetworkHandler.CHANNEL.sendToServer(new UpdateCameraConfigPacket(

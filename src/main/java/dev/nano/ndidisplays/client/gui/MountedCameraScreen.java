@@ -12,7 +12,8 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.Marker;
+import net.minecraft.world.entity.EntityType;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ViewportEvent;
 import net.minecraftforge.event.TickEvent;
@@ -26,8 +27,9 @@ public final class MountedCameraScreen extends Screen {
     private final NdiCameraBlockEntity camera;
     private Entity previousCamera;
     private CameraType previousType;
-    private ArmorStand eye;
+    private Marker eye;
     private float pan, tilt, fov;
+    private float savedEyeHeight, savedEyeHeightOld;
     private double lastX, lastY;
     private boolean haveMouse, dirty;
 
@@ -41,8 +43,10 @@ public final class MountedCameraScreen extends Screen {
     protected void init() {
         if (eye == null && minecraft.level != null) {
             previousCamera = minecraft.getCameraEntity();
+            savedEyeHeight = minecraft.gameRenderer.getMainCamera().eyeHeight;
+            savedEyeHeightOld = minecraft.gameRenderer.getMainCamera().eyeHeightOld;
             previousType = minecraft.options.getCameraType();
-            eye = new ArmorStand(minecraft.level, 0, 0, 0);
+            eye = new Marker(EntityType.MARKER, minecraft.level);
             eye.setInvisible(true);
             updateView(0);
             minecraft.setCameraEntity(eye);
@@ -52,16 +56,23 @@ public final class MountedCameraScreen extends Screen {
         GLFW.glfwSetInputMode(minecraft.getWindow().getWindow(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_DISABLED);
     }
 
-    @Override
-    public void mouseMoved(double x, double y) {
-        if (haveMouse) {
-            float sensitivity = 0.25F * fov / 70F;
-            pan = Mth.wrapDegrees(pan + (float)(x - lastX) * sensitivity);
-            tilt = Mth.clamp(tilt - (float)(y - lastY) * sensitivity, -85, 85);
-            dirty = true;
-            camera.aim(pan, tilt, fov);
+    // Read raw cursor coordinates once per frame. GUI mouseMoved callbacks also receive
+    // scaled/repositioned coordinates; mixing those with a disabled cursor causes jumps.
+    private void pollMouse() {
+        if (!minecraft.isWindowActive()) { haveMouse = false; return; }
+        try (var stack = org.lwjgl.system.MemoryStack.stackPush()) {
+            var x = stack.mallocDouble(1);
+            var y = stack.mallocDouble(1);
+            GLFW.glfwGetCursorPos(minecraft.getWindow().getWindow(), x, y);
+            double px = x.get(0), py = y.get(0);
+            if (haveMouse) {
+                float sensitivity = 0.12F * fov / 70F;
+                pan = Mth.wrapDegrees(pan + (float)(px - lastX) * sensitivity);
+                tilt = Mth.clamp(tilt - (float)(py - lastY) * sensitivity, -85, 85);
+                if (px != lastX || py != lastY) dirty = true;
+            }
+            lastX = px; lastY = py; haveMouse = true;
         }
-        lastX = x; lastY = y; haveMouse = true;
     }
 
     @Override
@@ -92,9 +103,14 @@ public final class MountedCameraScreen extends Screen {
 
     private void updateView(float partialTick) {
         if (eye == null) return;
+        // Keep local aiming authoritative between echoed server updates.
+        camera.aim(pan, tilt, fov);
         var view = camera.getViewState(partialTick);
         var pos = view.pos();
-        eye.setPos(pos.x, pos.y - eye.getEyeHeight(), pos.z);
+        eye.setPos(pos.x, pos.y, pos.z);
+        // Camera caches eye height between setups; a marker has no eye-height offset.
+        var mainCamera = minecraft.gameRenderer.getMainCamera();
+        mainCamera.eyeHeight = mainCamera.eyeHeightOld = 0;
         eye.xOld = eye.xo = eye.getX();
         eye.yOld = eye.yo = eye.getY();
         eye.zOld = eye.zo = eye.getZ();
@@ -106,8 +122,14 @@ public final class MountedCameraScreen extends Screen {
     public static void frame(TickEvent.RenderTickEvent event) {
         if (event.phase == TickEvent.Phase.START
                 && Minecraft.getInstance().screen instanceof MountedCameraScreen screen) {
+            screen.pollMouse();
             screen.updateView(event.renderTickTime);
         }
+    }
+
+    @SubscribeEvent
+    public static void hideHand(net.minecraftforge.client.event.RenderHandEvent event) {
+        if (Minecraft.getInstance().screen instanceof MountedCameraScreen) event.setCanceled(true);
     }
 
     @SubscribeEvent
@@ -131,6 +153,9 @@ public final class MountedCameraScreen extends Screen {
         if (eye != null) {
             minecraft.setCameraEntity(previousCamera != null ? previousCamera : minecraft.player);
             minecraft.options.setCameraType(previousType);
+            minecraft.gameRenderer.getMainCamera().eyeHeight = savedEyeHeight;
+            minecraft.gameRenderer.getMainCamera().eyeHeightOld = savedEyeHeightOld;
+            eye.discard();
             eye = null;
         }
         GLFW.glfwSetInputMode(minecraft.getWindow().getWindow(), GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_NORMAL);

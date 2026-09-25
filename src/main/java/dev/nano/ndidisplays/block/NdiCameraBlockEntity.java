@@ -418,13 +418,20 @@ public class NdiCameraBlockEntity extends BlockEntity {
             case BROADCAST -> {
                 float yaw = baseYaw + pan;
                 float pitch = -tilt;
-                Vec3 fwd = Vec3.directionFromRotation(pitch, yaw);
-                // Eye must clear the rig's own geometry: the renderer's body origin is at
-                // y+1.25, its matte box spans local z 0.41-0.475, the lens glass front is
-                // at 0.4785 and the drooping top flag reaches ~0.53. Sitting behind those
-                // filled most of the feed with the inside of the matte box, because the
-                // rig draws itself during its own capture and the near plane is only 0.05.
-                return new ViewState(center.add(0, 1.265, 0).add(fwd.scale(0.55)), yaw, pitch);
+                // Front centre of lens_glass_front in broadcast_camera.obj, plus 2 cm
+                // clearance. Follow the renderer's column pan and head-drum tilt pivots.
+                // Rotating a forward offset about the block centre does not track this lens.
+                org.joml.Matrix4f lensTransform = new org.joml.Matrix4f()
+                        .rotateY((float) Math.toRadians(-baseYaw))
+                        .translate(0, 0, -0.0215F)
+                        .rotateY((float) Math.toRadians(-pan))
+                        .translate(0, 0, 0.0215F)
+                        .translate(0, 0.975F, -0.0365F)
+                        .rotateX((float) Math.toRadians(-tilt))
+                        .translate(0, -0.975F, 0.0365F);
+                org.joml.Vector3f lens = lensTransform.transformPosition(
+                        new org.joml.Vector3f(0, 1.185F, 0.533991F));
+                return new ViewState(center.add(lens.x, lens.y, lens.z), yaw, pitch);
             }
             case PTZ -> {
                 float[] pt = getEasedPanTilt();

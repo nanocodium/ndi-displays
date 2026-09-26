@@ -1904,8 +1904,12 @@ public final class CameraFeedManager {
         com.mojang.blaze3d.platform.GlStateManager._clear(
                 org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT, Minecraft.ON_OSX);
         com.mojang.blaze3d.platform.GlStateManager._colorMask(true, true, true, true);
-        com.mojang.blaze3d.platform.GlStateManager._glBindFramebuffer(
-                org.lwjgl.opengl.GL30.GL_FRAMEBUFFER, src.frameBufferId);
+        // Back to the screen, not to the capture. This runs after renderView has already restored
+        // main, so leaving the capture bound here sent the player's whole next frame (sky pass
+        // onwards) into the camera's buffer: no sky clear on screen, old frames smearing into
+        // streaks, and world pixels painted over the pause menu. readAndSend binds its own read
+        // framebuffer, so nothing after this needs the capture bound.
+        Minecraft.getInstance().getMainRenderTarget().bindWrite(true);
         shoulderCaptureTex = shoulderMonitor.getColorTextureId();
         shoulderCaptureW = w;
         shoulderCaptureH = h;
@@ -2397,6 +2401,15 @@ public final class CameraFeedManager {
         cameraEntity.setXRot(view.pitch());
         cameraEntity.xRotO = view.pitch();
 
+        // Everything from here on mutates shared render state, so it all sits inside the one
+        // try whose finally puts that state back. The setup used to run ahead of the try, and a
+        // failure in it (a compat hook throwing on a client without that mod) left the game
+        // rendering into the camera's buffer at the camera's size — for good.
+        boolean[] shimmerSaved = null;
+        Object bloomSaved = null;
+        Boolean bloomFlag = null;
+        java.util.List<Object> beamsSaved = null;
+        try {
         mc.renderBuffers().bufferSource().endBatch();
         mc.gameRenderer.setRenderBlockOutline(false);
         mc.gameRenderer.setRenderHand(false);
@@ -2472,7 +2485,10 @@ public final class CameraFeedManager {
         mc.mainRenderTarget = captureTarget;
         // Shimmer's post passes composite against the real screen framebuffer;
         // inside a capture they would paste the player's HUD frame into the feed.
-        boolean[] shimmerSaved = dev.nano.ndidisplays.client.render.LedWallRenderer.SHIMMER_LOADED
+        // Every ShimmerCompat call is gated on SHIMMER_LOADED, including the ones whose bodies
+        // guard themselves: merely linking the class fails without Shimmer on the classpath.
+        boolean shimmer = dev.nano.ndidisplays.client.render.LedWallRenderer.SHIMMER_LOADED;
+        shimmerSaved = shimmer
                 ? dev.nano.ndidisplays.client.render.ShimmerCompat.suppressPostChains()
                 : null;
         // Shimmer queues bloom draws the way Theatrical queues beams: a list of callbacks drained
@@ -2480,20 +2496,22 @@ public final class CameraFeedManager {
         // the player's frame with the RIG camera's matrices baked in — the camera's lights and lit
         // windows painted across the player's sky as a translucent ghost. Suppressing the chain
         // stops the capture PROCESSING bloom, not queueing it, so the queue must be isolated too.
-        Object bloomSaved = dev.nano.ndidisplays.client.render.ShimmerCompat.isolateBloomQueues();
+        bloomSaved = shimmer
+                ? dev.nano.ndidisplays.client.render.ShimmerCompat.isolateBloomQueues() : null;
         // And Shimmer's bloom off entirely: its post targets copy from the main render target,
         // which during this capture is the camera's, so stale camera pixels could otherwise be
         // composited into the player's frame afterwards.
-        Boolean bloomFlag = dev.nano.ndidisplays.client.render.ShimmerCompat.suppressBloomFilter();
+        bloomFlag = shimmer
+                ? dev.nano.ndidisplays.client.render.ShimmerCompat.suppressBloomFilter() : null;
         // Shimmer's post targets attach main's own textures; point them at the camera's buffer
         // for the duration, so anything its hooks still draw lands in the feed, not the screen.
-        if (dev.nano.ndidisplays.client.render.LedWallRenderer.SHIMMER_LOADED) {
+        if (shimmer) {
             dev.nano.ndidisplays.client.render.ShimmerCompat.hookPostTargets(captureTarget);
             captureTarget.bindWrite(true);
         }
         // Same hazard, different mod: see TheatricalLazyQueue. A beam queued inside this capture
         // and drawn in the player's frame samples whatever target was current when it was queued.
-        java.util.List<Object> beamsSaved =
+        beamsSaved =
                 dev.nano.ndidisplays.compat.theatrical.TheatricalCompat.LOADED
                         ? dev.nano.ndidisplays.compat.theatrical.TheatricalLazyQueue.isolate()
                         : null;
@@ -2501,7 +2519,6 @@ public final class CameraFeedManager {
         // triggers two full synchronous occlusion re-culls (rig view, then player again).
         dev.nano.ndidisplays.client.render.EmbeddiumCompat.pinCamera(view.pos(), view.pitch(), view.yaw());
 
-        try {
             // The frame's real partial tick, not 1.0F: the eye already moved smoothly, but the
             // WORLD in the shot — a jib arm mid-sweep, a dolly rolling, entities — was
             // interpolated to whole game ticks, so everything animated in a feed stepped
@@ -2537,7 +2554,9 @@ public final class CameraFeedManager {
             if (bloomSaved != null) {
                 dev.nano.ndidisplays.client.render.ShimmerCompat.restoreBloomQueues(bloomSaved);
             }
-            dev.nano.ndidisplays.client.render.ShimmerCompat.restoreBloomFilter(bloomFlag);
+            if (bloomFlag != null) {
+                dev.nano.ndidisplays.client.render.ShimmerCompat.restoreBloomFilter(bloomFlag);
+            }
             if (beamsSaved != null) {
                 dev.nano.ndidisplays.compat.theatrical.TheatricalLazyQueue.restore(beamsSaved);
             }

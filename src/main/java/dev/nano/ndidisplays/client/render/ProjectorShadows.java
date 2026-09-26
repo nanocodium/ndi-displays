@@ -70,7 +70,15 @@ public final class ProjectorShadows {
 
     /** Renderer check-in: this projector is on screen and wants shadows. */
     public static Shadow register(ProjectorBlockEntity be) {
-        Shadow s = SHADOWS.computeIfAbsent(be.getBlockPos(), p -> new Shadow());
+        Shadow s = SHADOWS.get(be.getBlockPos());
+        if (s == null) {
+            s = new Shadow();
+            SHADOWS.put(be.getBlockPos(), s);
+            // This runs inside the block entity pass, and creating a target clears it — which
+            // binds it and sets the viewport to 2048², then unbinds to the window rather than to
+            // main. Everything drawn after this in the player's frame went to the wrong place.
+            Minecraft.getInstance().getMainRenderTarget().bindWrite(true);
+        }
         s.lastSeen = System.currentTimeMillis();
         s.be = be;
         return s;

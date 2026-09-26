@@ -90,7 +90,9 @@ public final class ClientEvents {
      */
     @SubscribeEvent
     public static void onComputeFov(net.minecraftforge.client.event.ViewportEvent.ComputeFov event) {
-        if (!ShoulderOperatorMode.active()) {
+        // Not during a capture: every rig sets its own lens there, and this would overwrite a
+        // PTZ or jib's zoom with the shoulder rig's whenever operator mode happened to be on.
+        if (!ShoulderOperatorMode.active() || CameraFeedManager.isCapturing()) {
             return;
         }
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();

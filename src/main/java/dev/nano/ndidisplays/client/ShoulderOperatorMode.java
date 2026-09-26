@@ -9,12 +9,9 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 /**
  * Operator mode for the shoulder rig: the screen shows the lens's own framing, with viewfinder
@@ -36,6 +33,19 @@ public final class ShoulderOperatorMode {
         return active && wearing();
     }
 
+    /**
+     * Same switch as the V key, for the rig's config screen — its "Take control" button is
+     * the worn counterpart of the mounted cameras' operator view. Reports whether it took,
+     * so the caller can tell the player the rig has to be worn.
+     */
+    public static boolean setActive(boolean on) {
+        if (on && !wearing()) {
+            return false;
+        }
+        active = on;
+        return true;
+    }
+
     private static boolean wearing() {
         Minecraft mc = Minecraft.getInstance();
         return mc.player != null
@@ -43,9 +53,11 @@ public final class ShoulderOperatorMode {
                         .is(NdiDisplays.SHOULDER_CAMERA_ITEM.get());
     }
 
-    /** Key bindings and the toggle, on the mod bus. */
-    @Mod.EventBusSubscriber(modid = NdiDisplays.MODID, bus = Mod.EventBusSubscriber.Bus.MOD,
-            value = Dist.CLIENT)
+    /**
+     * The key binding. Registered from {@link DronePilotMode.Keys#onRegisterKeys} rather than by
+     * its own {@code @EventBusSubscriber}: Forge logged auto-subscribing this class and its
+     * sibling below, yet never dispatched a single event to either, so V was never bound.
+     */
     public static final class Keys {
 
         /** Default V for "viewfinder"; the obvious letters are all taken by vanilla. */
@@ -57,25 +69,31 @@ public final class ShoulderOperatorMode {
         private Keys() {
         }
 
-        @SubscribeEvent
         public static void onRegisterKeys(RegisterKeyMappingsEvent event) {
             event.register(TOGGLE);
         }
     }
 
-    /** Toggle handling and the viewfinder overlay, on the forge bus. */
-    @Mod.EventBusSubscriber(modid = NdiDisplays.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE,
-            value = Dist.CLIENT)
+    /**
+     * Toggle handling and the viewfinder overlay. Driven from {@link
+     * dev.nano.ndidisplays.client.render.ShoulderRigFeed}'s subscriber for the same reason the
+     * key is registered elsewhere — see {@link Keys}.
+     */
     public static final class Handlers {
+
+        /** Per scroll notch: in narrows the lens angle by this factor, out widens it. */
+        private static final float ZOOM_STEP = 0.9F;
+
+        private static boolean zoomDirty;
 
         private Handlers() {
         }
 
-        @SubscribeEvent
         public static void onClientTick(net.minecraftforge.event.TickEvent.ClientTickEvent event) {
             if (event.phase != net.minecraftforge.event.TickEvent.Phase.END) {
                 return;
             }
+            flushZoom();
             while (Keys.TOGGLE.consumeClick()) {
                 Minecraft mc = Minecraft.getInstance();
                 if (!wearing()) {
@@ -102,7 +120,6 @@ public final class ShoulderOperatorMode {
          * The player's own view still renders underneath and their input is untouched, which is
          * what keeps walking around working while framing a shot.
          */
-        @SubscribeEvent
         public static void onRenderOverlay(RenderGuiOverlayEvent.Post event) {
             if (event.getOverlay() != VanillaGuiOverlay.CROSSHAIR.type() || !active()) {
                 return;
@@ -187,6 +204,46 @@ public final class ShoulderOperatorMode {
             b.vertex(mat, x0, y0, 0).uv(0.0F, 1.0F).endVertex();
             com.mojang.blaze3d.vertex.BufferUploader.drawWithShader(b.end());
             com.mojang.blaze3d.systems.RenderSystem.disableBlend();
+        }
+
+        /**
+         * Scroll zooms the lens while operating, instead of changing hotbar slot. Returns whether
+         * the scroll was used, so the caller can cancel it.
+         *
+         * Multiplicative steps, so each notch feels the same at the wide and the tele end.
+         */
+        public static boolean onScroll(double delta) {
+            Minecraft mc = Minecraft.getInstance();
+            if (!active() || mc.screen != null || delta == 0.0) {
+                return false;
+            }
+            ItemStack rig = mc.player.getItemBySlot(EquipmentSlot.CHEST);
+            float fov = ShoulderCameraItem.fov(rig) * (delta > 0 ? ZOOM_STEP : 1.0F / ZOOM_STEP);
+            // Local first, so the view and the feed respond this frame.
+            ShoulderCameraItem.setAim(rig, 0.0F, 0.0F, fov);
+            zoomDirty = true;
+            return true;
+        }
+
+        /** Scroll notches arrive faster than it is worth telling the server; one update a tick. */
+        private static void flushZoom() {
+            if (!zoomDirty) {
+                return;
+            }
+            zoomDirty = false;
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player == null) {
+                return;
+            }
+            ItemStack rig = mc.player.getItemBySlot(EquipmentSlot.CHEST);
+            if (!rig.is(NdiDisplays.SHOULDER_CAMERA_ITEM.get())) {
+                return;
+            }
+            dev.nano.ndidisplays.net.NetworkHandler.CHANNEL.sendToServer(
+                    new dev.nano.ndidisplays.net.UpdateShoulderRigPacket(
+                            ShoulderCameraItem.source(rig), ShoulderCameraItem.live(rig),
+                            ShoulderCameraItem.resolutionIndex(rig), ShoulderCameraItem.fps(rig),
+                            ShoulderCameraItem.fov(rig)));
         }
 
         /** One corner bracket; negative lengths draw the mirrored (bottom) version. */

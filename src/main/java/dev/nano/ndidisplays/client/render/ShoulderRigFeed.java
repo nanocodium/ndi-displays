@@ -74,6 +74,26 @@ public final class ShoulderRigFeed {
                 .is(NdiDisplays.SHOULDER_CAMERA_ITEM.get());
     }
 
+    // Operator mode's input and viewfinder, forwarded from here: this subscriber demonstrably
+    // receives events in every environment tested, and ShoulderOperatorMode's own did not.
+
+    @SubscribeEvent
+    public static void onClientTick(net.minecraftforge.event.TickEvent.ClientTickEvent event) {
+        ShoulderOperatorMode.Handlers.onClientTick(event);
+    }
+
+    @SubscribeEvent
+    public static void onScroll(net.minecraftforge.client.event.InputEvent.MouseScrollingEvent event) {
+        if (ShoulderOperatorMode.Handlers.onScroll(event.getScrollDelta())) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onRenderOverlay(net.minecraftforge.client.event.RenderGuiOverlayEvent.Post event) {
+        ShoulderOperatorMode.Handlers.onRenderOverlay(event);
+    }
+
     @SubscribeEvent
     public static void onRenderStage(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES || !wornPending) {

@@ -72,6 +72,7 @@ public final class DronePilotMode {
         public static void onRegisterKeys(RegisterKeyMappingsEvent event) {
             event.register(ADD_WAYPOINT);
             event.register(DESCEND);
+            ShoulderOperatorMode.Keys.onRegisterKeys(event);
         }
     }
 

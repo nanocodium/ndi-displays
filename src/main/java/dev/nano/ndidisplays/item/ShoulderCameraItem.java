@@ -78,6 +78,77 @@ public class ShoulderCameraItem extends ArmorItem {
     public static final float MAX_FOV = 110.0F;
     public static final float DEFAULT_FOV = 55.0F;
 
+    // --- feed settings, the same set the block cameras expose, stored the same way ---
+
+    private static final String TAG_SOURCE = "RigSource";
+    private static final String TAG_LIVE = "RigLive";
+    private static final String TAG_RES = "RigRes";
+    private static final String TAG_FPS = "RigFps";
+
+    /** Index into {@link dev.nano.ndidisplays.block.NdiCameraBlockEntity#RES_W}: 720p. */
+    public static final int DEFAULT_RESOLUTION = 1;
+    public static final int DEFAULT_FPS = 30;
+    public static final int MAX_SOURCE_LENGTH = 128;
+
+    /** Operator's own NDI source name; empty means the default "MC Shoulder <player>". */
+    public static String source(net.minecraft.world.item.ItemStack stack) {
+        net.minecraft.nbt.CompoundTag tag = stack.getTag();
+        return tag == null ? "" : tag.getString(TAG_SOURCE);
+    }
+
+    /** Whether the rig broadcasts while worn. Defaults on, so an untouched rig just works. */
+    public static boolean live(net.minecraft.world.item.ItemStack stack) {
+        net.minecraft.nbt.CompoundTag tag = stack.getTag();
+        return tag == null || !tag.contains(TAG_LIVE) || tag.getBoolean(TAG_LIVE);
+    }
+
+    public static int resolutionIndex(net.minecraft.world.item.ItemStack stack) {
+        net.minecraft.nbt.CompoundTag tag = stack.getTag();
+        if (tag == null || !tag.contains(TAG_RES)) {
+            return DEFAULT_RESOLUTION;
+        }
+        return dev.nano.ndidisplays.block.Clamps.i(tag.getInt(TAG_RES), 0,
+                dev.nano.ndidisplays.block.NdiCameraBlockEntity.RES_W.length - 1);
+    }
+
+    public static int width(net.minecraft.world.item.ItemStack stack) {
+        return dev.nano.ndidisplays.block.NdiCameraBlockEntity.RES_W[resolutionIndex(stack)];
+    }
+
+    public static int height(net.minecraft.world.item.ItemStack stack) {
+        return dev.nano.ndidisplays.block.NdiCameraBlockEntity.RES_H[resolutionIndex(stack)];
+    }
+
+    public static int fps(net.minecraft.world.item.ItemStack stack) {
+        net.minecraft.nbt.CompoundTag tag = stack.getTag();
+        if (tag == null || !tag.contains(TAG_FPS)) {
+            return DEFAULT_FPS;
+        }
+        return dev.nano.ndidisplays.block.Clamps.i(tag.getInt(TAG_FPS), 1, 120);
+    }
+
+    /**
+     * Server-side: stores the feed settings from the rig's config screen, re-clamped.
+     *
+     * Pan and tilt are zeroed here on purpose. The screen no longer shows them — the rig
+     * simply follows where the operator looks, like the handheld — so a trim left over from
+     * an older build would be invisible state that quietly skews every shot.
+     */
+    public static void setConfig(net.minecraft.world.item.ItemStack stack, String source,
+                                 boolean live, int resolution, int fps, float fov) {
+        net.minecraft.nbt.CompoundTag tag = stack.getOrCreateTag();
+        String name = source == null ? "" : source.trim();
+        if (name.length() > MAX_SOURCE_LENGTH) {
+            name = name.substring(0, MAX_SOURCE_LENGTH);
+        }
+        tag.putString(TAG_SOURCE, name);
+        tag.putBoolean(TAG_LIVE, live);
+        tag.putInt(TAG_RES, dev.nano.ndidisplays.block.Clamps.i(resolution, 0,
+                dev.nano.ndidisplays.block.NdiCameraBlockEntity.RES_W.length - 1));
+        tag.putInt(TAG_FPS, dev.nano.ndidisplays.block.Clamps.i(fps, 1, 120));
+        setAim(stack, 0.0F, 0.0F, fov);
+    }
+
     public static float pan(net.minecraft.world.item.ItemStack stack) {
         return read(stack, TAG_PAN, 0.0F, -MAX_PAN, MAX_PAN);
     }

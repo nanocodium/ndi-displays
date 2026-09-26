@@ -11,23 +11,27 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
 
 /**
- * Client → server: a new aim for the sender's shoulder rig. Values are re-clamped in
- * {@link ShoulderCameraItem#setAim} rather than trusted.
+ * Client → server: new feed settings for the sender's shoulder rig. Values are re-clamped in
+ * {@link ShoulderCameraItem#setConfig} rather than trusted.
  *
- * The aim lives on the item stack, so writing it server-side is what makes it persist and
- * reach other clients — they render the rig from the same stack, so the visible lens angle
+ * The settings live on the item stack, so writing them server-side is what makes them persist
+ * and reach other clients — they render the rig from the same stack, so the visible lens angle
  * matches the feed for everyone.
  */
-public record UpdateShoulderRigPacket(float pan, float tilt, float fov) {
+public record UpdateShoulderRigPacket(String source, boolean live, int resolution, int fps,
+                                      float fov) {
 
     public static void encode(UpdateShoulderRigPacket msg, FriendlyByteBuf buf) {
-        buf.writeFloat(msg.pan);
-        buf.writeFloat(msg.tilt);
+        buf.writeUtf(msg.source, ShoulderCameraItem.MAX_SOURCE_LENGTH);
+        buf.writeBoolean(msg.live);
+        buf.writeVarInt(msg.resolution);
+        buf.writeVarInt(msg.fps);
         buf.writeFloat(msg.fov);
     }
 
     public static UpdateShoulderRigPacket decode(FriendlyByteBuf buf) {
-        return new UpdateShoulderRigPacket(buf.readFloat(), buf.readFloat(), buf.readFloat());
+        return new UpdateShoulderRigPacket(buf.readUtf(ShoulderCameraItem.MAX_SOURCE_LENGTH),
+                buf.readBoolean(), buf.readVarInt(), buf.readVarInt(), buf.readFloat());
     }
 
     public static void handle(UpdateShoulderRigPacket msg, Supplier<NetworkEvent.Context> ctx) {
@@ -48,7 +52,8 @@ public record UpdateShoulderRigPacket(float pan, float tilt, float fov) {
                     return;
                 }
             }
-            ShoulderCameraItem.setAim(worn, msg.pan, msg.tilt, msg.fov);
+            ShoulderCameraItem.setConfig(worn, msg.source, msg.live, msg.resolution, msg.fps,
+                    msg.fov);
         });
         ctx.get().setPacketHandled(true);
     }

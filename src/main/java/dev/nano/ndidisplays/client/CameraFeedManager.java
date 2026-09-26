@@ -1030,7 +1030,33 @@ public final class CameraFeedManager {
         return dev.nano.ndidisplays.client.ndi.NdiHost.shouldBroadcastHandheld()
                 && (player.getMainHandItem().is(NdiDisplays.HANDHELD_CAMERA_ITEM.get())
                     || player.getOffhandItem().is(NdiDisplays.HANDHELD_CAMERA_ITEM.get())
-                    || wearingShoulderRig(player));
+                    || (wearingShoulderRig(player)
+                        && dev.nano.ndidisplays.item.ShoulderCameraItem.live(wornRig(player))));
+    }
+
+    private static net.minecraft.world.item.ItemStack wornRig(LocalPlayer player) {
+        return player.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.CHEST);
+    }
+
+    // The shoulder rig carries its own feed settings on the stack, like a block camera's config;
+    // the handheld keeps the fixed defaults.
+
+    private static int operatorFps(LocalPlayer player) {
+        return wearingShoulderRig(player)
+                ? dev.nano.ndidisplays.item.ShoulderCameraItem.fps(wornRig(player))
+                : HANDHELD_FPS;
+    }
+
+    private static int operatorWidth(LocalPlayer player) {
+        return wearingShoulderRig(player)
+                ? dev.nano.ndidisplays.item.ShoulderCameraItem.width(wornRig(player))
+                : HANDHELD_WIDTH;
+    }
+
+    private static int operatorHeight(LocalPlayer player) {
+        return wearingShoulderRig(player)
+                ? dev.nano.ndidisplays.item.ShoulderCameraItem.height(wornRig(player))
+                : HANDHELD_HEIGHT;
     }
 
     /**
@@ -1050,7 +1076,11 @@ public final class CameraFeedManager {
      */
     private static String operatorFeedName(LocalPlayer player) {
         String who = player.getGameProfile().getName();
-        return (wearingShoulderRig(player) ? "MC Shoulder " : "MC Handheld ") + who;
+        if (wearingShoulderRig(player)) {
+            String custom = dev.nano.ndidisplays.item.ShoulderCameraItem.source(wornRig(player)).trim();
+            return custom.isEmpty() ? "MC Shoulder " + who : custom;
+        }
+        return "MC Handheld " + who;
     }
 
     /**
@@ -1114,7 +1144,7 @@ public final class CameraFeedManager {
         if (now < handheldDue) {
             return;
         }
-        handheldDue = now + 1.0 / HANDHELD_FPS;
+        handheldDue = now + 1.0 / operatorFps(player);
         if (handheldFeed == null) {
             handheldFeed = new Feed(null);
         }
@@ -1123,7 +1153,7 @@ public final class CameraFeedManager {
             RenderTarget main = mc.getMainRenderTarget();
             captureTarget = main;
             readAndSend(handheldFeed, operatorFeedName(player),
-                    HANDHELD_FPS, false, main.viewWidth, main.viewHeight);
+                    operatorFps(player), false, main.viewWidth, main.viewHeight);
         } catch (Throwable t) {
             LOGGER.warn("[ndidisplays] handheld screen copy failed: {}", t.toString());
             handheldDue = now + 2.0;
@@ -1143,13 +1173,13 @@ public final class CameraFeedManager {
         if (now < handheldDue) {
             return false;
         }
-        handheldDue = now + 1.0 / HANDHELD_FPS;
+        handheldDue = now + 1.0 / operatorFps(player);
         if (handheldFeed == null) {
             handheldFeed = new Feed(null);
         }
         try {
             completePendingReadback(handheldFeed);
-            captureTarget = acquireCaptureTarget(HANDHELD_WIDTH, HANDHELD_HEIGHT);
+            captureTarget = acquireCaptureTarget(operatorWidth(player), operatorHeight(player));
             // Operator wobble: two incommensurate sines per axis so it never loops visibly.
             float wobbleYaw = (float) (Math.sin(now * 1.7) * 0.5 + Math.sin(now * 4.3) * 0.2);
             float wobblePitch = (float) (Math.sin(now * 2.1 + 1.0) * 0.4 + Math.sin(now * 5.7) * 0.15);
@@ -1180,7 +1210,7 @@ public final class CameraFeedManager {
                 keepShoulderFrame(captureTarget);
             }
             readAndSend(handheldFeed, operatorFeedName(player),
-                    HANDHELD_FPS, false, captureTarget.viewWidth, captureTarget.viewHeight);
+                    operatorFps(player), false, captureTarget.viewWidth, captureTarget.viewHeight);
         } catch (Throwable t) {
             LOGGER.warn("[ndidisplays] handheld capture failed: {}", t.toString());
             handheldDue = now + 2.0; // back off, then retry

@@ -3,9 +3,35 @@
 This page follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The same notes live in [`CHANGELOG.md`](https://github.com/nanocodium/ndi-displays/blob/main/CHANGELOG.md) at the repo root.
 
-Current artifact: **`ndidisplays-1.20.1-1.1.2-beta.1-all.jar`** — Minecraft **1.20.1**, Forge **47.x**, Java 17.
+Current artifact: **`ndidisplays-1.20.1-1.1.3-all.jar`** — Minecraft **1.20.1**, Forge **47.x**, Java 17.
 
 ## [Unreleased]
+
+## [1.1.3] - 2026-09-29
+
+Fourth CurseForge release. Fixes white camera feeds with Theatrical Extra Lights volumetric beams.
+
+### Added
+
+- [Cameras](/blocks/cameras): **Take control** in the camera block's settings — view at the lens, mouse pans and tilts, scroll zooms, Esc exits. Pan / tilt / zoom sliders apply live.
+- [Shoulder rig](/items/shoulder-camera) (`shoulder_camera`): sneak + right-click opens its settings — NDI source name, Live, resolution (540p / 720p / 1080p), frame rate (24 / 30 / 60), zoom. No pan / tilt: it follows your look. **V** toggles operator mode; scroll zooms while operating.
+- [Curved screen](/blocks/curved-screen): **distance** slider (arc centre up to 512 m out) and **height offset** (up to 256 m either way) without moving the mount.
+- `-Dndidisplays.debugFlownFixtures` JVM flag: diagnostic log for fixtures flown on [hoists](/blocks/chain-hoist) and [winches](/blocks/kinetic-winch).
+
+### Changed
+
+- [Curved screen](/blocks/curved-screen) radius and height to 256 m, [sphere screen](/blocks/sphere-screen) diameter to 512 m, on log sliders; denser mesh and wider view distance.
+- Broadcast camera captures from the front of its blue lens.
+
+### Fixed
+
+- **White camera feeds with Extra Lights volumetric beams**: the shared raymarch beam pass is reset on both sides of a capture. Also removes the magenta viewfinder ghost on the player's screen.
+- Flown fixtures ([payloads](/kinetics/payloads)): beams glide with the truss; pan, tilt, gobo, zoom and colour wheel stay live in flight; beam length from the drawn body; landing keeps the live look.
+- [LED wall](/blocks/led-panel) settings (config, NDI card, crop) reach the whole merged screen across 90° corners and chamfers.
+- Shoulder-rig capture and new [projector](/blocks/projector) shadow targets left the wrong framebuffer bound (no sky clear, smearing, world drawn over the pause menu).
+- Capture setup failing on a client without Shimmer no longer leaves the game rendering into the camera's buffer.
+- Camera operator view: head direction, eye height, mouse jitter.
+- Shoulder rig **V** key now registers; rig zoom no longer overrides other cameras' zoom.
 
 ## [1.1.2-beta.1] - 2026-09-17
 
@@ -100,7 +126,8 @@ First public CurseForge beta. Everything in this jar.
 
 Upstream `main` at `32d691b` before this beta. Notes for that tree now live under [1.1.0-beta.1].
 
-[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.2-beta.1...HEAD
+[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.3...HEAD
+[1.1.3]: https://github.com/nanocodium/ndi-displays/compare/1.1.2-beta.1...1.1.3
 [1.1.2-beta.1]: https://github.com/nanocodium/ndi-displays/compare/1.1.1-beta.1...1.1.2-beta.1
 [1.1.1-beta.1]: https://github.com/nanocodium/ndi-displays/compare/1.1.0-beta.1...HEAD
 [1.1.0-beta.1]: https://github.com/nanocodium/ndi-displays/compare/32d691b...1.1.0-beta.1

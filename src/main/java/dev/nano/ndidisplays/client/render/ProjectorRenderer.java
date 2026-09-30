@@ -87,7 +87,13 @@ public class ProjectorRenderer implements BlockEntityRenderer<ProjectorBlockEnti
         if (mesh == null || mesh.quads().isEmpty()) {
             return;
         }
-        ShaderInstance shader = ClientSetup.projectorShader;
+        // One program per blend mode. A core shader's JSON blend is re-applied inside
+        // drawWithShader whenever it differs from the last mode applied, so the additive JSON
+        // used to override the alpha blend set below for the non-additive mode — or not,
+        // depending on what had rendered before. Matching JSONs make the call below redundant
+        // rather than contradicted.
+        ShaderInstance shader = be.isAdditive()
+                ? ClientSetup.projectorShader : ClientSetup.projectorBlendShader;
         if (shader == null || ShaderPackCompat.shaderPackActive()) {
             // Shader packs replace the world pipeline; our core shader cannot join it. The
             // frustum preview above still shows where the projector points.
@@ -473,7 +479,16 @@ public class ProjectorRenderer implements BlockEntityRenderer<ProjectorBlockEnti
         Vec3[] farR = {farC.subtract(r).subtract(u), farC.add(r).subtract(u),
                 farC.add(r).add(u), farC.subtract(r).add(u)};
 
-        RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionColorShader);
+        // Not vanilla's position_color: its JSON declares alpha blending, which drawWithShader
+        // re-applies over the ONE/ONE below whenever the previously applied blend mode differed.
+        // With alpha 1 on every vertex the haze then drew as an opaque dark-grey cone, and it
+        // flickered with the order the block entities happened to render in. Our own program
+        // carries the additive blend in its JSON, so both agree.
+        ShaderInstance beam = ClientSetup.beamShader;
+        if (beam == null) {
+            return;
+        }
+        RenderSystem.setShader(() -> beam);
         RenderSystem.enableDepthTest();
         RenderSystem.depthMask(false);
         RenderSystem.enableBlend();

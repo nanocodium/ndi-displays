@@ -33,6 +33,16 @@ public final class ClientSetup {
     /** Projective texturing for the video projector: frame UVs arrive per vertex. */
     public static ShaderInstance projectorShader;
 
+    /**
+     * The same drape program with alpha blending in its JSON, for the non-additive mode. A core
+     * shader's JSON blend is re-applied at draw time whenever it differs from the last one
+     * applied, so the blend mode has to live in the program, not only in the RenderSystem call.
+     */
+    public static ShaderInstance projectorBlendShader;
+
+    /** The projector's beam haze: vanilla position_color with an additive blend in its JSON. */
+    public static ShaderInstance beamShader;
+
     /** Layer the worn shoulder rig's geometry is baked into. */
     public static final net.minecraft.client.model.geom.ModelLayerLocation SHOULDER_RIG_LAYER =
             new net.minecraft.client.model.geom.ModelLayerLocation(
@@ -145,5 +155,15 @@ public final class ClientSetup {
                         new ResourceLocation(NdiDisplays.MODID, "projector"),
                         DefaultVertexFormat.POSITION_TEX_COLOR),
                 shader -> projectorShader = shader);
+        event.registerShader(
+                new ShaderInstance(event.getResourceProvider(),
+                        new ResourceLocation(NdiDisplays.MODID, "projector_blend"),
+                        DefaultVertexFormat.POSITION_TEX_COLOR),
+                shader -> projectorBlendShader = shader);
+        event.registerShader(
+                new ShaderInstance(event.getResourceProvider(),
+                        new ResourceLocation(NdiDisplays.MODID, "beam"),
+                        DefaultVertexFormat.POSITION_COLOR),
+                shader -> beamShader = shader);
     }
 }

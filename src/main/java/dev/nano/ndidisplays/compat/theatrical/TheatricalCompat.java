@@ -142,6 +142,26 @@ public final class TheatricalCompat {
         }
     }
 
+    /**
+     * Volumetric-only variant for wide sources (work lights): the cone half-angle is given
+     * in degrees and there is no classic-cone fallback — a flat four-quad flare reads worse
+     * than no shaft at all on a flood. Returns false when Extra Lights cannot draw it.
+     */
+    public static boolean submitVolumetricFlood(net.minecraft.core.BlockPos fixturePos,
+                                                org.joml.Matrix4f headMatrix, float beamWidth,
+                                                float halfAngleDeg, float r, float g, float b,
+                                                float intensity01, float length) {
+        if (!active()) {
+            return false;
+        }
+        try {
+            return ExtraLightsBeamHooks.submitCone(fixturePos, headMatrix, beamWidth, halfAngleDeg,
+                    r, g, b, intensity01, length);
+        } catch (LinkageError ignored) {
+            return false;
+        }
+    }
+
     @javax.annotation.Nullable
     public static FixtureModelData fixtureModelData(String blockId) {
         if (!active() || blockId.isEmpty()) {

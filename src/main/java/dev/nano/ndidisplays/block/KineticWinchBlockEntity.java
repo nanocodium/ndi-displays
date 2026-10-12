@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -542,7 +543,8 @@ public class KineticWinchBlockEntity extends BlockEntity {
      * Applies one DMX frame (server side, called by the Theatrical compat consumer).
      * Height is 16-bit like a moving head's pan/tilt: 0 = tile all the way up
      * (minDrop), 65535 = all the way down (maxDrop). Only syncs when something
-     * actually changed, so a static desk output costs no packets.
+     * actually changed, so a static desk output costs no packets. Changes are batched
+     * per tick by {@link #queueMotionSync()} rather than synced per frame.
      */
     public void applyDmx(int height16, int speedByte, int dimmer) {
         float span = maxDrop - minDrop;
@@ -556,11 +558,7 @@ public class KineticWinchBlockEntity extends BlockEntity {
         targetDrop = newTarget;
         dmxSpeed = speedByte;
         dmxDimmer = dimmer;
-        setChanged();
-        if (level != null) {
-            BlockState state = getBlockState();
-            level.sendBlockUpdated(worldPosition, state, state, 3);
-        }
+        queueMotionSync();
     }
 
     /**
@@ -584,11 +582,7 @@ public class KineticWinchBlockEntity extends BlockEntity {
         targetDropB = newTargetB;
         dmxSpeed = speedByte;
         dmxDimmer = dimmer;
-        setChanged();
-        if (level != null) {
-            BlockState state = getBlockState();
-            level.sendBlockUpdated(worldPosition, state, state, 3);
-        }
+        queueMotionSync();
     }
 
     /**
@@ -610,11 +604,7 @@ public class KineticWinchBlockEntity extends BlockEntity {
         dmxRed = r;
         dmxGreen = g;
         dmxBlue = b;
-        setChanged();
-        if (level != null) {
-            BlockState state = getBlockState();
-            level.sendBlockUpdated(worldPosition, state, state, 3);
-        }
+        queueMotionSync();
     }
 
     /**
@@ -674,11 +664,68 @@ public class KineticWinchBlockEntity extends BlockEntity {
         fixFocus = focus;
         fixPan = pan;
         fixTilt = tilt;
-        setChanged();
-        if (level != null) {
-            BlockState state = getBlockState();
-            level.sendBlockUpdated(worldPosition, state, state, 3);
+        queueMotionSync();
+    }
+
+    // ------------------------------------------------------------------ motion sync
+
+    /**
+     * Queues this winch for the next per-tick motion batch instead of syncing right away.
+     *
+     * DMX lands at 40 Hz or more and a sweep touches every tile at once; a full block-entity
+     * sync per winch per frame is what stuttered a big park. The batch sends only the fields
+     * below, once per tick, to the players who track the chunk. The save mark moves there too.
+     */
+    private void queueMotionSync() {
+        if (level != null && !level.isClientSide) {
+            dev.nano.ndidisplays.net.WinchMotionSync.queue(this);
+        } else {
+            setChanged();
         }
+    }
+
+    /** Bytes {@link #readMotion} consumes after the block position: 2 floats + 12 bytes. */
+    private static final int MOTION_BYTES = 4 + 4 + 12;
+
+    /** Server side: the DMX-driven state the client's motion profile needs. Keep in step with {@link #readMotion}. */
+    public void writeMotion(FriendlyByteBuf buf) {
+        buf.writeFloat(targetDrop);
+        buf.writeFloat(targetDropB);
+        buf.writeByte(dmxSpeed);
+        buf.writeByte(dmxDimmer);
+        buf.writeByte(dmxRed);
+        buf.writeByte(dmxGreen);
+        buf.writeByte(dmxBlue);
+        buf.writeByte(fixIntensity);
+        buf.writeByte(fixRed);
+        buf.writeByte(fixGreen);
+        buf.writeByte(fixBlue);
+        buf.writeByte(fixFocus);
+        buf.writeByte(fixPan);
+        buf.writeByte(fixTilt);
+    }
+
+    /** Client side: applies a motion update. Targets only — the local profile flies there. */
+    public void readMotion(FriendlyByteBuf buf) {
+        targetDrop = Clamps.f(buf.readFloat(), minDrop, maxDrop, minDrop);
+        targetDropB = Clamps.f(buf.readFloat(), minDrop, maxDrop, targetDrop);
+        dmxSpeed = buf.readUnsignedByte();
+        dmxDimmer = buf.readUnsignedByte();
+        dmxRed = buf.readUnsignedByte();
+        dmxGreen = buf.readUnsignedByte();
+        dmxBlue = buf.readUnsignedByte();
+        fixIntensity = buf.readUnsignedByte();
+        fixRed = buf.readUnsignedByte();
+        fixGreen = buf.readUnsignedByte();
+        fixBlue = buf.readUnsignedByte();
+        fixFocus = buf.readUnsignedByte();
+        fixPan = buf.readUnsignedByte();
+        fixTilt = buf.readUnsignedByte();
+    }
+
+    /** Skips one winch's motion bytes when the block entity is not loaded on this client. */
+    public static void skipMotion(FriendlyByteBuf buf) {
+        buf.skipBytes(MOTION_BYTES);
     }
 
     /**

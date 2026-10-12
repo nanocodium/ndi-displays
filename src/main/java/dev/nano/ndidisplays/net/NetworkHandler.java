@@ -217,5 +217,9 @@ public final class NetworkHandler {
                 UpdateSphereScreenConfigPacket::handle);
         CHANNEL.registerMessage(id++, CameraAimPacket.class,
                 CameraAimPacket::encode, CameraAimPacket::decode, CameraAimPacket::handle);
+        CHANNEL.registerMessage(id++, WinchMotionPacket.class,
+                WinchMotionPacket::encode,
+                WinchMotionPacket::decode,
+                WinchMotionPacket::handle);
     }
 }

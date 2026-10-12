@@ -17,11 +17,9 @@ import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.level.ClipContext;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
@@ -47,7 +45,7 @@ import java.util.List;
  */
 public class ProjectorRenderer implements BlockEntityRenderer<ProjectorBlockEntity> {
 
-    /** Drape mesh refresh period, ms. Config changes rebuild immediately via the revision. */
+    /** Base drape refresh, ms. Long throws add extra idle so a 1024 m scan cannot loop. */
     private static final long REBUILD_MS = 1500L;
 
     /**
@@ -245,15 +243,18 @@ public class ProjectorRenderer implements BlockEntityRenderer<ProjectorBlockEnti
 
     private static Mesh meshFor(ProjectorBlockEntity be, Level level) {
         long now = System.currentTimeMillis();
+        long rebuildMs = REBUILD_MS + (long) (Math.max(0.0, be.getFar() - 32.0F) * 12.0);
         if (be.clientMesh instanceof Mesh cached
                 && be.clientMeshRevision == be.clientRevision
-                && now - be.clientMeshBuiltAt < REBUILD_MS) {
+                && now - be.clientMeshBuiltAt < rebuildMs) {
             return cached;
         }
+        // Stamp first: a 512 m cube walk used to outlast REBUILD_MS, so every frame
+        // started another scan and the client froze.
+        be.clientMeshBuiltAt = now;
         Mesh mesh = buildMesh(be, level);
         be.clientMesh = mesh;
         be.clientMeshRevision = be.clientRevision;
-        be.clientMeshBuiltAt = now;
         return mesh;
     }
 
@@ -262,85 +263,138 @@ public class ProjectorRenderer implements BlockEntityRenderer<ProjectorBlockEnti
         Matrix4f m = projectorMatrix(be, origin);
         Vec3 dir = lensDirection(be);
         double far = be.getFar();
-        double near = be.getNear();
         // Cone half-angle covering the frustum diagonal, with slack for shift/keystone.
         double halfDiag = Math.toRadians(be.getFov() * 0.5)
                 * Math.sqrt(1.0 + be.getAspect() * be.getAspect());
-        double cosCone = Math.cos(Math.min(Math.PI * 0.49, halfDiag * 1.35
-                + Math.abs(be.getShiftH()) * 0.5 + Math.abs(be.getShiftV()) * 0.5));
+        double coneAngle = Math.min(Math.PI * 0.49, halfDiag * 1.35
+                + Math.abs(be.getShiftH()) * 0.5 + Math.abs(be.getShiftV()) * 0.5);
+        double cosCone = Math.cos(coneAngle);
 
-        BlockPos lens = be.getBlockPos();
-        int r = (int) Math.ceil(far);
-        BlockPos min = lens.offset(-r, -r, -r);
-        BlockPos max = lens.offset(r, r, r);
+        Vec3 up = Math.abs(dir.y) > 0.999 ? new Vec3(0, 0, 1) : new Vec3(0, 1, 0);
+        Vec3 right = dir.cross(up).normalize();
+        Vec3 upv = right.cross(dir).normalize();
+        double tanV = Math.tan(Math.toRadians(be.getFov() * 0.5));
+        double tanH = tanV * be.getAspect();
+        Vec3[] farCorners = frustumRect(origin, dir, right, upv, tanH, tanV, far,
+                be.getShiftH(), be.getShiftV());
+        int minX = Mth.floor(origin.x);
+        int minY = Mth.floor(origin.y);
+        int minZ = Mth.floor(origin.z);
+        int maxX = minX;
+        int maxY = minY;
+        int maxZ = minZ;
+        for (Vec3 c : farCorners) {
+            minX = Math.min(minX, Mth.floor(c.x));
+            minY = Math.min(minY, Mth.floor(c.y));
+            minZ = Math.min(minZ, Mth.floor(c.z));
+            maxX = Math.max(maxX, Mth.floor(c.x));
+            maxY = Math.max(maxY, Mth.floor(c.y));
+            maxZ = Math.max(maxZ, Mth.floor(c.z));
+        }
+        minX -= 2;
+        minY = Math.max(level.getMinBuildHeight(), minY - 2);
+        minZ -= 2;
+        maxX += 2;
+        maxY = Math.min(level.getMaxBuildHeight() - 1, maxY + 2);
+        maxZ += 2;
 
-        // Candidate faces: exposed solid faces inside the cone, nearest first.
         record Candidate(double dist2, BlockPos pos, Direction face) {
         }
-        List<Candidate> candidates = new ArrayList<>();
+        List<Candidate> candidates = new ArrayList<>(4096);
         double far2 = far * far;
-        int minSection = level.getSectionIndex(min.getY());
-        int maxSection = level.getSectionIndex(max.getY());
-        for (int cx = min.getX() >> 4; cx <= max.getX() >> 4; cx++) {
-            for (int cz = min.getZ() >> 4; cz <= max.getZ() >> 4; cz++) {
-                var chunk = level.getChunkSource().getChunk(cx, cz, false);
-                if (chunk == null) {
+        final int maxCandidates = MAX_FACES * 2;
+        int minSection = level.getSectionIndex(minY);
+        int maxSection = level.getSectionIndex(maxY);
+
+        int cx0 = minX >> 4;
+        int cz0 = minZ >> 4;
+        int cx1 = maxX >> 4;
+        int cz1 = maxZ >> 4;
+        record ChunkCol(int cx, int cz, double dist2) {
+        }
+        List<ChunkCol> columns = new ArrayList<>();
+        for (int cx = cx0; cx <= cx1; cx++) {
+            for (int cz = cz0; cz <= cz1; cz++) {
+                double mx = (cx << 4) + 8.0 - origin.x;
+                double mz = (cz << 4) + 8.0 - origin.z;
+                columns.add(new ChunkCol(cx, cz, mx * mx + mz * mz));
+            }
+        }
+        columns.sort((a, b) -> Double.compare(a.dist2, b.dist2));
+
+        BlockPos.MutableBlockPos p = new BlockPos.MutableBlockPos();
+        for (ChunkCol col : columns) {
+            if (candidates.size() >= maxCandidates) {
+                break;
+            }
+            if (!aabbMayHitBeam(col.cx << 4, minY, col.cz << 4,
+                    (col.cx << 4) + 16, maxY + 1, (col.cz << 4) + 16,
+                    origin, dir, far2, cosCone)) {
+                continue;
+            }
+            var chunk = level.getChunkSource().getChunk(col.cx, col.cz, false);
+            if (chunk == null) {
+                continue;
+            }
+            for (int si = Math.max(0, minSection);
+                 si <= Math.min(chunk.getSections().length - 1, maxSection); si++) {
+                if (candidates.size() >= maxCandidates) {
+                    break;
+                }
+                var section = chunk.getSection(si);
+                if (section.hasOnlyAir()) {
                     continue;
                 }
-                for (int si = Math.max(0, minSection);
-                     si <= Math.min(chunk.getSections().length - 1, maxSection); si++) {
-                    var section = chunk.getSection(si);
-                    if (section.hasOnlyAir()) {
-                        continue;
-                    }
-                    int baseY = level.getSectionYFromSectionIndex(si) << 4;
-                    int x0 = Math.max(min.getX(), cx << 4);
-                    int x1 = Math.min(max.getX(), (cx << 4) + 15);
-                    int z0 = Math.max(min.getZ(), cz << 4);
-                    int z1 = Math.min(max.getZ(), (cz << 4) + 15);
-                    int y0 = Math.max(min.getY(), baseY);
-                    int y1 = Math.min(max.getY(), baseY + 15);
-                    BlockPos.MutableBlockPos p = new BlockPos.MutableBlockPos();
-                    for (int y = y0; y <= y1; y++) {
-                        for (int z = z0; z <= z1; z++) {
-                            for (int x = x0; x <= x1; x++) {
-                                BlockState state = section.getBlockState(x & 15, y & 15, z & 15);
-                                if (state.isAir()) {
+                int baseY = level.getSectionYFromSectionIndex(si) << 4;
+                int x0 = Math.max(minX, col.cx << 4);
+                int x1 = Math.min(maxX, (col.cx << 4) + 15);
+                int z0 = Math.max(minZ, col.cz << 4);
+                int z1 = Math.min(maxZ, (col.cz << 4) + 15);
+                int y0 = Math.max(minY, baseY);
+                int y1 = Math.min(maxY, baseY + 15);
+                if (y0 > y1 || !aabbMayHitBeam(x0, y0, z0, x1 + 1, y1 + 1, z1 + 1,
+                        origin, dir, far2, cosCone)) {
+                    continue;
+                }
+                for (int y = y0; y <= y1; y++) {
+                    for (int z = z0; z <= z1; z++) {
+                        for (int x = x0; x <= x1; x++) {
+                            BlockState state = section.getBlockState(x & 15, y & 15, z & 15);
+                            if (state.isAir()) {
+                                continue;
+                            }
+                            p.set(x, y, z);
+                            if (!state.isSolidRender(level, p)) {
+                                continue;
+                            }
+                            double bx = x + 0.5 - origin.x;
+                            double by = y + 0.5 - origin.y;
+                            double bz = z + 0.5 - origin.z;
+                            double d2 = bx * bx + by * by + bz * bz;
+                            if (d2 > far2 || d2 < 1.0E-4) {
+                                continue;
+                            }
+                            double invD = 1.0 / Math.sqrt(d2);
+                            if ((bx * dir.x + by * dir.y + bz * dir.z) * invD < cosCone) {
+                                continue;
+                            }
+                            for (Direction face : Direction.values()) {
+                                Vec3 n = Vec3.atLowerCornerOf(face.getNormal());
+                                Vec3 c = new Vec3(x + 0.5 + n.x * 0.5, y + 0.5 + n.y * 0.5,
+                                        z + 0.5 + n.z * 0.5);
+                                if (n.dot(origin.subtract(c)) <= 0.0) {
                                     continue;
                                 }
-                                p.set(x, y, z);
-                                if (!state.isSolidRender(level, p)) {
+                                BlockPos np = p.relative(face);
+                                BlockState nb = level.getBlockState(np);
+                                if (nb.isSolidRender(level, np)) {
                                     continue;
                                 }
-                                double bx = x + 0.5 - origin.x;
-                                double by = y + 0.5 - origin.y;
-                                double bz = z + 0.5 - origin.z;
-                                double d2 = bx * bx + by * by + bz * bz;
-                                if (d2 > far2 || d2 < 1.0E-4) {
-                                    continue;
-                                }
-                                double invD = 1.0 / Math.sqrt(d2);
-                                if ((bx * dir.x + by * dir.y + bz * dir.z) * invD < cosCone) {
-                                    continue;
-                                }
-                                for (Direction face : Direction.values()) {
-                                    // Face must look at the lens and not be buried.
-                                    Vec3 n = Vec3.atLowerCornerOf(face.getNormal());
-                                    Vec3 c = new Vec3(x + 0.5 + n.x * 0.5, y + 0.5 + n.y * 0.5,
-                                            z + 0.5 + n.z * 0.5);
-                                    if (n.dot(origin.subtract(c)) <= 0.0) {
-                                        continue;
-                                    }
-                                    BlockPos np = p.relative(face);
-                                    BlockState nb = level.getBlockState(np);
-                                    if (nb.isSolidRender(level, np)) {
-                                        continue;
-                                    }
-                                    // Anything the beam can reach gets light — "near" shapes
-                                    // the projection matrix, it is not a hole around the head.
-                                    double fd = c.distanceToSqr(origin);
-                                    if (fd > 0.2) {
-                                        candidates.add(new Candidate(fd, p.immutable(), face));
+                                double fd = c.distanceToSqr(origin);
+                                if (fd > 0.2) {
+                                    candidates.add(new Candidate(fd, p.immutable(), face));
+                                    if (candidates.size() >= maxCandidates) {
+                                        break;
                                     }
                                 }
                             }
@@ -353,7 +407,6 @@ public class ProjectorRenderer implements BlockEntityRenderer<ProjectorBlockEnti
 
         List<float[]> quads = new ArrayList<>();
         BlockPos anchor = be.getBlockPos();
-        var player = Minecraft.getInstance().player;
         int rays = 0;
         for (Candidate cand : candidates) {
             if (rays >= MAX_FACES || quads.size() >= MAX_QUADS) {
@@ -372,6 +425,40 @@ public class ProjectorRenderer implements BlockEntityRenderer<ProjectorBlockEnti
                     be.getBlockPos(), candidates.size());
         }
         return new Mesh(quads, m);
+    }
+
+    /** Conservative cone vs AABB: skip chunks / sections the beam cannot reach. */
+    private static boolean aabbMayHitBeam(double minX, double minY, double minZ,
+                                          double maxX, double maxY, double maxZ,
+                                          Vec3 origin, Vec3 dir, double far2, double cosCone) {
+        double px = Mth.clamp(origin.x, minX, maxX);
+        double py = Mth.clamp(origin.y, minY, maxY);
+        double pz = Mth.clamp(origin.z, minZ, maxZ);
+        double dx = px - origin.x;
+        double dy = py - origin.y;
+        double dz = pz - origin.z;
+        if (dx * dx + dy * dy + dz * dz > far2) {
+            return false;
+        }
+        double cx = (minX + maxX) * 0.5 - origin.x;
+        double cy = (minY + maxY) * 0.5 - origin.y;
+        double cz = (minZ + maxZ) * 0.5 - origin.z;
+        double v2 = cx * cx + cy * cy + cz * cz;
+        if (v2 < 1.0e-4) {
+            return true;
+        }
+        double axial = cx * dir.x + cy * dir.y + cz * dir.z;
+        double rx = (maxX - minX) * 0.5;
+        double ry = (maxY - minY) * 0.5;
+        double rz = (maxZ - minZ) * 0.5;
+        double rad = Math.sqrt(rx * rx + ry * ry + rz * rz);
+        if (axial < -rad) {
+            return false;
+        }
+        double tanHalf = Math.sqrt(Math.max(0.0, 1.0 - cosCone * cosCone))
+                / Math.max(1.0e-4, cosCone);
+        double limit = Math.max(0.0, axial) * tanHalf + rad;
+        return v2 - axial * axial <= limit * limit;
     }
 
     /**

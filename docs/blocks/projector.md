@@ -23,7 +23,7 @@ See [Recipes](/reference/recipes) (`projector.json`). Iron, glass, LED panel.
 | Yaw / pitch | World-absolute aim. Pitch ±85° |
 | FOV | Vertical lens angle, 10–120° (default 40°) — this is the zoom |
 | Aspect | Default 16:9 |
-| Near / far | Throw. Far is also the geometry-scan budget, **2–64** m (default 24) |
+| Near / far | Throw. Far is also the geometry-scan budget, **2–1024** m (default 24) |
 | Keystone H / V | Image-plane tilt, ±0.6 |
 | Lens shift H / V | Fraction of frame, ±1.0 |
 | Brightness | 0–1 (default 0.9) |
@@ -43,7 +43,7 @@ Every viewing client rebuilds the drape locally. Source name lives on the server
 
 ## Limits
 
-- Far throw is a performance budget: long throws scan more geometry.
+- Far throw is a performance budget: the drape scan stays inside the frustum cone (not a cube). 1024 m is allowed; keep it only as far as the surface you actually hit.
 - Does not merge with LED walls. One projector, one frustum.
 - Needs the NDI Runtime on the viewer for live video (patterns still draw without it).
 

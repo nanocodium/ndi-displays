@@ -140,3 +140,104 @@ html.dark {
   margin: 1.25rem 0;
   border-radius: 8px;
 }
+
+/* Companion layer — Extra Lights / Theatrical sit next to NDI, not inside it.
+   Amber is lighting; it must not steal the violet brand. */
+.stage-badge {
+  display: inline-block;
+  margin-bottom: 0.85rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9a6b12;
+  background: rgba(217, 160, 32, 0.14);
+  border: 1px solid rgba(217, 160, 32, 0.35);
+}
+
+html.dark .stage-badge {
+  color: #f0d48a;
+  background: rgba(217, 160, 32, 0.12);
+  border-color: rgba(240, 212, 138, 0.28);
+}
+
+.stage-stack {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin: 1.4rem 0 1.75rem;
+}
+
+.stage-card {
+  margin: 0;
+  padding: 1rem 1.05rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+}
+
+.stage-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  border: 0;
+  padding: 0;
+}
+
+.stage-card p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--vp-c-text-2);
+}
+
+.stage-card__kicker {
+  margin-bottom: 0.35rem !important;
+  font-size: 0.7rem !important;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stage-card__mod {
+  margin-top: 0.7rem !important;
+  font-size: 0.82rem !important;
+  font-weight: 600;
+  color: var(--vp-c-text-1) !important;
+}
+
+.stage-card--video {
+  box-shadow: inset 3px 0 0 var(--vp-c-brand-1);
+}
+
+.stage-card--dmx {
+  box-shadow: inset 3px 0 0 #64748b;
+}
+
+.stage-card--lights {
+  box-shadow: inset 3px 0 0 #d9a020;
+}
+
+.stage-callout {
+  margin: 1.15rem 0 1.4rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(217, 160, 32, 0.35);
+  background: rgba(217, 160, 32, 0.08);
+}
+
+.stage-callout p {
+  margin: 0;
+}
+
+html.dark .stage-callout {
+  border-color: rgba(240, 212, 138, 0.22);
+  background: rgba(217, 160, 32, 0.08);
+}
+
+@media (max-width: 720px) {
+  .stage-stack {
+    grid-template-columns: 1fr;
+  }
+}

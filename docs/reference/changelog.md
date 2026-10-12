@@ -3,9 +3,30 @@
 This page follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The same notes live in [`CHANGELOG.md`](https://github.com/nanocodium/ndi-displays/blob/main/CHANGELOG.md) at the repo root.
 
-Current artifact: **`ndidisplays-1.20.1-1.1.3-all.jar`** — Minecraft **1.20.1**, Forge **47.x**, Java 17.
+Current artifact: **`ndidisplays-1.20.1-1.1.4-all.jar`** — Minecraft **1.20.1**, Forge **47.x**, Java 17.
 
 ## [Unreleased]
+
+## [1.1.4] - 2026-10-12
+
+Fifth CurseForge release. Stable.
+
+### Added
+
+- **Halogen Work Light** (`worklight`) and **Work Light Remote** (`worklight_remote`). A 2 kW flood in a tilting yoke: right-click switches it, sneak + right-click tilts 15° at a time. Block light 15, emissive tube and additive halo with no shader pack; a wide volumetric shaft with Extra Lights; a floor light with Shimmer. The remote's anvil name is its group.
+- [On the same stage](/stage/) — Extra Lights companion (hang, hoist, volumetric beams), not a fixture dump.
+
+### Changed
+
+- [Projector](/blocks/projector) far throw ceiling is **1024** m (was 64). Default stays 24 m. The drape scan stays inside the beam cone.
+
+### Fixed
+
+- Projector beam haze is an additive shader of its own. `position_color` had drawn it as an opaque dark cone that flickered with block-entity order. The drape uses an additive or alpha program to match its blend mode.
+- Kinetic winch parks: motion (target, speed, dimmer, colours) is one compact packet per player per tick, not a full block-entity sync per winch per frame.
+- LED walls and floors: one panel scans and shares the result, and walls refresh on a stagger, so a large park no longer freezes the client every 2 s.
+- A speaker flown on a chain hoist no longer leaves a second mesh where it took off. That copy was not a block. It is dropped once the cell is air.
+- Extra Lights 1.4.12 volumetric beams draw again (18-argument beam data). Flown fixtures and the work light no longer fall back to a flat cone; the flood does not use the beige sheet.
 
 ## [1.1.3] - 2026-09-29
 
@@ -126,7 +147,8 @@ First public CurseForge beta. Everything in this jar.
 
 Upstream `main` at `32d691b` before this beta. Notes for that tree now live under [1.1.0-beta.1].
 
-[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.3...HEAD
+[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.4...HEAD
+[1.1.4]: https://github.com/nanocodium/ndi-displays/compare/1.1.3...1.1.4
 [1.1.3]: https://github.com/nanocodium/ndi-displays/compare/1.1.2-beta.1...1.1.3
 [1.1.2-beta.1]: https://github.com/nanocodium/ndi-displays/compare/1.1.1-beta.1...1.1.2-beta.1
 [1.1.1-beta.1]: https://github.com/nanocodium/ndi-displays/compare/1.1.0-beta.1...HEAD

@@ -127,9 +127,10 @@ public class LedPanelBlockEntity extends BlockEntity implements DmxScreen {
             return null;
         }
         long now = lvl.getGameTime();
-        if (cachedWall == null || now - cacheTime > 40 || now < cacheTime) {
+        if (cachedWall == null || now - cacheTime > revalidateTicks() || now < cacheTime) {
             PanelFacing facing = getFacing();
             Block kind = getPanelKind();
+            boolean shared = false;
             try {
             // Any connected arrangement is one screen now — a cross, a ring, letters. The
             // video frame is the shape's bounding box and the build masks it, so shaped
@@ -144,6 +145,7 @@ public class LedPanelBlockEntity extends BlockEntity implements DmxScreen {
             if (shape != null) {
                 cachedWall = shape;
                 cachedRenderAnchor = worldPosition.equals(shape.anchor());
+                shared = true;
             } else {
                 // Too large for the flood fill: the classic rectangle rules still apply, so a
                 // giant plain wall keeps working; anything irregular at that size is 1x1.
@@ -153,6 +155,7 @@ public class LedPanelBlockEntity extends BlockEntity implements DmxScreen {
                         && WallScanner.isIsolatedRectangle(lvl, rect, kind)) {
                     cachedWall = rect;
                     cachedRenderAnchor = worldPosition.equals(anchor);
+                    shared = true;
                 } else {
                     cachedWall = new WallScanner.WallInfo(worldPosition, facing, 1, 1);
                     cachedRenderAnchor = true;
@@ -167,8 +170,45 @@ public class LedPanelBlockEntity extends BlockEntity implements DmxScreen {
                 cachedRenderAnchor = true;
             }
             cacheTime = now;
+            if (shared) {
+                shareWall(lvl, cachedWall, now);
+            }
         }
         return cachedWall;
+    }
+
+    /**
+     * How long a scan stays valid, ticks. Staggered per wall so a park of walls placed in
+     * the same second does not rescan in the same frame.
+     */
+    private int revalidateTicks() {
+        BlockPos key = cachedWall != null ? cachedWall.anchor() : worldPosition;
+        return 40 + (key.hashCode() & 31);
+    }
+
+    /**
+     * Hands one scan's result to every panel of the wall it found.
+     *
+     * Every panel used to run the flood fill itself: a wall of N panels cost N full scans of
+     * N panels each time the cache expired, and with every panel expiring in the same tick
+     * that quadratic burst was a visible freeze on a large park. One panel scans, the rest
+     * adopt the result; they only scan again when the wall really changes or their copy ages
+     * out, and then the first one to notice refreshes everybody.
+     */
+    private void shareWall(Level lvl, WallScanner.WallInfo wall, long now) {
+        if (wall.width() * wall.height() <= 1) {
+            return;
+        }
+        for (BlockPos p : WallScanner.allPanels(wall)) {
+            if (p.equals(worldPosition)) {
+                continue;
+            }
+            if (lvl.getBlockEntity(p) instanceof LedPanelBlockEntity panel && panel != this) {
+                panel.cachedWall = wall;
+                panel.cachedRenderAnchor = p.equals(wall.anchor());
+                panel.cacheTime = now;
+            }
+        }
     }
 
     public void invalidateWallCache() {

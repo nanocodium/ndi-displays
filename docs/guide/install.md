@@ -2,7 +2,7 @@
 
 Minecraft **1.20.1**, **Forge 47.x**, Java 17. Put the **`-all`** jar on every **client that should see video** and on the **server** (blocks must be registered). The server never opens NDI.
 
-Ship **`ndidisplays-1.20.1-1.1.3-all.jar`**. The thin jar without `-all` has no Devolay bindings and will fail at runtime.
+Ship **`ndidisplays-1.20.1-1.1.4-all.jar`**. The thin jar without `-all` has no Devolay bindings and will fail at runtime.
 
 Without an NDI library the mod still loads. Walls show test patterns and the GUI reports that NDI is missing.
 
@@ -54,6 +54,7 @@ Easiest path: OBS + [DistroAV / obs-ndi](https://distroav.org/) → *Tools → D
 |-----|-----|
 | [Shimmer](https://www.curseforge.com/minecraft/mc-mods/shimmer) | Bloom from live wall content |
 | [Theatrical](https://github.com/theatricalmod/Theatrical) | DMX on winches and screens; Extra Lights fixtures on a winch hook |
+| [Theatrical Extra Lights](/stage/extra-lights) | Volumetric beams on flown fixtures (optional, after Theatrical) |
 | Xaero Minimap / World Map | Import world waypoints into a drone path |
 | MCEF | Required for the [Web Terminal](/blocks/web-terminal) browser |
 

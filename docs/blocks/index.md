@@ -36,6 +36,7 @@ Registered in `NdiDisplays.java` via `BLOCKS.register("…")` (not `BLOCKS.regis
 | <img src="/img/blocks/computer.png" alt="Computer" width="96" /> | `ndidisplays:computer` | [Computer](/blocks/computer) |
 | <img src="/img/blocks/vision_switcher.png" alt="Vision Switcher" width="96" /> | `ndidisplays:vision_switcher` | [Vision Switcher](/blocks/vision-switcher) |
 | <img src="/img/blocks/pro_monitor.png" alt="Pro Monitor" width="96" /> | `ndidisplays:pro_monitor` | [Pro Monitor](/blocks/pro-monitor) |
+| | `ndidisplays:worklight` | [Halogen Work Light](/blocks/worklight) |
 | <img src="/img/blocks/equipment_rack.png" alt="Equipment Rack" width="96" /> | `ndidisplays:equipment_rack` | [Equipment Rack](/blocks/equipment-rack) |
 | <img src="/img/blocks/web_terminal.png" alt="Web Terminal" width="96" /> | `ndidisplays:web_terminal` | [Web Terminal](/blocks/web-terminal) |
 

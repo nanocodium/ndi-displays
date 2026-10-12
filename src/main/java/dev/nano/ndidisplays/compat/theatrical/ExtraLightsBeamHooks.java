@@ -102,14 +102,23 @@ final class ExtraLightsBeamHooks {
         try {
             Class<?> dataClass = Class.forName(PKG + ".client.render.beam.BeamRenderData");
             rendererClass = Class.forName(PKG + ".client.render.beam.VolumetricBeamRenderer");
-            // The 16-argument form, the one Extra Lights itself calls (the 15-arg overload
-            // omits baseRadius). Matched on parameter count so a reordered signature fails
-            // resolution rather than silently mismatching argument meanings.
+            // Extra Lights 1.4.12+ exposes an 18-argument constructor (gobo + next gobo +
+            // wheel transition, no shutters); older builds had a 16-argument one. Matched on
+            // parameter count so a reordered signature fails resolution rather than silently
+            // mismatching argument meanings.
             Constructor<?> found = null;
             for (Constructor<?> c : dataClass.getConstructors()) {
-                if (c.getParameterCount() == 16) {
+                if (c.getParameterCount() == 18) {
                     found = c;
                     break;
+                }
+            }
+            if (found == null) {
+                for (Constructor<?> c : dataClass.getConstructors()) {
+                    if (c.getParameterCount() == 16) {
+                        found = c;
+                        break;
+                    }
                 }
             }
             if (found == null) {
@@ -182,6 +191,18 @@ final class ExtraLightsBeamHooks {
     static boolean submit(BlockPos fixturePos, Matrix4f headMatrix, float beamWidth,
                           float focus01, float r, float g, float b,
                           float intensity01, float length) {
+        float zoom = Math.max(0.0F, Math.min(1.0F, focus01));
+        float halfDeg = BEAM_MIN_HALF_DEG + zoom * (BEAM_MAX_HALF_DEG - BEAM_MIN_HALF_DEG);
+        return submitCone(fixturePos, headMatrix, beamWidth, halfDeg, r, g, b, intensity01, length);
+    }
+
+    /**
+     * Same, with the cone half-angle given directly in degrees — for fixtures that are not
+     * moving heads, such as a halogen flood whose spread is far wider than a zoom range.
+     */
+    static boolean submitCone(BlockPos fixturePos, Matrix4f headMatrix, float beamWidth,
+                              float halfAngleDeg, float r, float g, float b,
+                              float intensity01, float length) {
         if (!ENABLED || !available()) {
             return false;
         }
@@ -203,30 +224,35 @@ final class ExtraLightsBeamHooks {
             Vec3 axisV = norm(headMatrix.m10(), headMatrix.m11(), headMatrix.m12());
             Vec3 dir = norm(-headMatrix.m20(), -headMatrix.m21(), -headMatrix.m22());
 
-            // Cone spread, as a real half-angle in degrees like Extra Lights computes for its
-            // own fixtures, not derived from beam width. Zoom widens the cone.
-            float zoom = Math.max(0.0F, Math.min(1.0F, focus01));
-            float halfDeg = BEAM_MIN_HALF_DEG + zoom * (BEAM_MAX_HALF_DEG - BEAM_MIN_HALF_DEG);
+            // Cone spread as a real half-angle in degrees, like Extra Lights computes for its
+            // own fixtures. Clamped short of 90 so the tangent stays finite.
+            float halfDeg = Math.max(0.5F, Math.min(80.0F, halfAngleDeg));
+            float zoom = Math.max(0.0F, Math.min(1.0F,
+                    (halfDeg - BEAM_MIN_HALF_DEG) / (BEAM_MAX_HALF_DEG - BEAM_MIN_HALF_DEG)));
             float tanHalf = (float) Math.tan(Math.toRadians(halfDeg));
             int colour = (clamp255(r) << 16) | (clamp255(g) << 8) | clamp255(b);
 
-            Object data = dataCtor.newInstance(
-                    fixturePos,
-                    origin,
-                    dir,
-                    axisU,
-                    axisV,
-                    zoom,                                     // zoomNorm
-                    length,                                   // scanLen
-                    tanHalf,                                  // tanHalfAngle
-                    colour,
-                    Math.max(0.0F, Math.min(1.0F, intensity01)),
-                    OPEN_GOBO,                                // goboTexture — see below
-                    0.0F,                                     // goboRotation
-                    level,
-                    1.0F,                                     // widthScale
-                    1.0F,                                     // heightScale
-                    Math.max(0.02F, beamWidth));              // baseRadius
+            float intensity = Math.max(0.0F, Math.min(1.0F, intensity01));
+            float baseRadius = Math.max(0.02F, beamWidth);
+            Object data = dataCtor.getParameterCount() == 18
+                    ? dataCtor.newInstance(
+                            fixturePos, origin, dir, axisU, axisV,
+                            zoom,                 // zoomNorm
+                            length,               // scanLen
+                            tanHalf,              // tanHalfAngle
+                            colour, intensity,
+                            OPEN_GOBO,            // goboTexture — see below
+                            OPEN_GOBO,            // nextGoboTexture
+                            0.0F,                 // goboRotation
+                            0.0F,                 // wheelTransition
+                            level,
+                            1.0F,                 // widthScale
+                            1.0F,                 // heightScale
+                            baseRadius)
+                    : dataCtor.newInstance(
+                            fixturePos, origin, dir, axisU, axisV,
+                            zoom, length, tanHalf, colour, intensity,
+                            OPEN_GOBO, 0.0F, level, 1.0F, 1.0F, baseRadius);
 
             if (RENDERERS.size() > MAX_RENDERERS) {
                 RENDERERS.clear();

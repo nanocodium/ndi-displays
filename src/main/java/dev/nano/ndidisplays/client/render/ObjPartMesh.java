@@ -118,7 +118,20 @@ public final class ObjPartMesh {
 
     /** Draws every part whose name the predicate accepts, under the current pose. */
     public void render(PoseStack pose, VertexConsumer vc, int light, Predicate<String> which) {
+        render(pose, vc, light, which, 1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    /**
+     * Tinted variant: the vertex colour multiplies the texture, so a palette-textured mesh can
+     * warm up a lit lamp or fade a glass pane without a second texture.
+     */
+    public void render(PoseStack pose, VertexConsumer vc, int light, Predicate<String> which,
+                       float r, float g, float b, float alpha) {
         PoseStack.Pose p = pose.last();
+        int cr = clamp255(r);
+        int cg = clamp255(g);
+        int cb = clamp255(b);
+        int ca = clamp255(alpha);
         for (Map.Entry<String, float[]> e : parts.entrySet()) {
             if (!which.test(e.getKey())) {
                 continue;
@@ -126,17 +139,22 @@ public final class ObjPartMesh {
             float[] a = e.getValue();
             for (int i = 0; i < a.length; i += 24) {
                 // one triangle as a degenerate quad (entity render types batch quads)
-                vertex(p, vc, light, a, i);
-                vertex(p, vc, light, a, i + 8);
-                vertex(p, vc, light, a, i + 16);
-                vertex(p, vc, light, a, i + 16);
+                vertex(p, vc, light, a, i, cr, cg, cb, ca);
+                vertex(p, vc, light, a, i + 8, cr, cg, cb, ca);
+                vertex(p, vc, light, a, i + 16, cr, cg, cb, ca);
+                vertex(p, vc, light, a, i + 16, cr, cg, cb, ca);
             }
         }
     }
 
-    private static void vertex(PoseStack.Pose p, VertexConsumer vc, int light, float[] a, int o) {
+    private static int clamp255(float v) {
+        return Math.max(0, Math.min(255, Math.round(v * 255.0F)));
+    }
+
+    private static void vertex(PoseStack.Pose p, VertexConsumer vc, int light, float[] a, int o,
+                               int r, int g, int b, int alpha) {
         vc.vertex(p.pose(), a[o], a[o + 1], a[o + 2])
-                .color(255, 255, 255, 255)
+                .color(r, g, b, alpha)
                 .uv(a[o + 3], a[o + 4])
                 .overlayCoords(OverlayTexture.NO_OVERLAY)
                 .uv2(light)

@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "III",
+        "GBG",
+        " I "
+    ],
+    "key": {
+        "I": { "item": "minecraft:iron_ingot" },
+        "G": { "item": "minecraft:glass_pane" },
+        "B": { "item": "minecraft:blaze_rod" }
+    },
+    "result": {
+        "item": "ndidisplays:worklight",
+        "count": 1
+    }
+}

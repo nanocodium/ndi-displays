@@ -126,6 +126,8 @@ public final class ClientSetup {
                 ctx -> new dev.nano.ndidisplays.client.render.ProMonitorRenderer());
         event.registerBlockEntityRenderer(NdiDisplays.RACK_BE.get(),
                 ctx -> new dev.nano.ndidisplays.client.render.RackRenderer());
+        event.registerBlockEntityRenderer(NdiDisplays.WORKLIGHT_BE.get(),
+                ctx -> new dev.nano.ndidisplays.client.render.WorklightRenderer());
     }
 
     @SubscribeEvent

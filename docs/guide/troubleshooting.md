@@ -33,7 +33,7 @@ Only the [broadcast](/guide/multiplayer) machine publishes (`AUTO` in singleplay
 
 ## Projector shows the grid but not the feed
 
-Pattern is still the alignment grid (factory default). Set **NDI Video** after the throw is framed. Far throw > 64 m is clamped; long throws cost more geometry.
+Pattern is still the alignment grid (factory default). Set **NDI Video** after the throw is framed. Far throw > 1024 m is clamped; long throws cost more geometry.
 
 ## Linux screens stay black, nothing logged
 

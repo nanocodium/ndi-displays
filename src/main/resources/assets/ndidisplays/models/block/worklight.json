@@ -1,0 +1,6 @@
+{
+    "__comment": "Particles only: the whole work light (yoke and tilting head) is the mesh in the BER.",
+    "textures": {
+        "particle": "ndidisplays:block/worklight_atlas"
+    }
+}

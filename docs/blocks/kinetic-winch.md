@@ -39,5 +39,5 @@ Video receive is per client. Motor pose is server-authoritative. DMX is server-s
 ## Integrations
 
 - **Theatrical** (optional): patchable fixture, 4 / 6 / 7 / 10 ch depending on payload and mode.
-- **Theatrical Extra Lights**: hang a real fixture on the hook (`PAYLOAD_FIXTURE`).
+- **Theatrical Extra Lights**: hang a real fixture on the hook (`PAYLOAD_FIXTURE`). Handshake: [On the same stage](/stage/extra-lights).
 - **Shimmer**: bloom on LED tile video.

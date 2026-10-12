@@ -54,4 +54,4 @@ Nested modes (channel N never reshuffles):
 
 Omitted channels **hold** rather than zero. If the hung fixture publishes Theatrical personalities, those descriptions and slot lists win.
 
-Beams can go through Extra Lights’ volumetric pipeline when that mod is present.
+Beams can go through Extra Lights’ volumetric pipeline when that mod is present. Contract and fallbacks: [Extra Lights](/stage/extra-lights).

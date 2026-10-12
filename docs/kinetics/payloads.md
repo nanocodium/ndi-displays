@@ -50,3 +50,5 @@ Set payload to fixture and pick a Theatrical / Extra Lights block id. Modes (nes
 When the fixture declares its own Theatrical personalities, the winch prefers those names and slot maps. Channel maps: [DMX](/kinetics/dmx).
 
 To fly a **whole block structure** (truss + fixtures + speakers) rather than a single winch payload, use the [Chain Hoist](/blocks/chain-hoist). That system does not use these payload enums.
+
+Companion (hang + volumetric beams, not a fixture list): [Extra Lights](/stage/extra-lights).

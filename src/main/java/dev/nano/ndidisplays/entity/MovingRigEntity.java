@@ -253,6 +253,13 @@ public class MovingRigEntity extends Entity {
     @Override
     public void tick() {
         if (level().isClientSide) {
+            // The cabinet mesh kept beside the block does not follow a lift, and this
+            // entity is the only thing that knows which cells were emptied. Clearing it
+            // here, not only while the load is on screen, is what lets the leftover go.
+            RigStructure flying = structure();
+            if (flying != null && flying.size() > 0) {
+                dev.nano.ndidisplays.compat.cabinets.CabinetMeshCompat.dropLifted(level(), flying);
+            }
             return;
         }
         if (landed) {

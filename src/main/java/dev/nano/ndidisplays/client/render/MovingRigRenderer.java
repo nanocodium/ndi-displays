@@ -1,6 +1,7 @@
 package dev.nano.ndidisplays.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.nano.ndidisplays.compat.cabinets.CabinetMeshCompat;
 import dev.nano.ndidisplays.compat.theatrical.HoistFixtureCompat;
 import dev.nano.ndidisplays.entity.MovingRigEntity;
 import dev.nano.ndidisplays.hoist.RigStructure;
@@ -86,6 +87,10 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
         BlockPos originBlock = BlockPos.containing(entity.getX(), entity.getY(), entity.getZ());
         Ghosts cache = ghosts(entity, structure, level, originBlock, tilt);
         cache.pushLiveFixtures(entity, structure, level.getGameTime());
+        // The batched cabinet mesh is not the block. Once the hoist has lifted it, that
+        // mesh is still drawn where the cabinet took off, and mining cannot reach it.
+        // The tick does the same, so a load that has flown off screen still clears.
+        CabinetMeshCompat.dropLifted(level, structure);
         // Where the rig origin is really being drawn this frame, as opposed to the
         // whole-block cell the ghosts are addressed at. Same lerp as the entity render
         // dispatcher, from xOld/yOld/zOld: those are stamped by the client level before
@@ -116,7 +121,11 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
             }
 
             boolean drew = false;
-            if (RigStructure.clientNeedsBlockEntity(state)) {
+            // A flown cabinet is drawn from its baked model. Asking its own renderer
+            // would hand the cabinet to the batched pass, which then leaves a copy behind
+            // at every cell the load passes through.
+            boolean batchedCabinet = CabinetMeshCompat.owns(state);
+            if (!batchedCabinet && RigStructure.clientNeedsBlockEntity(state)) {
                 BlockEntity ghost = cache.entities().get(i);
                 boolean fixture = ghost != null && HoistFixtureCompat.isFixture(state);
                 Vec3 delta = null;
@@ -165,6 +174,11 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
             }
             if (!drew && state.getRenderShape() != RenderShape.INVISIBLE) {
                 renderBlock(state, poseStack, buffers, light);
+            } else if (!drew && batchedCabinet) {
+                BlockState visible = visibleFallback(state);
+                if (visible.getRenderShape() != RenderShape.INVISIBLE) {
+                    renderBlock(visible, poseStack, buffers, light);
+                }
             }
             poseStack.popPose();
         }
@@ -211,10 +225,10 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
     /**
      * The baked model a wrench-hidden block would show if it were not being posed.
      *
-     * SEF (and a few other furniture mods) flip an integer {@code state} or {@code angle}
-     * to hide the model and draw it from the block entity instead. Putting that property
-     * back to zero recovers the cabinet, without the wrench pose, when the ghost renderer
-     * is missing or throws.
+     * Some furniture mods flip an integer {@code state} or {@code angle} to hide the
+     * model and draw it from the block entity instead. Putting that property back to
+     * zero recovers the cabinet, without the wrench pose, when the ghost renderer is
+     * missing or throws.
      */
     private static BlockState visibleFallback(BlockState state) {
         BlockState out = state;
@@ -248,6 +262,10 @@ public class MovingRigRenderer extends EntityRenderer<MovingRigEntity> {
         HoistFixtureCompat.debug("client ghosts rebuilt: origin {} attitude {} entityY={}",
                 origin, attitude, String.format("%.3f", entity.getY()));
         for (RigStructure.Entry entry : structure.entries()) {
+            if (CabinetMeshCompat.owns(entry.state())) {
+                cache.entities().add(null);
+                continue;
+            }
             cache.entities().add(
                     createGhost(level, tilt.cellOf(origin, entry.offset()), entry));
         }

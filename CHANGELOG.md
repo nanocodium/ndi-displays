@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-10-12
+
+Fifth CurseForge release. Stable. Ship **`ndidisplays-1.20.1-1.1.4-all.jar`**.
+
+### Added
+
+- **Halogen Work Light** (`ndidisplays:worklight`) and **Work Light Remote** (`ndidisplays:worklight_remote`). A 2 kW flood in a tilting yoke. Right-click switches it; sneak + right-click tilts 15° at a time, down to 90°, then back to level. On: block light 15, an emissive tube and an additive halo, with no shader pack. With Theatrical Extra Lights, a wide warm volumetric shaft. With Shimmer, a coloured point light on the floor in front of the lamp. The remote's anvil name is its group: tap lamps to patch them, right-click the air to toggle; unnamed, it switches the room.
+- Wiki **On the same stage** (`docs/stage/`): Extra Lights as a companion (winch hang, hoist flight, volumetric beam contract), not a fixture catalog.
+
+### Changed
+
+- Projector far throw ceiling is **1024** m (was 64). Default stays 24 m. The drape scan stays inside the beam cone, so a long throw no longer walks a cube and freezes the client.
+
+### Fixed
+
+- Projector beam haze is its own additive shader instead of `position_color`, whose alpha blend drew it as an opaque dark cone that flickered with block-entity order. The drape picks an additive or alpha-blend program to match its blend mode.
+- Large kinetic-winch parks no longer stutter under DMX. Target, speed, dimmer and colours go out in one compact packet per player per tick, instead of a full block-entity sync per winch per frame. The chunk save mark is set once per tick.
+- LED walls and floors no longer freeze the client. One panel scans and hands the result to the whole wall, and the refresh is staggered per wall, instead of every panel re-running the flood fill together every 2 s.
+- A speaker flown on a chain hoist left a second mesh where it took off. That copy was not a block, so it could not be mined. Once the cell is air the leftover mesh is dropped; the cabinet on the chain is the one that moves.
+- Extra Lights 1.4.12 volumetric beams draw again. The beam data constructor takes 18 arguments (next gobo, wheel transition); the old 16-argument call never resolved, so flown fixtures and the work light fell back to a flat cone. The flood is a wide volumetric shaft and does not fall back to a beige sheet.
+
 ## [1.1.3] - 2026-09-29
 
 Fourth CurseForge release. Ship **`ndidisplays-1.20.1-1.1.3-all.jar`**. Fixes the white camera feeds seen with Theatrical Extra Lights 1.4.x volumetric beams.
@@ -134,7 +155,8 @@ First public CurseForge beta. Ship **`ndidisplays-1.20.1-1.1.0-beta.1-all.jar`**
 
 Upstream [nanocodium/ndi-displays](https://github.com/nanocodium/ndi-displays) `main` at `32d691b` before this beta. Notes for that tree now live under [1.1.0-beta.1].
 
-[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.3...HEAD
+[Unreleased]: https://github.com/nanocodium/ndi-displays/compare/1.1.4...HEAD
+[1.1.4]: https://github.com/nanocodium/ndi-displays/compare/1.1.3...1.1.4
 [1.1.3]: https://github.com/nanocodium/ndi-displays/compare/1.1.2-beta.1...1.1.3
 [1.1.2-beta.1]: https://github.com/nanocodium/ndi-displays/compare/1.1.1-beta.1...1.1.2-beta.1
 [1.1.1-beta.1]: https://github.com/nanocodium/ndi-displays/compare/1.1.0-beta.1...HEAD

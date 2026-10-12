@@ -113,15 +113,17 @@ public class LedFloorBlockEntity extends BlockEntity implements DmxScreen {
             return null;
         }
         long now = lvl.getGameTime();
-        if (cachedFloor == null || now - cacheTime > 40 || now < cacheTime) {
+        if (cachedFloor == null || now - cacheTime > revalidateTicks() || now < cacheTime) {
             Direction facing = getFacing();
             Block kind = getPanelKind();
+            boolean shared = false;
             try {
             // Shaped floors: any connected arrangement is one screen (see WallScanner.scanShape).
             FloorScanner.FloorInfo shape = FloorScanner.scanShape(lvl, worldPosition, facing, kind);
             if (shape != null) {
                 cachedFloor = shape;
                 cachedRenderAnchor = worldPosition.equals(shape.anchor());
+                shared = true;
             } else {
                 BlockPos anchor = FloorScanner.findAnchor(lvl, worldPosition, facing, kind);
                 FloorScanner.FloorInfo rect = FloorScanner.scan(lvl, anchor, facing, kind);
@@ -129,6 +131,7 @@ public class LedFloorBlockEntity extends BlockEntity implements DmxScreen {
                         && FloorScanner.isIsolatedRectangle(lvl, rect, kind)) {
                     cachedFloor = rect;
                     cachedRenderAnchor = worldPosition.equals(anchor);
+                    shared = true;
                 } else {
                     cachedFloor = new FloorScanner.FloorInfo(worldPosition, facing, 1, 1);
                     cachedRenderAnchor = true;
@@ -141,8 +144,45 @@ public class LedFloorBlockEntity extends BlockEntity implements DmxScreen {
                 cachedRenderAnchor = true;
             }
             cacheTime = now;
+            if (shared) {
+                shareFloor(lvl, cachedFloor, now);
+            }
         }
         return cachedFloor;
+    }
+
+    /** Scan lifetime, staggered per floor so many floors do not rescan in one frame. */
+    private int revalidateTicks() {
+        BlockPos key = cachedFloor != null ? cachedFloor.anchor() : worldPosition;
+        return 40 + (key.hashCode() & 31);
+    }
+
+    /**
+     * Hands one scan's result to every tile of the floor it found, so a floor of N tiles
+     * costs one flood fill per refresh instead of N (see {@code LedPanelBlockEntity#shareWall}).
+     */
+    private void shareFloor(Level lvl, FloorScanner.FloorInfo floor, long now) {
+        if (floor.width() * floor.depth() <= 1) {
+            return;
+        }
+        Direction right = FloorScanner.right(floor.facing());
+        BlockPos origin = floor.origin();
+        for (int w = 0; w < floor.width(); w++) {
+            for (int d = 0; d < floor.depth(); d++) {
+                if (!floor.has(w, d)) {
+                    continue;
+                }
+                BlockPos p = origin.relative(right, w).relative(floor.facing(), d);
+                if (p.equals(worldPosition)) {
+                    continue;
+                }
+                if (lvl.getBlockEntity(p) instanceof LedFloorBlockEntity tile) {
+                    tile.cachedFloor = floor;
+                    tile.cachedRenderAnchor = p.equals(floor.anchor());
+                    tile.cacheTime = now;
+                }
+            }
+        }
     }
 
     @Override

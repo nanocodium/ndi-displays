@@ -26,6 +26,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/install' },
       { text: 'Blocks', link: '/blocks/' },
       { text: 'Kinetics', link: '/kinetics/payloads' },
+      { text: 'On the same stage', link: '/stage/' },
       { text: 'Reference', link: '/reference/recipes' },
       { text: 'For Devs', link: '/devs/' },
       { text: 'GitHub', link: 'https://github.com/nanocodium/ndi-displays' }
@@ -66,7 +67,8 @@ export default defineConfig({
           { text: 'Pro Monitor', link: '/blocks/pro-monitor' },
           { text: 'Computer', link: '/blocks/computer' },
           { text: 'Equipment Rack', link: '/blocks/equipment-rack' },
-          { text: 'Web Terminal', link: '/blocks/web-terminal' }
+          { text: 'Web Terminal', link: '/blocks/web-terminal' },
+          { text: 'Halogen Work Light', link: '/blocks/worklight' }
         ]
       },
       {
@@ -76,7 +78,8 @@ export default defineConfig({
           { text: 'Handheld Camera', link: '/items/handheld-camera' },
           { text: 'Shoulder Camera', link: '/items/shoulder-camera' },
           { text: 'NDI Drone', link: '/items/drone' },
-          { text: 'Hoist Remote', link: '/items/hoist-remote' }
+          { text: 'Hoist Remote', link: '/items/hoist-remote' },
+          { text: 'Work Light Remote', link: '/items/worklight-remote' }
         ]
       },
       {
@@ -84,6 +87,13 @@ export default defineConfig({
         items: [
           { text: 'Payloads', link: '/kinetics/payloads' },
           { text: 'DMX maps', link: '/kinetics/dmx' }
+        ]
+      },
+      {
+        text: 'On the same stage',
+        items: [
+          { text: 'Overview', link: '/stage/' },
+          { text: 'Extra Lights', link: '/stage/extra-lights' }
         ]
       },
       {

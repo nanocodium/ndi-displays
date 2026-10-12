@@ -32,7 +32,7 @@ public class ProjectorBlockEntity extends BlockEntity {
     public static final float MAX_NEAR = 8.0F;
     public static final float MIN_FAR = 2.0F;
     /** Throw ceiling. Also bounds the geometry scan, so it is a performance budget too. */
-    public static final float MAX_FAR = 64.0F;
+    public static final float MAX_FAR = 1024.0F;
     public static final float MAX_KEYSTONE = 0.6F;
     public static final float MAX_SHIFT = 1.0F;
     public static final float MAX_FEATHER = 0.4F;

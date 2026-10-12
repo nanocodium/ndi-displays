@@ -1,0 +1,49 @@
+{
+    "loader": "forge:obj",
+    "model": "ndidisplays:meshes/worklight.obj",
+    "flip_v": true,
+    "transform": {
+        "origin": "corner",
+        "translation": [ 0.5, 0.19, 0.5 ]
+    },
+    "textures": {
+        "atlas": "ndidisplays:block/worklight_atlas",
+        "particle": "ndidisplays:block/worklight_atlas"
+    },
+    "display": {
+        "gui": {
+            "rotation": [ 20, 215, 0 ],
+            "translation": [ 0, 0, 0 ],
+            "scale": [ 1.5, 1.5, 1.5 ]
+        },
+        "fixed": {
+            "rotation": [ 0, 180, 0 ],
+            "translation": [ 0, 0, 0 ],
+            "scale": [ 1.4, 1.4, 1.4 ]
+        },
+        "ground": {
+            "translation": [ 0, 1, 0 ],
+            "scale": [ 0.8, 0.8, 0.8 ]
+        },
+        "thirdperson_righthand": {
+            "rotation": [ 60, 0, 0 ],
+            "translation": [ 0, 3, 1 ],
+            "scale": [ 0.7, 0.7, 0.7 ]
+        },
+        "thirdperson_lefthand": {
+            "rotation": [ 60, 0, 0 ],
+            "translation": [ 0, 3, 1 ],
+            "scale": [ 0.7, 0.7, 0.7 ]
+        },
+        "firstperson_righthand": {
+            "rotation": [ 0, 35, 0 ],
+            "translation": [ 0, 2, 0 ],
+            "scale": [ 0.8, 0.8, 0.8 ]
+        },
+        "firstperson_lefthand": {
+            "rotation": [ 0, 215, 0 ],
+            "translation": [ 0, 2, 0 ],
+            "scale": [ 0.8, 0.8, 0.8 ]
+        }
+    }
+}

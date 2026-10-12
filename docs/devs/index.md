@@ -8,6 +8,7 @@ Players: start at [Install](/guide/install).
 |----------|---------|
 | Clone, PR, changelog, wiki edits | [Contributing](/devs/contributing) |
 | Hook Theatrical, Extra Lights, SEF, or your own mod **with** us, not against us | [Interop & API](/devs/interop) |
+| How Extra Lights sits on this stage (not a fixture dump) | [On the same stage](/stage/) |
 | Optional soft deps already shipped | [Integrations](/reference/integrations) |
 | What shipped | [Changelog](/reference/changelog) |
 

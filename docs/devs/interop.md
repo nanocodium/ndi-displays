@@ -45,7 +45,7 @@ We already soft-depend on Theatrical, Extra Lights (via Theatrical fixtures), Sh
 | Hoist cargo | `#ndidisplays:hoist_immovable`, `#ndidisplays:hoist_world` | Datapack tags. World = terrain the scanner will not enter. Immovable = never cargo (include your motors). |
 | Theatrical on hoist | `compat/theatrical/HoistFixtureCompat` | Proxy DMX consumers while the load is an entity; beams keep running. |
 | SEF on hoist | `compat/sef/SefHoistCompat` | Pose / mixer remap after landing. |
-| Winch + Extra Lights | Kinetic hook payload | Fixture hung on the winch; optional volumetric beam path. |
+| Winch + Extra Lights | Kinetic hook payload | Fixture hung on the winch; optional volumetric beam path. Player-facing handshake: [Extra Lights](/stage/extra-lights). |
 | Screen lights | `-Dndidisplays.screenLights=true` | Optional Shimmer wash. Off by default. |
 
 There is no Inter-Mod Comms channel yet. If you need `enqueueTo` / `enqueueFrom`, propose the message shape on the `interop` issue instead of guessing.

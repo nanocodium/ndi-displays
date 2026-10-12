@@ -378,6 +378,32 @@ public class NdiDisplays {
     public static final RegistryObject<Item> HOIST_REMOTE_ITEM = ITEMS.register("hoist_remote",
             () -> new dev.nano.ndidisplays.item.HoistRemoteItem(new Item.Properties().stacksTo(1)));
 
+    /**
+     * Halogen work light: the 2 kW flood a crew switches on to see the stage between shows.
+     * Hangs from the block above, tilts in its yoke, lights the room when on.
+     */
+    public static final RegistryObject<Block> WORKLIGHT = BLOCKS.register("worklight",
+            () -> new dev.nano.ndidisplays.block.WorklightBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.COLOR_BLACK)
+                    .strength(1.0F)
+                    .sound(SoundType.METAL)
+                    .noOcclusion()
+                    .lightLevel(state -> state.getValue(
+                            dev.nano.ndidisplays.block.WorklightBlock.LIT) ? 15 : 0)));
+
+    public static final RegistryObject<Item> WORKLIGHT_ITEM = ITEMS.register("worklight",
+            () -> new BlockItem(WORKLIGHT.get(), new Item.Properties()));
+
+    public static final RegistryObject<BlockEntityType<dev.nano.ndidisplays.block.WorklightBlockEntity>> WORKLIGHT_BE =
+            BLOCK_ENTITIES.register("worklight",
+                    () -> BlockEntityType.Builder.of(
+                            dev.nano.ndidisplays.block.WorklightBlockEntity::new,
+                            WORKLIGHT.get()).build(null));
+
+    /** Work light remote: its anvil name is the group it switches; unnamed, it switches the room. */
+    public static final RegistryObject<Item> WORKLIGHT_REMOTE_ITEM = ITEMS.register("worklight_remote",
+            () -> new dev.nano.ndidisplays.item.WorklightRemoteItem(new Item.Properties().stacksTo(1)));
+
     /** Placeable NDI drone: right-click the ground, then fly it from a linked remote. */
     public static final RegistryObject<Item> DRONE_ITEM = ITEMS.register("drone",
             () -> new dev.nano.ndidisplays.item.DroneItem(new Item.Properties().stacksTo(1)));
@@ -547,6 +573,8 @@ public class NdiDisplays {
                         output.accept(SHOULDER_CAMERA_ITEM.get());
                         output.accept(NDI_CONFIG_CARD_ITEM.get());
                         output.accept(HOIST_REMOTE_ITEM.get());
+                        output.accept(WORKLIGHT_ITEM.get());
+                        output.accept(WORKLIGHT_REMOTE_ITEM.get());
                         output.accept(NDI_ROUTER_ITEM.get());
                         output.accept(WEB_TERMINAL_ITEM.get());
                         output.accept(COMPUTER_ITEM.get());

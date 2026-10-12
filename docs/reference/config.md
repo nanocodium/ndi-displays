@@ -80,7 +80,7 @@ Dev / operator overrides. Gradle `runClient` also accepts `-PdebugCapture` and `
 | `ndidisplays.noCapture` | `false` | Disable every rig capture (screens still receive) |
 | `ndidisplays.debugCapture` | `false` | Log each rig's capture geometry once |
 | `ndidisplays.perfLog` | `false` | Log capture cost and delivered feed rates |
-| `ndidisplays.volumetricBeam` | `true` | Extra Lights volumetric beams on flown fixtures |
+| `ndidisplays.volumetricBeam` | `true` | Extra Lights volumetric beams on flown fixtures. Handshake: [Extra Lights](/stage/extra-lights). |
 
 # Server / common config
 

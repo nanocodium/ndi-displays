@@ -40,6 +40,7 @@ Every client pulls NDI itself — no server transcode, no shared texture upload.
 - [Chain Hoist](/blocks/chain-hoist) — fly truss, SEF speakers, scenery
 - [Hoist Remote](/items/hoist-remote) — yellow belly-box, groups, e-stop
 - [Troubleshooting](/guide/troubleshooting) if the picker is empty or walls stay on colour bars
+- [On the same stage](/stage/) — Extra Lights / Theatrical as companions, not a second catalog
 - [For developers](/devs/) — PRs, changelog, interop with Theatrical / Extra Lights / SEF
 
 Wiki: [https://wiki.nailec.fr](https://wiki.nailec.fr)
